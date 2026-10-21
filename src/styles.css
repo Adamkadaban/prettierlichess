@@ -3214,6 +3214,19 @@ html .eval-gauge tick.zero {
 	background: var(--backgroundColor) !important;
 }
 
+.analysis-settings-view {
+	--c-bg-mid: var(--backgroundColor) !important;
+	--c-bg-input: var(--backgroundColor) !important;
+	--c-border: var(--surfaceColorHover) !important;
+	--c-font: var(--textColor) !important;
+	--c-font-dim: var(--textColor) !important;
+	--c-good: var(--primaryColor) !important;
+}
+
+.analysis-settings-view .form-check__label::after {
+	border-color: var(--backgroundColor) !important;
+}
+
 .analyse .mchat,
 #ceval-settings {
 	background: var(--surfaceColor) !important;
