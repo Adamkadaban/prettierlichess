@@ -98,6 +98,34 @@
 				</div>
 			</div>
 
+			<details id="savedProfiles">
+				<summary>Saved Color Profiles</summary>
+				<p
+					>Saved only in this browser. Layout and board mode stay
+					unchanged.</p
+				>
+				<fieldset id="profileControls" disabled>
+					<label for="profileSelect">Choose a profile to apply</label>
+					<select id="profileSelect">
+						<option value="">No saved profiles yet</option>
+					</select>
+					<label for="profileName">Profile name</label>
+					<input id="profileName" type="text" autocomplete="off" />
+					<button class="button" id="saveProfile"
+						>Save Current Colors</button
+					>
+					<div class="profileActions">
+						<button class="button" id="renameProfile" disabled
+							>Rename</button
+						>
+						<button class="button" id="deleteProfile" disabled
+							>Delete</button
+						>
+					</div>
+				</fieldset>
+				<p id="profileStatus" role="status"></p>
+			</details>
+
 			<div id="buttonRow">
 				<div class="button" id="importButton">Import Profile</div>
 				<div class="button" id="exportButton">Export Profile</div>

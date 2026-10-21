@@ -30,6 +30,20 @@ The extension is not published in the Apple Store, but it is possible to get it 
 To install the extension, go to the official website for [Firefox](https://addons.mozilla.org/en-US/firefox/addon/prettier-lichess) or [Chrome](https://chrome.google.com/webstore/detail/prettier-lichess/epgnobcgnmchnhgkgpedebbmhbblfcob). Set Lichess to dark background to have the best compatibility with prettierlichess. \
 With the pop-up you can then customise the colours and choose themes. Have fun!
 
+### Saved color profiles
+
+Expand **Saved Color Profiles** in the popup to name and save your current colors,
+including colors you have imported. Choose a saved profile to apply it immediately;
+use the name field to rename it, or delete it without changing your current colors.
+Profiles include default values for colors you have not customized. Switching
+profiles leaves layout, vertical mode, and the native/custom board preference alone.
+Profiles saved while using a native board use the default custom-board colors.
+
+Saved profiles stay **local to this browser** (not synced between devices), avoiding
+sync storage's per-item size limit. Importing a color JSON or resetting colors does
+not delete them. Export Profile still exports only the current colors, not the saved
+profile collection.
+
 ## Community Themes
 
 Check out the community driven theme library [here](https://github.com/algertc/prettierlichess-themes).

@@ -151,6 +151,64 @@ body {
 	outline: none;
 }
 
+/* Saved color profiles */
+
+#savedProfiles {
+	margin-bottom: 12px !important;
+	font-size: 12px !important;
+}
+
+#savedProfiles summary {
+	padding: 8px 0 !important;
+	cursor: pointer !important;
+	color: #9fc0a2 !important;
+}
+
+#savedProfiles p {
+	margin: 4px 0 12px !important;
+	line-height: 1.5 !important;
+}
+
+#profileControls {
+	padding: 0 !important;
+	margin: 0 !important;
+	border: 0 !important;
+	min-width: 0 !important;
+}
+
+#profileControls label {
+	display: block !important;
+	margin-bottom: 4px !important;
+}
+
+#profileSelect,
+#profileName {
+	box-sizing: border-box !important;
+	width: 100% !important;
+	padding: 8px !important;
+	margin-bottom: 8px !important;
+	background-color: #272a2c !important;
+	border: 2px solid #404246 !important;
+	border-radius: 8px !important;
+	color: white !important;
+	font: inherit !important;
+}
+
+.profileActions {
+	display: flex !important;
+	margin-top: 8px !important;
+}
+
+#profileControls .button:disabled {
+	opacity: 0.5 !important;
+	cursor: default !important;
+	transform: none !important;
+}
+
+#profileStatus:empty {
+	display: none !important;
+}
+
 /* Picker Styles Overrides */
 
 input[type='color'] {
