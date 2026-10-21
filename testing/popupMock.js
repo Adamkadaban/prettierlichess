@@ -24,16 +24,25 @@ const chrome = {
 				}
 				caller(convertedLocalStorage);
 			},
-			set: async function (items) {
+			set: async function (items, caller) {
 				for (let item in items) {
-					await localStorage.setItem(item, items[item]);
+					localStorage.setItem(item, items[item]);
+				}
+				await Promise.resolve();
+				if (caller) {
+					caller();
 				}
 			},
-			clear: async function () {
-				await localStorage.clear();
+			clear: async function (caller) {
+				localStorage.clear();
+				await Promise.resolve();
+				if (caller) {
+					caller();
+				}
 			},
 		},
 	},
+	runtime: {},
 	// The downloads-API is simulated with a HTML element
 	downloads: {
 		download: function (options) {
@@ -64,3 +73,5 @@ const chrome = {
 		},
 	},
 };
+
+window.chrome = chrome;
