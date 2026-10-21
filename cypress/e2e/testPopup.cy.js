@@ -51,6 +51,68 @@ describe('Test color pickrs', () => {
 	});
 });
 
+describe('Test broadcast stylesheet fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 390, nativeMargin: 45},
+		{width: 799, nativeMargin: 57},
+		{width: 800, nativeMargin: 57},
+	].forEach(({width, nativeMargin}) => {
+		it(`Preserves broadcast margin scope at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'broadcast-style-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 900px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html>
+					<html><head>
+						<style>
+							main.is-relay:not(.has-relay-tour) {
+								margin-top: ${nativeMargin}px;
+							}
+						</style>
+						<link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<div id="main-wrap">
+							<main id="game" class="analyse has-players is-relay"></main>
+							<main id="overview" class="analyse has-players is-relay has-relay-tour"></main>
+							<main id="study" class="analyse has-players"></main>
+							<main id="analysis" class="analyse"></main>
+						</div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#broadcast-style-fixture').should(($frame) => {
+				const frame = $frame[0];
+				const doc = frame.contentDocument;
+				const win = frame.contentWindow;
+				const link = doc.querySelector('link[rel="stylesheet"]');
+				expect(link, 'built stylesheet link').to.exist;
+				expect(link.sheet, 'loaded built stylesheet').to.exist;
+				expect(link.sheet.cssRules.length).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+
+				const gameStyle = win.getComputedStyle(
+					doc.getElementById('game')
+				);
+				expect(gameStyle.marginTop).to.equal(`${nativeMargin}px`);
+				expect(gameStyle.overflow).to.equal('visible');
+				if (width < 800) {
+					for (const id of ['overview', 'study', 'analysis']) {
+						const style = win.getComputedStyle(
+							doc.getElementById(id)
+						);
+						expect(style.margin, id).to.equal('0px');
+						expect(style.overflow, id).to.equal('hidden');
+					}
+				}
+			});
+		});
+	});
+});
+
 describe('Test navigation', () => {
 	beforeEach(cy.startup);
 
