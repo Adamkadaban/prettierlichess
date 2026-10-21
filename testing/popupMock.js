@@ -10,14 +10,19 @@ function mockStorage(area) {
 				: !key.startsWith('local:')
 		);
 	}
-	function complete(action, caller) {
+	async function complete(action, caller) {
 		let result;
+		let failure;
 		try {
 			result = action();
 		} catch (error) {
-			chrome.runtime.lastError = {message: error.message};
+			failure = error;
 		}
+		await Promise.resolve();
 		try {
+			if (failure) {
+				chrome.runtime.lastError = {message: failure.message};
+			}
 			caller?.(result);
 		} finally {
 			delete chrome.runtime.lastError;
@@ -55,7 +60,7 @@ function mockStorage(area) {
 			}, caller);
 		},
 		set: function (items, caller) {
-			complete(() => {
+			return complete(() => {
 				for (const key in items) {
 					localStorage.setItem(
 						prefix + key,
@@ -65,7 +70,7 @@ function mockStorage(area) {
 			}, caller);
 		},
 		clear: function (caller) {
-			complete(() => {
+			return complete(() => {
 				for (const key of keys()) localStorage.removeItem(key);
 			}, caller);
 		},

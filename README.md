@@ -45,6 +45,18 @@ sync storage's per-item size limit. Importing a color JSON or resetting colors d
 not delete them. Export Profile still exports only the current colors, not the saved
 profile collection.
 
+### Importing colours
+
+Import a JSON object containing colour names and `#RRGGBB` or `#RRGGBBAA`
+values, for example `{"primaryColor": "#18D329"}`. Invalid JSON or invalid
+values for known colours show an error without changing settings.
+Nonempty objects must contain at least one known colour; extra unknown keys
+alongside known colours are ignored. Omitted colours return to their defaults; an
+empty object restores all default colours. Layout, vertical mode and the
+native-board choice are preserved, with native-board colours kept transparent.
+Imports save a complete palette, so subsequent exports include default colours
+as well (except native-board colours).
+
 ## Community Themes
 
 Check out the community driven theme library [here](https://github.com/algertc/prettierlichess-themes).
