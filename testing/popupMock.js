@@ -61,15 +61,18 @@ const chrome = {
 				}
 				caller(convertedLocalStorage);
 			},
-			set: async function (items) {
+			set: async function (items, caller) {
 				for (let item in items) {
 					await localStorage.setItem(item, items[item]);
 				}
+				if (caller) caller();
 			},
-			clear: async function () {
+			clear: async function (caller) {
 				for (const key of Object.keys(localStorage)) {
-					if (!key.startsWith('local:')) localStorage.removeItem(key);
+					if (!key.startsWith('local:'))
+						await localStorage.removeItem(key);
 				}
+				if (caller) caller();
 			},
 		},
 	},
@@ -103,4 +106,5 @@ const chrome = {
 		},
 	},
 };
+
 window.chrome = chrome;
