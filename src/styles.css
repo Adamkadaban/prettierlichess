@@ -5924,7 +5924,6 @@ body .glowing {
 	#main-wrap .analyse {
 		grid-template-columns: 100% !important;
 		grid-template-rows: auto !important;
-		margin: 0 !important;
 		grid-template-areas:
 			'board         '
 			'controls      '
@@ -5935,8 +5934,19 @@ body .glowing {
 			'chat          '
 			'uchat         ';
 	}
-	.analyse.has-players {
+
+	#main-wrap .analyse:not(.is-relay),
+	#main-wrap .analyse.has-relay-tour {
+		margin: 0 !important;
+	}
+
+	.analyse.has-players:not(.is-relay),
+	.analyse.has-players.has-relay-tour {
 		margin-top: 30px !important;
+	}
+
+	#main-wrap main.is-relay:not(.has-relay-tour) {
+		overflow: visible !important;
 	}
 
 	.analyse__acpl,
