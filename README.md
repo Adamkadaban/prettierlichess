@@ -56,6 +56,8 @@ Check out the community driven theme library [here](https://github.com/algertc/p
 
 ### Setup
 
+Use Node.js 22, 24, or 26+ for the development tools.
+
 Execute this command for the setup to get all packages:
 
 ```

@@ -24,13 +24,15 @@ const chrome = {
 				}
 				caller(convertedLocalStorage);
 			},
-			set: async function (items) {
+			set: async function (items, caller) {
 				for (let item in items) {
 					await localStorage.setItem(item, items[item]);
 				}
+				if (caller) caller();
 			},
-			clear: async function () {
+			clear: async function (caller) {
 				await localStorage.clear();
+				if (caller) caller();
 			},
 		},
 	},
@@ -64,3 +66,5 @@ const chrome = {
 		},
 	},
 };
+
+window.chrome = chrome;
