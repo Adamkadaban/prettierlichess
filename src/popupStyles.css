@@ -46,6 +46,7 @@ body {
 
 .analysisOption input {
 	flex-shrink: 0 !important;
+	accent-color: #9fc0a2 !important;
 }
 
 .analysisOption p {
@@ -55,6 +56,10 @@ body {
 
 .analysisOption p:empty {
 	margin: 0 !important;
+}
+
+#focusedCommentsStatus {
+	color: #f5c276 !important;
 }
 
 /* Tabs */
