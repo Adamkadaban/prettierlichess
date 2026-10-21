@@ -111,6 +111,129 @@ describe('Test broadcast stylesheet fixtures', () => {
 			});
 		});
 	});
+
+	[
+		{width: 390, height: 900},
+		{width: 740, height: 390},
+		{width: 800, height: 900},
+	].forEach(({width, height}) => {
+		it(`Scopes broadcast overview layout at ${width}x${height}`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'broadcast-overview-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: ${height}px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html>
+					<html><head>
+						<style>
+							* { box-sizing: border-box; }
+							body { margin: 0; }
+							main.analyse {
+								display: grid;
+								grid-template-areas: 'board';
+							}
+							main.is-relay.has-relay-tour {
+								grid-template-areas: 'relay-tour' 'side' 'relay-admin';
+							}
+							main.is-relay:not(.has-relay-tour) { margin-top: 57px; }
+							main.is-relay .relay-tour { grid-area: relay-tour; }
+							main.is-relay .relay-tour__side { grid-area: side; }
+							main.is-relay .relay-admin__container { grid-area: relay-admin; }
+							#overview > * { min-width: 12rem; min-height: 4rem; }
+							@media (min-width: 800px), (orientation: landscape) {
+								main.is-relay.has-relay-tour {
+									grid-template-areas: 'relay-tour . side';
+								}
+							}
+						</style>
+						<link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<div id="main-wrap">
+							<main id="overview" class="analyse has-players is-relay has-relay-tour">
+								<aside class="relay-tour__side">Game list</aside>
+								<div class="relay-tour">Round overview</div>
+								<div class="relay-admin__container">Broadcast controls</div>
+							</main>
+							<main id="game" class="analyse has-players is-relay"></main>
+							<main id="study" class="analyse has-players"></main>
+						</div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#broadcast-overview-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const ruleCount =
+					doc.querySelector('link')?.sheet?.cssRules.length || 0;
+				expect(ruleCount, 'loaded built stylesheet').to.be.greaterThan(
+					0
+				);
+				expect(win.innerWidth).to.equal(width);
+				expect(win.innerHeight).to.equal(height);
+
+				const overview = doc.getElementById('overview');
+				const overviewStyle = win.getComputedStyle(overview);
+				const gameStyle = win.getComputedStyle(
+					doc.getElementById('game')
+				);
+				const studyStyle = win.getComputedStyle(
+					doc.getElementById('study')
+				);
+				expect(gameStyle.marginTop).to.equal('57px');
+				expect(gameStyle.overflow).to.equal('visible');
+				expect(studyStyle.marginTop).to.equal('0px');
+				if (width >= 800) {
+					expect(overviewStyle.gridTemplateAreas).to.equal(
+						'"relay-tour . side"'
+					);
+					expect(gameStyle.gridTemplateAreas).to.equal('"board"');
+					expect(studyStyle.gridTemplateAreas).to.equal('"board"');
+					return;
+				}
+
+				const gameAreas = [
+					'board',
+					'controls',
+					'tools',
+					'side',
+					'round-training',
+					'under',
+					'chat',
+					'uchat',
+				]
+					.map((area) => `"${area}"`)
+					.join(' ');
+				expect(gameStyle.gridTemplateAreas).to.equal(gameAreas);
+				expect(studyStyle.gridTemplateAreas).to.equal(gameAreas);
+				expect(studyStyle.overflow).to.equal('hidden');
+				expect(overviewStyle.gridTemplateAreas).to.equal(
+					'"relay-tour" "side" "relay-admin"'
+				);
+				const bounds = overview.getBoundingClientRect();
+				expect(bounds.left).to.be.at.least(0);
+				expect(bounds.right).to.be.at.most(width);
+				let previousBottom = bounds.top;
+				for (const selector of [
+					'.relay-tour',
+					'.relay-tour__side',
+					'.relay-admin__container',
+				]) {
+					const child = overview.querySelector(selector);
+					const rect = child.getBoundingClientRect();
+					expect(rect.width, selector).to.be.greaterThan(0);
+					expect(rect.left, selector).to.be.at.least(bounds.left);
+					expect(rect.right, selector).to.be.at.most(bounds.right);
+					expect(rect.top, selector).to.be.at.least(previousBottom);
+					expect(rect.bottom, selector).to.be.at.most(bounds.bottom);
+					previousBottom = rect.bottom;
+				}
+				expect(overview.scrollWidth).to.be.at.most(
+					overview.clientWidth
+				);
+			});
+		});
+	});
 });
 
 describe('Test navigation', () => {
