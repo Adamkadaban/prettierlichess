@@ -116,6 +116,70 @@ describe('Optional desktop sidebar', () => {
 		cy.get('.pl-sidebar-toggle').should('not.exist');
 	});
 
+	it('Isolates activation keys from document shortcuts without cancelling defaults', () => {
+		startSidebar({collapsibleSidebar: true});
+		cy.get('.pl-sidebar-toggle').then(($button) => {
+			const button = $button[0];
+			const KeyboardEvent =
+				button.ownerDocument.defaultView.KeyboardEvent;
+			// Use a separate document so a regression cannot run live engine shortcuts.
+			const doc =
+				button.ownerDocument.implementation.createHTMLDocument();
+			doc.body.append(button);
+			const shortcuts = [];
+			const phases = ['keydown', 'keypress', 'keyup'];
+			for (const type of phases) {
+				doc.addEventListener(type, (event) => {
+					shortcuts.push(event.key);
+					if (event.key === ' ' || event.key === 'Enter')
+						event.preventDefault();
+				});
+			}
+			for (const key of [' ', 'Enter']) {
+				for (const type of phases) {
+					const event = new KeyboardEvent(type, {
+						key,
+						bubbles: true,
+						cancelable: true,
+					});
+					expect(button.dispatchEvent(event)).to.equal(true);
+					expect(event.defaultPrevented).to.equal(false);
+				}
+			}
+			expect(shortcuts).to.deep.equal([]);
+			expect(button.getAttribute('aria-expanded')).to.equal('true');
+
+			for (const type of phases) {
+				button.dispatchEvent(
+					new KeyboardEvent(type, {key: 'Tab', bubbles: true})
+				);
+			}
+			expect(shortcuts).to.deep.equal(['Tab', 'Tab', 'Tab']);
+
+			shortcuts.length = 0;
+			const otherButton = doc.createElement('button');
+			doc.body.append(otherButton);
+			for (const key of [' ', 'Enter']) {
+				for (const type of phases) {
+					const event = new KeyboardEvent(type, {
+						key,
+						bubbles: true,
+						cancelable: true,
+					});
+					expect(otherButton.dispatchEvent(event)).to.equal(false);
+				}
+			}
+			expect(shortcuts).to.deep.equal([
+				' ',
+				' ',
+				' ',
+				'Enter',
+				'Enter',
+				'Enter',
+			]);
+		});
+	});
+
 	it('Keeps nested study chapters and chat intact while hidden', () => {
 		cy.get('.analyse__side').then(($side) => {
 			$side.append(

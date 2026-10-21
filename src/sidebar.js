@@ -31,6 +31,13 @@
 			button = document.createElement('button');
 			button.type = 'button';
 			button.className = 'pl-sidebar-toggle';
+			// Keep native button activation without invoking page shortcuts.
+			for (const type of ['keydown', 'keypress', 'keyup']) {
+				button.addEventListener(type, (event) => {
+					if (event.key === ' ' || event.key === 'Enter')
+						event.stopPropagation();
+				});
+			}
 			button.addEventListener('click', () => {
 				collapsed = !collapsed;
 				render();
