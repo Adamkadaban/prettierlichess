@@ -54,6 +54,10 @@ re-encoding. Use images you have permission to use.
 Uploading saves a set but **does not enable it**. Select **Uploaded pieces**
 to opt in. A preview helps check the filenames. Missing, duplicate, unreadable
 or invalid files and storage failures leave the previous saved set unchanged.
+Restored images undergo the same complete PNG integrity and decoding checks
+before any override is applied. Invalid saved data falls back to native pieces
+and is reported in the popup; older asynchronous reads cannot replace a newer
+selection.
 Select **Lichess pieces** to restore your native selection, or **Delete upload**
 to remove the saved images. Changes apply to open pages and survive reloads.
 Custom pieces affect 2D pieces, including mini boards, dragging and promotions;
