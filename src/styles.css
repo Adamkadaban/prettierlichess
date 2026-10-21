@@ -655,10 +655,7 @@ cg-container cg-board::after {
 	cursor: grab !important;
 }
 
-piece {
-	pointer-events: auto !important;
-}
-
+cg-board:has(piece.dragging),
 piece.dragging {
 	cursor: grabbing !important;
 }
