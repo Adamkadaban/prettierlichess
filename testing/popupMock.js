@@ -29,8 +29,9 @@ const chrome = {
 					await localStorage.setItem(item, items[item]);
 				}
 			},
-			clear: async function () {
+			clear: async function (callback) {
 				await localStorage.clear();
+				if (callback) callback();
 			},
 		},
 	},

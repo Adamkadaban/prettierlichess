@@ -26,6 +26,7 @@ const importActionButton = document.querySelector('#importAction');
 const resetButton = document.querySelector('#resetButton');
 const importButton = document.querySelector('#importButton');
 const exportButton = document.querySelector('#exportButton');
+const focusedComments = document.querySelector('#focusedComments');
 
 const siteTab = document.querySelector('#siteTab');
 const boardTab = document.querySelector('#boardTab');
@@ -285,6 +286,9 @@ function importScheme(data) {
 			// in the synced memory again after the sync.clear()
 			syncSet('defaultBoardSwitch', true);
 		}
+		if (result['focusedComments'] === true) {
+			syncSet('focusedComments', true);
+		}
 		for (let scheme in defaultColorScheme) {
 			if (json[scheme]) {
 				setColor(scheme, json[scheme]);
@@ -362,6 +366,14 @@ chrome.storage.sync.get('layoutPreference', (result) =>
 document.querySelector('#layoutSelect').addEventListener('change', function () {
 	syncSet('layoutPreference', document.querySelector('#layoutSelect').value);
 	reloadAllTabs();
+});
+
+chrome.storage.sync.get('focusedComments', (result) => {
+	focusedComments.checked = result['focusedComments'] === true;
+});
+
+focusedComments.addEventListener('change', () => {
+	syncSet('focusedComments', focusedComments.checked);
 });
 
 for (let scheme in defaultColorScheme) {

@@ -32,6 +32,27 @@ body {
 	width: 50%;
 }
 
+.analysisOption {
+	margin-bottom: 20px !important;
+	font-size: 12px !important;
+}
+
+.analysisOption label {
+	display: flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	cursor: pointer !important;
+}
+
+.analysisOption input {
+	flex-shrink: 0 !important;
+}
+
+.analysisOption p {
+	margin: 8px 0 0 !important;
+	line-height: 1.5 !important;
+}
+
 /* Tabs */
 
 .tabGroup {

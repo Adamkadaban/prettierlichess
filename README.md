@@ -30,6 +30,30 @@ The extension is not published in the Apple Store, but it is possible to get it 
 To install the extension, go to the official website for [Firefox](https://addons.mozilla.org/en-US/firefox/addon/prettier-lichess) or [Chrome](https://chrome.google.com/webstore/detail/prettier-lichess/epgnobcgnmchnhgkgpedebbmhbblfcob). Set Lichess to dark background to have the best compatibility with prettierlichess. \
 With the pop-up you can then customise the colours and choose themes. Have fun!
 
+### Focus move comments (experimental)
+
+This optional popup checkbox is **off by default**. In analysis and studies it
+shows the selected mainline move's comments instead of all mainline comments.
+Select another move or use Lichess's normal move navigation to read its notes.
+Starting-position notes, variations and their comments, move annotations, and
+native controls remain unchanged. Turn it off to restore all comments immediately,
+without reloading. Reset to Defaults also turns it off; color imports preserve
+your existing choice and cannot opt you in.
+
+The experiment uses the semantic `.tview2-column` / `.tview2-inline` move tree and
+Lichess's `.active` state, not comment text, timers, observers, or custom scrolling.
+It supports multiple comments and both white- and black-move comments. A comment
+containing keyboard focus stays visible until focus leaves it. Lichess's own
+comment-visibility and variation-disclosure settings still take precedence.
+
+This is not an engine-review redesign: there is no separate notes panel or new
+navigation UI. Collapsing comments changes list height and can move rows during
+navigation; native scrolling is not overridden. Column-view placeholder moves and
+repeated move numbers are deliberately retained. Comments have no new move-list
+indicator, so turn the option off when browsing all notes. Browsers without the
+required complex CSS selectors retain the normal view. Chromium runtime checks
+are required; Firefox and Safari have not been verified.
+
 ## Community Themes
 
 Check out the community driven theme library [here](https://github.com/algertc/prettierlichess-themes).

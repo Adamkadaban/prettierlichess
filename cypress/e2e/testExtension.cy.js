@@ -76,4 +76,92 @@ describe('Test whole extension', () => {
 			}
 		});
 	});
+
+	for (const mode of ['column', 'inline']) {
+		it(`Focuses ${mode} comments without hiding variations`, () => {
+			cy.document().then((doc) => {
+				const fixture = doc.createElement('div');
+				fixture.id = 'prettier-test-comments';
+				fixture.className = 'analyse__moves';
+				const whiteComments =
+					'<comment class="white-note"><span>White note</span></comment>' +
+					'<comment class="white-note"><span>Another author</span></comment>';
+				const blackComments =
+					'<comment class="black-note"><a href="#note">Black note</a></comment>';
+				const variations =
+					'<lines><line><move p="v1">d4</move><comment>Variation note</comment>' +
+					'<inline><move p="v2">d5</move><comment>Nested note</comment></inline>' +
+					'</line><line><move p="v3">c4</move><comment>Second variation</comment></line></lines>';
+				fixture.innerHTML =
+					mode === 'column'
+						? `<div class="tview2 tview2-column">
+							<interrupt><comment class="root-note">Starting note</comment></interrupt>
+							<index>1</index><move p="w1" class="active"><san>e4</san><glyph>!</glyph></move>
+							<move class="empty">...</move><interrupt>${whiteComments}${variations}</interrupt>
+							<index>1</index><move class="empty">...</move><move p="b1"><san>e5</san></move>
+							<interrupt>${blackComments}</interrupt>
+							<index>2</index><move p="w2"><san>Nf3</san></move>
+						</div>`
+						: `<div class="tview2 tview2-inline">
+							<comment class="root-note">Starting note</comment>
+							<move p="w1" class="mainline active"><index>1</index>e4<glyph>!</glyph></move>
+							${whiteComments}<interrupt>${variations}</interrupt>
+							<move p="b1" class="mainline">e5</move>${blackComments}
+							<move p="w2" class="mainline"><index>2</index>Nf3</move>
+						</div>`;
+				doc.body.appendChild(fixture);
+			});
+			const tree = '#prettier-test-comments';
+			cy.get(`${tree} comment`).should('be.visible');
+			cy.document().then((doc) =>
+				doc.documentElement.setAttribute(
+					'data-prettier-focused-comments',
+					''
+				)
+			);
+			cy.get(`${tree} .white-note`)
+				.should('be.visible')
+				.should('have.length', 2);
+			cy.get(`${tree} .black-note`).should('not.be.visible');
+
+			cy.get(`${tree} move.active`).invoke('removeClass', 'active');
+			cy.get(`${tree} move[p="b1"]`).invoke('addClass', 'active');
+			cy.get(`${tree} .white-note`).should('not.be.visible');
+			cy.get(`${tree} .black-note`).should('be.visible');
+			cy.get(`${tree} .black-note a`).focus();
+
+			cy.get(`${tree} move.active`).invoke('removeClass', 'active');
+			cy.get(`${tree} move[p="v2"]`).invoke('addClass', 'active');
+			cy.get(`${tree} .black-note`).should('be.visible');
+			cy.get(`${tree} .black-note a`).blur();
+			cy.get(`${tree} .black-note`).should('not.be.visible');
+			cy.get(`${tree} .white-note`).should('not.be.visible');
+			cy.get(`${tree} lines comment`)
+				.should('be.visible')
+				.should('have.length', 3);
+			cy.get(`${tree} move[p]`)
+				.should('be.visible')
+				.should('have.length', 6);
+			cy.get(`${tree} glyph`)
+				.should('be.visible')
+				.should('have.text', '!');
+			cy.get(`${tree} .root-note`).should('be.visible');
+
+			cy.get(`${tree} move.active`).invoke('removeClass', 'active');
+			cy.get(`${tree} move[p="w2"]`).invoke('addClass', 'active');
+			cy.get(`${tree} .white-note`).should('not.be.visible');
+			cy.get(`${tree} .black-note`).should('not.be.visible');
+			cy.get(`${tree} move.active`).invoke('removeClass', 'active');
+			cy.get(`${tree} .white-note`).should('not.be.visible');
+			cy.get(`${tree} .root-note`).should('be.visible');
+			cy.document().then((doc) =>
+				doc.documentElement.removeAttribute(
+					'data-prettier-focused-comments'
+				)
+			);
+			cy.get(`${tree} comment`)
+				.should('be.visible')
+				.should('have.length', 7);
+		});
+	}
 });

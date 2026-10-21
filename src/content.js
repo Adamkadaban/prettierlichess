@@ -317,6 +317,13 @@ chrome.storage.sync.get('layoutPreference', function (result) {
 	}
 });
 
+chrome.storage.sync.get('focusedComments', function (result) {
+	document.documentElement.toggleAttribute(
+		'data-prettier-focused-comments',
+		result['focusedComments'] === true
+	);
+});
+
 // Setup Streamer mode button only runs on match/tv pages
 chrome.storage.sync.get('streamerMode', function (result) {
 	const round = document.querySelector('.round');
@@ -365,6 +372,12 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
 	if (areaName !== 'sync') return;
 	for (const key in changes) {
 		const change = changes[key];
+		if (key === 'focusedComments') {
+			document.documentElement.toggleAttribute(
+				'data-prettier-focused-comments',
+				change.newValue === true
+			);
+		}
 		// Update any color scheme variable immediately
 		if (colorScheme.indexOf(key) !== -1 && change.newValue) {
 			const newColor = change.newValue;

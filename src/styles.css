@@ -3098,6 +3098,36 @@ a.context-streamer:hover {
 	border-top: 2px solid var(--surfaceColorHover) !important;
 }
 
+/* Only mainline comments are filtered; interrupt containers also hold variations. */
+@supports selector(comment:not(move ~ comment)) {
+	html[data-prettier-focused-comments]
+		.analyse__moves
+		.tview2-column
+		> move:not(.active):not(.empty)
+		+ interrupt
+		> comment:not(:focus-within),
+	html[data-prettier-focused-comments]
+		.analyse__moves
+		.tview2-column
+		> move:not(.active):not(.empty)
+		+ move.empty
+		+ interrupt
+		> comment:not(:focus-within),
+	html[data-prettier-focused-comments]
+		.analyse__moves
+		.tview2-inline
+		> move
+		~ comment:not(move.active ~ comment):not(:focus-within),
+	html[data-prettier-focused-comments]
+		.analyse__moves
+		.tview2-inline
+		> move.active
+		~ move
+		~ comment:not(:focus-within) {
+		display: none !important;
+	}
+}
+
 .ceval,
 .analyse__moves .result,
 .analyse__moves .status {

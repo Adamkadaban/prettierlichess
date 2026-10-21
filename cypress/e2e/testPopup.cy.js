@@ -185,6 +185,54 @@ describe('Test storage', () => {
 	});
 });
 
+describe('Test focused comments experiment', () => {
+	beforeEach(cy.startup);
+
+	it('Defaults off and saves only its own setting without reloading', () => {
+		cy.get('#focusedComments').should('not.be.checked');
+		cy.window().then((win) => {
+			win.localStorage.setItem('layoutPreference', 'lichess');
+			win.localStorage.setItem('primaryColor', '#123456');
+			win.localStorage.setItem('defaultBoardSwitch', 'true');
+		});
+		cy.get('#focusedComments').then(($input) => {
+			cy.wrap($input)
+				.check()
+				.then(() => {
+					expect($input[0].isConnected).to.equal(true);
+				});
+		});
+		cy.window().then((win) => {
+			expect(win.localStorage.getItem('focusedComments')).to.equal(
+				'true'
+			);
+			expect(win.localStorage.getItem('layoutPreference')).to.equal(
+				'lichess'
+			);
+			expect(win.localStorage.getItem('primaryColor')).to.equal(
+				'#123456'
+			);
+			expect(win.localStorage.getItem('defaultBoardSwitch')).to.equal(
+				'true'
+			);
+		});
+		cy.reload();
+		cy.get('#focusedComments').should('be.checked').uncheck();
+		cy.reload();
+		cy.get('#focusedComments').should('not.be.checked');
+	});
+
+	it('Preserves the preference during color import but resets it on request', () => {
+		cy.get('#focusedComments').check();
+		cy.inputFile('{"primaryColor":"#18D329","focusedComments":false}');
+		cy.get('#focusedComments').should('be.checked');
+		cy.get('#resetButton').click();
+		cy.get('#focusedComments').should('not.be.checked');
+		cy.inputFile('{"primaryColor":"#18D329","focusedComments":true}');
+		cy.get('#focusedComments').should('not.be.checked');
+	});
+});
+
 describe('Test import/export', () => {
 	beforeEach(cy.startup);
 
@@ -197,6 +245,7 @@ describe('Test import/export', () => {
 		cy.get('.pickr').first().shouldHaveColor('#18D329');
 	});
 	it('Test export', () => {
+		cy.clearLocalStorage();
 		cy.get('.pickr').first().changeColor('#7918D3');
 		cy.get('#exportButton').should('be.visible').click();
 
@@ -223,6 +272,7 @@ describe('Test import/export', () => {
 		cy.get('.pickr').eq(1).shouldHaveColor(Cypress.env('secondaryColor'));
 	});
 	it('Test empty export', () => {
+		cy.clearLocalStorage();
 		const stub = cy.stub();
 		cy.on('window:alert', stub);
 		cy.get('#exportButton').click();
