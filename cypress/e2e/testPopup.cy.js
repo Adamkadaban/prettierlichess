@@ -234,3 +234,214 @@ describe('Test import/export', () => {
 		});
 	});
 });
+
+describe('Test optional custom pieces', () => {
+	const names = [
+		'wK',
+		'wQ',
+		'wR',
+		'wB',
+		'wN',
+		'wP',
+		'bK',
+		'bQ',
+		'bR',
+		'bB',
+		'bN',
+		'bP',
+	];
+	let files;
+
+	function stored(win) {
+		return JSON.parse(win.localStorage.getItem('local:pieceSet'));
+	}
+
+	function upload(selected = files) {
+		cy.get('#pieceFiles').selectFile(selected, {force: true});
+	}
+
+	beforeEach(() => {
+		cy.visit('http://localhost:8000/popup.html?pieces');
+		cy.window().then((win) => {
+			win.localStorage.clear();
+			const canvas = win.document.createElement('canvas');
+			canvas.width = canvas.height = 32;
+			const context = canvas.getContext('2d');
+			context.fillStyle = '#ff0000';
+			context.fillRect(8, 8, 16, 16);
+			const contents = Cypress.Buffer.from(
+				canvas.toDataURL('image/png').split(',')[1],
+				'base64'
+			);
+			files = names.map((name) => ({
+				contents,
+				fileName: `${name}.png`,
+				mimeType: 'image/png',
+			}));
+		});
+		cy.reload();
+		cy.get('#pieceFiles').should('be.enabled');
+	});
+
+	it('Imports atomically, opts in, persists and restores native pieces without changing other settings', () => {
+		cy.window().then((win) => {
+			win.localStorage.setItem('primaryColor', '#123456');
+			win.localStorage.setItem('layoutPreference', 'lichess');
+			win.localStorage.setItem('local:savedProfiles', 'keep me');
+		});
+		cy.get('#pieceSetSelect').should('have.value', 'native');
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
+		cy.get('#pieceSetSelect').should('have.value', 'native');
+		cy.get('#piecePreview img').should('have.length', 12);
+		cy.get('#piecePreview img')
+			.first()
+			.should(($image) => {
+				expect($image[0].naturalWidth).to.eq(32);
+			})
+			.then(($image) => {
+				const canvas = $image[0].ownerDocument.createElement('canvas');
+				canvas.width = canvas.height = 32;
+				const context = canvas.getContext('2d');
+				context.drawImage($image[0], 0, 0);
+				expect(context.getImageData(0, 0, 1, 1).data[3]).to.eq(0);
+				expect(context.getImageData(10, 10, 1, 1).data[3]).to.eq(255);
+			});
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.reload();
+		cy.get('#pieceSetSelect').should('have.value', 'uploaded');
+		cy.get('#pieceSetSelect').select('native');
+		cy.window().should((win) => {
+			expect(stored(win).selection).to.eq('native');
+			expect(Object.keys(stored(win).uploaded)).to.have.length(12);
+			expect(win.localStorage.getItem('primaryColor')).to.eq('#123456');
+			expect(win.localStorage.getItem('layoutPreference')).to.eq(
+				'lichess'
+			);
+			expect(win.localStorage.getItem('local:savedProfiles')).to.eq(
+				'keep me'
+			);
+		});
+		cy.get('#deletePieces').click();
+		cy.window().should((win) => expect(stored(win).uploaded).to.eq(null));
+		cy.get('#piecePreview img').should('not.exist');
+	});
+
+	it('Rejects incomplete, duplicate, disguised, oversized and damaged PNGs without replacing the active set', () => {
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.window().then((win) => {
+			const previous = stored(win);
+			const tooWide = Cypress.Buffer.from(files[0].contents);
+			tooWide.writeUInt32BE(1024, 16);
+			const animated = Cypress.Buffer.concat([
+				files[0].contents.subarray(0, 33),
+				Cypress.Buffer.from([
+					0, 0, 0, 8, 97, 99, 84, 76, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+					0,
+				]),
+				files[0].contents.subarray(33),
+			]);
+			const invalid = [
+				files.slice(0, 11),
+				[files[1], ...files.slice(1)],
+				[
+					{...files[0], contents: Cypress.Buffer.from('<svg/>')},
+					...files.slice(1),
+				],
+				[
+					{
+						...files[0],
+						contents: Cypress.Buffer.alloc(128 * 1024 + 1),
+					},
+					...files.slice(1),
+				],
+				[
+					{
+						...files[0],
+						contents: files[0].contents.subarray(0, 24),
+					},
+					...files.slice(1),
+				],
+				[{...files[0], contents: tooWide}, ...files.slice(1)],
+				[{...files[0], contents: animated}, ...files.slice(1)],
+			];
+			for (const selected of invalid) {
+				upload(selected);
+				cy.get('#pieceStatus').should(
+					'have.attr',
+					'data-error',
+					'true'
+				);
+				cy.window().should((current) =>
+					expect(stored(current)).to.deep.eq(previous)
+				);
+				cy.get('#pieceSetSelect').should('have.value', 'uploaded');
+			}
+			cy.then(() => {
+				cy.stub(
+					win.FileReader.prototype,
+					'readAsArrayBuffer'
+				).callsFake(function () {
+					this.onerror();
+				});
+			});
+			upload();
+			cy.get('#pieceStatus').should('contain.text', 'Could not read');
+			cy.window().should((current) =>
+				expect(stored(current)).to.deep.eq(previous)
+			);
+		});
+	});
+
+	it('Shows storage failures and keeps the previous set', () => {
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.window().then((win) => {
+			win.pieceStorageError = true;
+		});
+		cy.get('#pieceSetSelect').select('native');
+		cy.get('#pieceStatus').should('contain.text', 'Could not save');
+		cy.get('#pieceSetSelect').should('have.value', 'uploaded');
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Could not save');
+		cy.window().should((win) =>
+			expect(stored(win).selection).to.eq('uploaded')
+		);
+	});
+
+	it('Updates rendered pieces live, includes promotions and mini boards, and leaves 3D native', () => {
+		cy.document().then((doc) => {
+			doc.body.classList.add('is2d');
+			const board = doc.createElement('div');
+			board.innerHTML =
+				'<cg-board><piece class="white king"></piece></cg-board><div class="mini-board orientation-black"><cg-board><piece class="black knight"></piece></cg-board></div><div id="promotion-choice"><piece class="white queen"></piece></div>';
+			doc.body.appendChild(board);
+			const script = doc.createElement('script');
+			script.src = 'pieceContent.js';
+			return new Cypress.Promise((resolve, reject) => {
+				script.onload = resolve;
+				script.onerror = reject;
+				doc.head.appendChild(script);
+			});
+		});
+		cy.get('#prettierlichess-pieces').should('not.exist');
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
+		cy.get('#prettierlichess-pieces').should('not.exist');
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.get('piece').each(($piece) => {
+			expect($piece.css('background-image')).to.include(
+				'data:image/png;base64,'
+			);
+		});
+		cy.document().then((doc) => doc.body.classList.replace('is2d', 'is3d'));
+		cy.get('piece').should('have.css', 'background-image', 'none');
+		cy.document().then((doc) => doc.body.classList.replace('is3d', 'is2d'));
+		cy.get('#pieceSetSelect').select('native');
+		cy.get('#prettierlichess-pieces').should('not.exist');
+		cy.get('piece').should('have.css', 'background-image', 'none');
+	});
+});

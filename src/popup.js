@@ -426,3 +426,125 @@ importButton.addEventListener('click', () => {
 importActionButton.addEventListener('click', () => {
 	importScheme(basicImportInput.value.trim());
 });
+
+function setupCustomPieces() {
+	const select = document.querySelector('#pieceSetSelect');
+	const files = document.querySelector('#pieceFiles');
+	const remove = document.querySelector('#deletePieces');
+	const status = document.querySelector('#pieceStatus');
+	const preview = document.querySelector('#piecePreview');
+	let state = pieceSets.empty();
+	let busy = true;
+	let ready = false;
+	let changed = false;
+
+	function report(message, error = false) {
+		status.textContent = message;
+		status.dataset.error = String(error);
+	}
+
+	function render() {
+		select.value = state.selection;
+		select.disabled = files.disabled = busy || !ready;
+		select.querySelector('[value="uploaded"]').disabled = !state.uploaded;
+		remove.disabled = busy || !ready || !state.uploaded;
+		preview.replaceChildren();
+		if (state.uploaded) {
+			for (const name of pieceSets.names) {
+				const image = document.createElement('img');
+				image.src = state.uploaded[name];
+				image.alt = name;
+				preview.appendChild(image);
+			}
+		}
+	}
+
+	function save(next, message) {
+		busy = true;
+		render();
+		chrome.storage.local.set({[pieceSets.key]: next}, () => {
+			busy = false;
+			if (chrome.runtime.lastError) {
+				report(
+					'Could not save pieces. Your previous set is unchanged. Free extension storage and try again.',
+					true
+				);
+			} else {
+				state = next;
+				report(message);
+			}
+			render();
+		});
+	}
+
+	chrome.storage.onChanged.addListener((changes, area) => {
+		if (area !== 'local' || !changes[pieceSets.key]) return;
+		changed = true;
+		const next = changes[pieceSets.key].newValue;
+		state = pieceSets.valid(next) ? next : pieceSets.empty();
+		render();
+	});
+	chrome.storage.local.get(pieceSets.key, (result) => {
+		busy = false;
+		if (chrome.runtime.lastError) {
+			report(
+				'Could not read local piece storage. Reopen this popup to try again.',
+				true
+			);
+		} else {
+			ready = true;
+			if (
+				!changed &&
+				result[pieceSets.key] &&
+				!pieceSets.valid(result[pieceSets.key])
+			) {
+				report(
+					'Saved pieces are invalid. Lichess pieces are used; upload a complete set again.',
+					true
+				);
+			} else if (!changed) {
+				state = result[pieceSets.key] || pieceSets.empty();
+			}
+		}
+		render();
+	});
+
+	select.addEventListener('change', () => {
+		save(
+			{...state, selection: select.value},
+			select.value === 'native'
+				? 'Lichess pieces restored.'
+				: 'Uploaded pieces enabled on 2D boards.'
+		);
+	});
+
+	files.addEventListener('change', async () => {
+		if (!files.files.length || busy || !ready) return;
+		busy = true;
+		render();
+		report('Checking all 12 pieces…');
+		try {
+			const next = await pieceSets.importFiles(files.files);
+			save(next, 'Upload saved. Select Uploaded pieces to apply it.');
+		} catch (error) {
+			busy = false;
+			report(
+				error.message || 'Could not import pieces. Please try again.',
+				true
+			);
+			render();
+		} finally {
+			files.value = '';
+		}
+	});
+
+	remove.addEventListener('click', () => {
+		save(pieceSets.empty(), 'Upload deleted. Lichess pieces restored.');
+	});
+}
+
+setupCustomPieces();
+if (new URLSearchParams(location.search).has('pieces')) {
+	focusBoardTab();
+	document.querySelector('#customPiecesGroup').open = true;
+}
