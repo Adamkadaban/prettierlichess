@@ -17,6 +17,7 @@ describe('Test whole extension', () => {
 		);
 	});
 	it('Opens navigation menus added after page load', () => {
+		cy.viewport(1280, 800);
 		cy.document().then((doc) => {
 			const section = doc.createElement('section');
 			section.id = 'prettier-test-menu';
