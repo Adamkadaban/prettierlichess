@@ -1046,7 +1046,12 @@ nav section a:target-within {
 	backdrop-filter: blur(16px) !important;
 }
 
-#topnav div.topnavHover {
+#topnav.hover section:hover > div,
+#topnav section:active > div,
+#topnav section.active > div,
+#topnav section:focus-within > div {
+	visibility: visible !important;
+	max-height: none !important;
 	opacity: 1 !important;
 	margin-top: 0 !important;
 	clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%) !important;

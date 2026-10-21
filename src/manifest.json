@@ -14,12 +14,6 @@
 			"css": ["styles.css"],
 			"js": ["content.js"],
 			"all_frames": true
-		},
-		{
-			"matches": ["*://lichess.org/*"],
-			"run_at": "document_idle",
-			"js": ["postLoad.js"],
-			"all_frames": true
 		}
 	],
 	"action": {

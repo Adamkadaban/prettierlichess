@@ -16,6 +16,24 @@ describe('Test whole extension', () => {
 			'rgb(39, 42, 44)'
 		);
 	});
+	it('Opens navigation menus added after page load', () => {
+		cy.document().then((doc) => {
+			const section = doc.createElement('section');
+			section.id = 'prettier-test-menu';
+			section.innerHTML =
+				'<a href="#menu">Extra menu</a> \n' +
+				'<div role="group"><a href="/analysis">Analysis</a></div>';
+			doc.querySelector('#topnav').appendChild(section);
+		});
+		cy.get('#prettier-test-menu > a').focus();
+		cy.get('#prettier-test-menu > div')
+			.should('be.visible')
+			.should('have.css', 'opacity', '1');
+		cy.get('#prettier-test-menu > div > a').focus();
+		cy.get('#prettier-test-menu > div').should('be.visible');
+		cy.get('#prettier-test-menu > div > a').blur();
+		cy.get('#prettier-test-menu > div').should('have.css', 'opacity', '0');
+	});
 	it('Test vertical layout button', () => {
 		cy.visit('https://lichess.org/tv');
 		cy.get('.ruser.ruser-top')
