@@ -269,6 +269,7 @@ describe('Test import/export', () => {
 			win.localStorage.setItem('defaultBoardSwitch', 'true');
 			original = {...win.localStorage};
 			cy.stub(win, 'alert').as('importError');
+			cy.spy(win.chrome.storage.sync, 'get').as('read');
 			cy.spy(win.chrome.storage.sync, 'set').as('save');
 			cy.spy(win.chrome.storage.sync, 'clear').as('clear');
 			cy.spy(win.chrome.tabs, 'query').as('reloadTabs');
@@ -280,6 +281,8 @@ describe('Test import/export', () => {
 			'[]',
 			'"#123456"',
 			'42',
+			'{"colors": {"primaryColor": "#18D329"}}',
+			'{"primaryColour": "#18D329"}',
 			'{"primaryColor": "#123"}',
 			'{"primaryColor": "#1234"}',
 			'{"primaryColor": "#12345g"}',
@@ -302,6 +305,7 @@ describe('Test import/export', () => {
 			'have.been.calledWithMatch',
 			'Invalid color scheme'
 		);
+		cy.get('@read').should('not.have.been.called');
 		cy.get('@save').should('not.have.been.called');
 		cy.get('@clear').should('not.have.been.called');
 		cy.get('@reloadTabs').should('not.have.been.called');

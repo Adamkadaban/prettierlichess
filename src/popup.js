@@ -275,6 +275,7 @@ function importScheme(data) {
 		if (!json || typeof json !== 'object' || Array.isArray(json)) {
 			throw new Error('Expected a color object');
 		}
+		let hasColor = false;
 		for (const scheme in defaultColorScheme) {
 			if (Object.prototype.hasOwnProperty.call(json, scheme)) {
 				if (
@@ -284,7 +285,11 @@ function importScheme(data) {
 					throw new Error('Invalid color');
 				}
 				colors[scheme] = json[scheme];
+				hasColor = true;
 			}
+		}
+		if (!hasColor && Object.keys(json).length > 0) {
+			throw new Error('Expected at least one known color');
 		}
 	} catch {
 		alert(
