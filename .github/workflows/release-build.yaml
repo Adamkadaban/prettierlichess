@@ -4,93 +4,101 @@ on:
   release:
     types: [ published ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
-
-      - name: Set up npm cache
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          ref: ${{ github.ref }}
+          persist-credentials: false
 
       - name: Setup Node.js and npm
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 18
-          cache: 'npm'
+          node-version: 24
+          package-manager-cache: false
 
       - run: npm install
 
       - name: Build the release version
-        run: |
-          npm run build
-          cd dist
-          zip -r build.zip .
-          cd ..
+        run: npm run build
 
-      - name: Upload build version as artifact
-        uses: actions/upload-artifact@v3
+      - name: Package the browser builds
+        run: |
+          (cd dist-chrome && zip -r ../build.zip .)
+          (cd dist-firefox && zip -r ../build-firefox.zip .)
+
+      - name: Upload Chrome build as artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: build-version
-          path: ./dist/build.zip
+          path: ./build.zip
+          if-no-files-found: error
+
+      - name: Upload Firefox build as artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: build-firefox-version
+          path: ./build-firefox.zip
+          if-no-files-found: error
 
   bundle-source:
     name: Bundle source code
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.ref }}
+          persist-credentials: false
 
       - name: Bundle the source files
-        run: zip -r sourcecode.zip $(<'sourcelist.txt')
+        run: git archive --format=zip --output=sourcecode.zip HEAD
 
       - name: Upload source code as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sourcecode
           path: ./sourcecode.zip
+          if-no-files-found: error
 
   upload:
     name: Upload build to github release
     needs: [ build, bundle-source ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download build version
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: build-version
           path: .
 
+      - name: Download Firefox build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: build-firefox-version
+          path: .
+
       - name: Download source code
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: sourcecode
           path: .
 
-      - name: Upload build to release
-        uses: svenstaro/upload-release-action@cc92c9093e5f785e23a3d654fe2671640b851b5f
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./build.zip
-          tag: ${{ github.ref }}
-          overwrite: true
-
-      - name: Upload sourcecode to release
-        uses: svenstaro/upload-release-action@cc92c9093e5f785e23a3d654fe2671640b851b5f
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./sourcecode.zip
-          tag: ${{ github.ref }}
-          overwrite: true
+      - name: Upload builds and sourcecode to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release upload --clobber -- "$RELEASE_TAG" ./build.zip ./build-firefox.zip ./sourcecode.zip
 
   publish-firefox:
     name: Publish for Firefox
@@ -103,9 +111,9 @@ jobs:
 
     steps:
       - name: Download build version
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: build-version
+          name: build-firefox-version
           path: .
 
   publish-chrome:
@@ -119,7 +127,7 @@ jobs:
 
     steps:
       - name: Download build version
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: build-version
           path: .

@@ -5,61 +5,74 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  contents: read
+
 jobs:
   lint-source:
-    name: Lint source
+    name: Lint Firefox source
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up npm cache
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.npm
           key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Setup Node.js and npm
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '20.x'
+          node-version: 24
           cache: 'npm'
 
-      - run: npm install
+      - run: npm ci
+
+      - name: Use Firefox manifest for source lint
+        run: cp ./src/manifest.firefox.json ./src/manifest.json
 
       - name: Run web-ext lint
-        run: |
-          cd ./src/
-          npm install --global web-ext
-          web-ext lint
+        run: ./node_modules/.bin/web-ext lint --source-dir ./src
 
   lint-build:
-    name: Lint build
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chrome
+            name: Build Chrome
+          - browser: firefox
+            name: Build and lint Firefox
 
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up npm cache
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.npm
           key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Setup Node.js and npm
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '20.x'
+          node-version: 24
           cache: 'npm'
 
-      - run: npm install
+      - run: npm ci
 
-      - run: npm run build
+      - run: npm run build:${{ matrix.browser }}
 
-      - name: Run web-ext lint
-        run: |
-          cd ./dist/
-          npm install --global web-ext
-          web-ext lint
+      - name: Run web-ext lint on Firefox build
+        if: matrix.browser == 'firefox'
+        run: ./node_modules/.bin/web-ext lint --source-dir ./dist-firefox

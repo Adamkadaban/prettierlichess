@@ -30,6 +30,18 @@ The extension is not published in the Apple Store, but it is possible to get it 
 To install the extension, go to the official website for [Firefox](https://addons.mozilla.org/en-US/firefox/addon/prettier-lichess) or [Chrome](https://chrome.google.com/webstore/detail/prettier-lichess/epgnobcgnmchnhgkgpedebbmhbblfcob). Set Lichess to dark background to have the best compatibility with prettierlichess. \
 With the pop-up you can then customise the colours and choose themes. Have fun!
 
+### Importing colours
+
+Import a JSON object containing colour names and `#RRGGBB` or `#RRGGBBAA`
+values, for example `{"primaryColor": "#18D329"}`. Invalid JSON or invalid
+values for known colours show an error without changing settings.
+Nonempty objects must contain at least one known colour; extra unknown keys
+alongside known colours are ignored. Omitted colours return to their defaults; an
+empty object restores all default colours. Layout, vertical mode and the
+native-board choice are preserved, with native-board colours kept transparent.
+Imports save a complete palette, so subsequent exports include default colours
+as well (except native-board colours).
+
 ## Community Themes
 
 Check out the community driven theme library [here](https://github.com/algertc/prettierlichess-themes).
@@ -37,6 +49,8 @@ Check out the community driven theme library [here](https://github.com/algertc/p
 ## Development workflow
 
 ### Setup
+
+Use Node.js 22, 24, or 26+ for the development tools.
 
 Execute this command for the setup to get all packages:
 
