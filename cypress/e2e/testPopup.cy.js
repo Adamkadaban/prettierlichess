@@ -269,7 +269,7 @@ describe('Test optional custom pieces', () => {
 	}
 
 	function upload(selected = files) {
-		cy.get('#pieceFiles').selectFile(selected, {force: true});
+		cy.get('#pieceFiles').should('be.enabled').selectFile(selected);
 	}
 
 	function mountPieces() {
@@ -385,41 +385,85 @@ describe('Test optional custom pieces', () => {
 				files[0].contents.subarray(33),
 			]);
 			const invalid = [
-				files.slice(0, 11),
-				[files[1], ...files.slice(1)],
-				[
-					{...files[0], contents: Cypress.Buffer.from('<svg/>')},
-					...files.slice(1),
-				],
-				[
-					{
-						...files[0],
-						contents: Cypress.Buffer.alloc(128 * 1024 + 1),
-					},
-					...files.slice(1),
-				],
-				[
-					{
-						...files[0],
-						contents: files[0].contents.subarray(0, 24),
-					},
-					...files.slice(1),
-				],
-				[{...files[0], contents: tooWide}, ...files.slice(1)],
-				[{...files[0], contents: animated}, ...files.slice(1)],
+				{
+					name: 'missing bP.png',
+					selected: files.slice(0, 11),
+					message: 'Choose all 12 PNG files',
+				},
+				{
+					name: 'duplicate wQ.png',
+					selected: [files[1], ...files.slice(1)],
+					message: 'Use each documented filename exactly once',
+				},
+				{
+					name: 'SVG disguised as PNG',
+					selected: [
+						{...files[0], contents: Cypress.Buffer.from('<svg/>')},
+						...files.slice(1),
+					],
+					message: 'Only PNG images are supported',
+				},
+				{
+					name: 'file exceeds 128 KiB',
+					selected: [
+						{
+							...files[0],
+							contents: Cypress.Buffer.alloc(128 * 1024 + 1),
+						},
+						...files.slice(1),
+					],
+					message: 'no larger than 128 KiB',
+				},
+				{
+					name: 'truncated PNG header',
+					selected: [
+						{
+							...files[0],
+							contents: files[0].contents.subarray(0, 24),
+						},
+						...files.slice(1),
+					],
+					message: 'Incomplete PNG data',
+				},
+				{
+					name: '1024-pixel PNG width',
+					selected: [
+						{...files[0], contents: tooWide},
+						...files.slice(1),
+					],
+					message: 'Each PNG must be square',
+				},
+				{
+					name: 'animated PNG',
+					selected: [
+						{...files[0], contents: animated},
+						...files.slice(1),
+					],
+					message: 'Animated PNGs are not supported',
+				},
 			];
-			for (const selected of invalid) {
+			for (const {name, selected, message} of invalid) {
+				cy.log(name);
 				upload(selected);
+				cy.get('#pieceStatus')
+					.should('be.visible')
+					.and(($status) => {
+						expect($status.attr('data-error'), name).to.eq('true');
+						expect($status.text(), name).to.include(message);
+					});
+				cy.window().should((current) =>
+					expect(stored(current), name).to.deep.eq(previous)
+				);
+				cy.get('#pieceSetSelect')
+					.should('be.enabled')
+					.and('have.value', 'uploaded');
 				cy.get('#pieceStatus').should(
 					'have.attr',
 					'data-error',
 					'true'
 				);
-				cy.window().should((current) =>
-					expect(stored(current)).to.deep.eq(previous)
-				);
-				cy.get('#pieceSetSelect').should('have.value', 'uploaded');
 			}
+			cy.log('file read failure');
 			cy.then(() => {
 				cy.stub(
 					win.FileReader.prototype,
@@ -429,7 +473,10 @@ describe('Test optional custom pieces', () => {
 				});
 			});
 			upload();
-			cy.get('#pieceStatus').should('contain.text', 'Could not read');
+			cy.get('#pieceStatus')
+				.should('be.visible')
+				.and('have.attr', 'data-error', 'true')
+				.and('contain.text', 'Could not read');
 			cy.window().should((current) =>
 				expect(stored(current)).to.deep.eq(previous)
 			);
