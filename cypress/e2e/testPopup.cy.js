@@ -18,6 +18,93 @@ const NAMES = [
 	'alternateArrowColor',
 ];
 
+describe('Test native board coordinates', () => {
+	it('Follows scoped native colors and restores custom colors', () => {
+		cy.startup();
+		const build =
+			Cypress.browser.name === 'firefox' ? 'dist-firefox' : 'dist-chrome';
+		cy.readFile(`${build}/styles.css`).then((styles) => {
+			cy.readFile(`${build}/content.js`).then((content) => {
+				cy.document().then((doc) => {
+					const frame = doc.createElement('iframe');
+					doc.body.appendChild(frame);
+					const win = frame.contentWindow;
+					const page = win.document;
+					page.body.className = 'coords-in';
+					page.body.innerHTML =
+						'<div class="is2d"><div class="cg-wrap orientation-white">' +
+						'<coords class="files" style="---cg-ccb: #123456; ---cg-ccw: #abcdef">' +
+						'<coord></coord><coord></coord></coords><cg-resize></cg-resize></div></div>';
+					const style = page.createElement('style');
+					style.textContent = styles;
+					page.head.appendChild(style);
+					let storageChanged;
+					win.chrome = {
+						storage: {
+							sync: {
+								get: (request, callback) =>
+									callback({
+										boardDark: '#112233',
+										boardLight: '#ddeeff',
+										defaultBoardSwitch: true,
+										layoutPreference: 'lichess',
+									}),
+							},
+							onChanged: {
+								addListener: (listener) => {
+									storageChanged = listener;
+								},
+							},
+						},
+						runtime: {onMessage: {addListener() {}}},
+					};
+					const script = page.createElement('script');
+					script.textContent = content;
+					page.body.appendChild(script);
+					const colors = () =>
+						Array.from(
+							page.querySelectorAll('coord'),
+							(coord) => win.getComputedStyle(coord).color
+						);
+					expect(colors()).to.deep.equal([
+						'rgb(171, 205, 239)',
+						'rgb(18, 52, 86)',
+					]);
+					const resize = page.querySelector('cg-resize');
+					expect(
+						win.getComputedStyle(resize, '::before').backgroundColor
+					).to.equal(win.getComputedStyle(resize).color);
+					page.querySelector('.cg-wrap').className =
+						'cg-wrap orientation-black';
+					expect(colors()).to.deep.equal([
+						'rgb(18, 52, 86)',
+						'rgb(171, 205, 239)',
+					]);
+					page.querySelector('coords').style.setProperty(
+						'---cg-ccb',
+						'#654321'
+					);
+					expect(colors()[0]).to.equal('rgb(101, 67, 33)');
+					page.querySelector('.is2d').className = 'is3d';
+					expect(colors()).to.deep.equal([
+						'rgb(255, 255, 255)',
+						'rgb(255, 255, 255)',
+					]);
+					storageChanged(
+						{defaultBoardSwitch: {newValue: false}},
+						'sync'
+					);
+					expect(colors()).to.deep.equal([
+						'rgb(17, 34, 51)',
+						'rgb(221, 238, 255)',
+					]);
+					frame.remove();
+				});
+			});
+		});
+	});
+});
+
 describe('Test color pickrs', () => {
 	beforeEach(cy.startup);
 
