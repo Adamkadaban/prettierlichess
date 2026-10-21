@@ -5615,7 +5615,7 @@ body.blind-mode #top .pl-sidebar-toggle {
 }
 
 @media (min-width: 1261px) {
-	.pl-sidebar-collapsed
+	html[data-pl-sidebar-collapsed]
 		body:not(.zen):not(.blind-mode)
 		#main-wrap
 		> main.analyse:not(.is-relay):not(.has-relay-tour) {
@@ -5624,7 +5624,7 @@ body.blind-mode #top .pl-sidebar-toggle {
 			calc(4 * var(---block-gap)) minmax(240px, 400px) !important;
 	}
 
-	.pl-sidebar-collapsed
+	html[data-pl-sidebar-collapsed]
 		body:not(.zen):not(.blind-mode)
 		#main-wrap
 		> main.round {
@@ -5634,7 +5634,7 @@ body.blind-mode #top .pl-sidebar-toggle {
 			) !important;
 	}
 
-	.pl-sidebar-collapsed
+	html[data-pl-sidebar-collapsed]
 		body:not(.zen):not(.blind-mode)
 		#main-wrap
 		> main.round
@@ -5642,12 +5642,12 @@ body.blind-mode #top .pl-sidebar-toggle {
 		grid-column: 2 / -1 !important;
 	}
 
-	.pl-sidebar-collapsed
+	html[data-pl-sidebar-collapsed]
 		body:not(.zen):not(.blind-mode)
 		#main-wrap
 		> main.analyse:not(.is-relay):not(.has-relay-tour)
 		> :is(.analyse__side, .mchat, .chat__members),
-	.pl-sidebar-collapsed
+	html[data-pl-sidebar-collapsed]
 		body:not(.zen):not(.blind-mode)
 		#main-wrap
 		> main.round

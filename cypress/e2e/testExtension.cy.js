@@ -55,7 +55,7 @@ describe('Optional desktop sidebar', () => {
 		});
 		startSidebar();
 		cy.get('.pl-sidebar-toggle').should('not.exist');
-		cy.get('html').should('not.have.class', 'pl-sidebar-collapsed');
+		cy.get('html').should('not.have.attr', 'data-pl-sidebar-collapsed');
 		cy.then(() => changeSettings({collapsibleSidebar: true}));
 		cy.get('.pl-sidebar-toggle')
 			.should('have.attr', 'aria-expanded', 'true')
@@ -98,6 +98,42 @@ describe('Optional desktop sidebar', () => {
 		cy.then(() => changeSettings({collapsibleSidebar: true}));
 		cy.get('.analyse__side').should('not.be.visible');
 		cy.get('.pl-sidebar-toggle').should('be.visible');
+	});
+
+	it('Keeps the saved collapse through reload and native class reconstruction', () => {
+		cy.visit('https://lichess.org/analysis/pgn/1.e4_e5_2.Nf3_Nc6_3.Bb5_a6');
+		cy.window().its('site.analysis').should('exist');
+		startSidebar({collapsibleSidebar: true});
+		cy.get('.pl-sidebar-toggle').click();
+		cy.get('.analyse__side').should('not.be.visible');
+		cy.then(() => expect(settings.sidebarCollapsed).to.equal(true));
+		cy.reload();
+		cy.window().its('site.analysis').should('exist');
+		let nativeRootClasses;
+		let side;
+		cy.document().then((doc) => {
+			nativeRootClasses = doc.documentElement.className;
+			side = doc.querySelector('.analyse__side');
+		});
+		// Reuse the saved mock settings in the new page, not extension storage.
+		cy.then(() => startSidebar(settings));
+		cy.get('.analyse__side').should('not.be.visible');
+		cy.document().then((doc) => {
+			doc.querySelector('main.analyse').className =
+				'analyse variant-standard analyse--wiki';
+			doc.documentElement.className = nativeRootClasses;
+		});
+		cy.get('.pl-sidebar-toggle')
+			.should('have.text', 'Show sidebar')
+			.should('have.attr', 'aria-expanded', 'false');
+		cy.get('.analyse__side')
+			.should('not.be.visible')
+			.then(($side) => expect($side[0]).to.equal(side));
+		cy.get('html').should('have.attr', 'data-pl-sidebar-collapsed');
+		cy.then(() => changeSettings({collapsibleSidebar: false}));
+		cy.get('html').should('not.have.attr', 'data-pl-sidebar-collapsed');
+		cy.get('.analyse__side').should('be.visible');
+		cy.get('.pl-sidebar-toggle').should('not.exist');
 	});
 
 	it('Preserves focus when another page collapses a focused sidebar', () => {

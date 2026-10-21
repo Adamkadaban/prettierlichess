@@ -59,7 +59,10 @@
 			);
 			if (focusedSide) button.focus();
 		}
-		root.classList.toggle('pl-sidebar-collapsed', active && collapsed);
+		// Lichess rebuilds native class lists during initialization and redraws.
+		if (active && collapsed)
+			root.setAttribute('data-pl-sidebar-collapsed', '');
+		else root.removeAttribute('data-pl-sidebar-collapsed');
 		if (!enabled && button) {
 			button.remove();
 			button = undefined;
