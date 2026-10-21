@@ -195,6 +195,7 @@ profileSelect.addEventListener('change', async () => {
 		await profileStorage('sync', 'set', colors);
 		for (const scheme in colors) {
 			pickrs[scheme]?.setColor(colors[scheme], true);
+			pickrs[scheme]?.applyColor(true);
 		}
 		profileStatus.textContent = `Applied “${name}”.`;
 	});

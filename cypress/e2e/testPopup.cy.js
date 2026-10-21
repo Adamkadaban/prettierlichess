@@ -257,6 +257,56 @@ describe('Test saved color profiles', () => {
 		return JSON.parse(win.localStorage.getItem('local:savedColorProfiles'));
 	}
 
+	it('Restores rendered arrow defaults from a fresh-storage snapshot', () => {
+		cy.request('http://localhost:8000/styles.css').then(({body}) => {
+			const secondary = body
+				.match(/--arrowSecondary:\s*(#[0-9a-f]+)/i)[1]
+				.toUpperCase();
+			const tertiary = body
+				.match(/--arrowTertiary:\s*(#[0-9a-f]+)/i)[1]
+				.toUpperCase();
+			cy.window().then((win) => {
+				expect(win.localStorage.getItem('arrowSecondary')).to.equal(
+					null
+				);
+				expect(win.localStorage.getItem('arrowTertiary')).to.equal(
+					null
+				);
+			});
+			openProfiles();
+			saveProfile('Original defaults');
+			cy.get('#boardTab').click();
+			cy.get('.pickr').eq(14).shouldHaveColor(secondary);
+			cy.get('.pickr').eq(15).shouldHaveColor(tertiary);
+			cy.get('.pickr').eq(14).changeColor('#112233');
+			cy.get('.pickr').eq(15).changeColor('#445566');
+			saveProfile('Changed arrows');
+			cy.window().then((win) => {
+				cy.spy(win.Storage.prototype, 'setItem').as('profileWrites');
+			});
+			cy.get('#profileSelect').select('Original defaults');
+			cy.get('#profileStatus').should(
+				'have.text',
+				'Applied “Original defaults”.'
+			);
+			cy.get('.pickr').eq(14).shouldHaveColor(secondary);
+			cy.get('.pickr').eq(15).shouldHaveColor(tertiary);
+			cy.get('@profileWrites').should('have.callCount', 17);
+			cy.window().then((win) => {
+				expect(
+					JSON.parse(
+						win.localStorage.getItem('arrowSecondary')
+					).toUpperCase()
+				).to.equal(secondary);
+				expect(
+					JSON.parse(
+						win.localStorage.getItem('arrowTertiary')
+					).toUpperCase()
+				).to.equal(tertiary);
+			});
+		});
+	});
+
 	it('Saves complete palettes and switches without reloading the popup', () => {
 		cy.get('#savedProfiles').should('not.have.attr', 'open');
 		cy.get('#saveProfile').should('not.be.visible');
