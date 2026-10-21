@@ -444,4 +444,35 @@ describe('Test optional custom pieces', () => {
 		cy.get('#prettierlichess-pieces').should('not.exist');
 		cy.get('piece').should('have.css', 'background-image', 'none');
 	});
+
+	it('Opts into bundled artwork without overwriting the uploaded set', () => {
+		cy.get('#pieceSetSelect').select('eyes');
+		cy.get('#piecePreview img')
+			.should('have.length', 12)
+			.each(($image) => {
+				expect($image.attr('src')).to.include('/pieces/eyes/');
+			});
+		cy.get('#piecePreview img')
+			.first()
+			.should(($image) => {
+				expect($image[0].naturalWidth).to.be.greaterThan(0);
+			});
+		cy.window().should((win) => expect(stored(win).uploaded).to.eq(null));
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
+		cy.get('#pieceSetSelect').should('have.value', 'native');
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.window().then((win) => {
+			const previous = stored(win).uploaded;
+			cy.get('#pieceSetSelect').select('eyes');
+			cy.reload();
+			cy.get('#pieceSetSelect').should('have.value', 'eyes');
+			cy.get('#pieceSetSelect').select('native');
+			cy.get('#pieceSetSelect').select('uploaded');
+			cy.window().should((current) => {
+				expect(stored(current).uploaded).to.deep.eq(previous);
+				expect(stored(current).selection).to.eq('uploaded');
+			});
+		});
+	});
 });

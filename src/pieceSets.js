@@ -46,7 +46,7 @@ const pieceSets = (() => {
 		if (
 			!state ||
 			state.version !== 1 ||
-			!['native', 'uploaded'].includes(state.selection) ||
+			!['native', 'uploaded', 'eyes'].includes(state.selection) ||
 			(state.selection === 'uploaded' && !state.uploaded)
 		) {
 			return false;
@@ -80,13 +80,24 @@ const pieceSets = (() => {
 		});
 	}
 
-	function styles(state) {
-		if (!valid(state) || state.selection !== 'uploaded') return '';
+	function images(state, getURL) {
+		if (state.selection !== 'eyes') return state.uploaded;
+		return Object.fromEntries(
+			names.map((name) => [
+				name,
+				getURL(`pieces/eyes/${name.toLowerCase()}.svg`),
+			])
+		);
+	}
+
+	function styles(state, getURL) {
+		if (!valid(state) || state.selection === 'native') return '';
+		const urls = images(state, getURL);
 		return names
 			.map((name) => {
 				const color = name[0] === 'w' ? 'white' : 'black';
 				return `body.is2d piece.${color}.${roles[name[1]]} {
-	background-image: url("${state.uploaded[name]}") !important;
+	background-image: url("${urls[name]}") !important;
 }`;
 			})
 			.join('\n');
@@ -186,5 +197,5 @@ const pieceSets = (() => {
 		return state;
 	}
 
-	return {key, names, empty, valid, styles, importFiles};
+	return {key, names, empty, valid, images, styles, importFiles};
 })();

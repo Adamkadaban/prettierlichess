@@ -7,7 +7,9 @@ const conversions = {
 };
 const storageListeners = [];
 const chrome = {
-	runtime: {},
+	runtime: {
+		getURL: (path) => new URL(path, location.href).href,
+	},
 	storage: {
 		onChanged: {
 			addListener: (listener) => storageListeners.push(listener),

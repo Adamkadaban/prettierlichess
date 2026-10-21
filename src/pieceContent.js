@@ -3,7 +3,9 @@
 	let changed = false;
 
 	function apply(state) {
-		const css = pieceSets.styles(state);
+		const css = pieceSets.styles(state, (path) =>
+			chrome.runtime.getURL(path)
+		);
 		if (!css) {
 			if (style) style.remove();
 			style = null;
