@@ -275,6 +275,7 @@ rm6 .message::before,
 .relay-tour__round-select .time,
 .relay-tour__round-select .status,
 .relay-tour__side__empty::before,
+.relay-board-player .team,
 .study__player .team,
 .tpp a,
 .tpp__games td:first-child {
@@ -5250,6 +5251,7 @@ body #main-wrap group.radio input:checked + label,
 .relay-tour__header,
 .relay-tour__side__header button,
 .relay-tour__side__header,
+.relay-board-player,
 .study__glyphs button,
 .study__invite .info,
 .study__buttons .mode,
@@ -5267,6 +5269,7 @@ body #main-wrap group.radio input:checked + label,
 }
 
 .relay-tour__mselect .mselect__list a,
+.relay-board-player a.name,
 th[aria-sort]:not(.no-sort),
 th[role='columnheader']:not(.no-sort):after,
 .study__player .info a.name {
@@ -5280,8 +5283,8 @@ th[role='columnheader']:not(.no-sort):after,
 .relay-tour__side__header button:hover,
 .mselect__item:hover,
 .relay-tour__mselect .mselect__list a:hover,
-.relay-tour__round-select tr:hover *,
-.relay-tour__round-select tr:hover .round-state::before {
+.relay-tour__round-select a:hover *,
+.relay-tour__round-select a:hover .round-state::before {
 	background: var(--primaryColor) !important;
 	color: var(--backgroundColor) !important;
 	box-shadow: none !important;
@@ -5358,6 +5361,8 @@ th[aria-sort]:not(.no-sort),
 .relay-game:hover::before,
 .relay-tour__round-select .finished::before,
 .relay-tour__header h1,
+.relay-board-player a.name:hover,
+.relay-board-player a.team:hover,
 .study__player .info a.name:hover,
 .tpp a:hover {
 	color: var(--primaryColor) !important;
@@ -5396,6 +5401,7 @@ th[aria-sort]:not(.no-sort),
 .relay-tour__note,
 .relay-tour__side__empty,
 .relay-tour__side__preload,
+.relay-board-player,
 .study__message,
 .study__server-eval,
 .analyse__underboard .study__multiboard,
@@ -5417,7 +5423,11 @@ th[aria-sort]:not(.no-sort),
 	box-shadow: none !important;
 }
 
-.relay-tour__round-select tr.current-round,
+.relay-tour__round-select a.current-round {
+	background: var(--surfaceColorHover) !important;
+	border-left-color: var(--primaryColor) !important;
+}
+
 .toggle-box,
 .toggle-box legend {
 	background: var(--surfaceColorHover) !important;
