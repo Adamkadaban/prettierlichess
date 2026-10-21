@@ -214,6 +214,8 @@ textarea::placeholder,
 .tview2 eval,
 .tview2 line move,
 .tview2 move index,
+.analyse__fork move,
+.action-menu__tools > a,
 #analyse-cm a,
 .chat__members,
 .rclock .tour-rank,
@@ -1944,14 +1946,20 @@ a.button.button-metal:hover {
 
 .lobby__support a,
 .ublog-post-card {
-	transition: all 0.2s ease-in-out !important;
 	backdrop-filter: blur(16px) !important;
+
+	&:not(.lobby__blog *) {
+		transition: all 0.2s ease-in-out !important;
+	}
 }
 
 .ublog-post-card:hover,
 .lobby__support a:hover {
-	transform: scale(0.98) !important;
 	background: var(--surfaceColorHover) !important;
+
+	&:not(.lobby__blog *) {
+		transform: scale(0.98) !important;
+	}
 }
 
 .ublog-post-card__over-image {
@@ -2282,6 +2290,10 @@ button.rematch-decline::before {
 .analyse-controls .jumps .fbt.active {
 	background: var(--primaryColor) !important;
 	color: var(--backgroundColor) !important;
+}
+
+.tview2 {
+	--c-base: var(--textColor) !important;
 }
 
 .tview2 eval,
@@ -3233,6 +3245,21 @@ html .eval-gauge tick.zero {
 	background: var(--backgroundColor) !important;
 }
 
+.analysis-settings-view {
+	--c-bg-mid: var(--backgroundColor) !important;
+	--c-bg-input: var(--backgroundColor) !important;
+	--c-bg-zebra: var(--surfaceColor) !important;
+	--c-bg-zebra2: var(--surfaceColor) !important;
+	--c-border: var(--surfaceColorHover) !important;
+	--c-font: var(--textColor) !important;
+	--c-font-dim: var(--textColor) !important;
+	--c-good: var(--primaryColor) !important;
+}
+
+.analysis-settings-view .form-check__label::after {
+	border-color: var(--backgroundColor) !important;
+}
+
 .analyse .mchat,
 #ceval-settings {
 	background: var(--surfaceColor) !important;
@@ -3241,6 +3268,11 @@ html .eval-gauge tick.zero {
 	border-radius: var(--borderRadius) !important;
 	border-top: none !important;
 	min-height: 300px !important;
+}
+
+#ceval-settings option {
+	background: var(--backgroundColor) !important;
+	color: var(--textColor) !important;
 }
 
 .analyse__side {
@@ -5933,7 +5965,6 @@ body .glowing {
 	#main-wrap .analyse {
 		grid-template-columns: 100% !important;
 		grid-template-rows: auto !important;
-		margin: 0 !important;
 		grid-template-areas:
 			'board         '
 			'controls      '
@@ -5944,8 +5975,26 @@ body .glowing {
 			'chat          '
 			'uchat         ';
 	}
-	.analyse.has-players {
+
+	#main-wrap .analyse.is-relay.has-relay-tour {
+		grid-template-areas:
+			'relay-tour'
+			'side'
+			'relay-admin' !important;
+	}
+
+	#main-wrap .analyse:not(.is-relay),
+	#main-wrap .analyse.has-relay-tour {
+		margin: 0 !important;
+	}
+
+	.analyse.has-players:not(.is-relay),
+	.analyse.has-players.has-relay-tour {
 		margin-top: 30px !important;
+	}
+
+	#main-wrap main.is-relay:not(.has-relay-tour) {
+		overflow: visible !important;
 	}
 
 	.analyse__acpl,
