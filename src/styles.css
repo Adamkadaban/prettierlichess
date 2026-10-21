@@ -3234,6 +3234,11 @@ html .eval-gauge tick.zero {
 	min-height: 300px !important;
 }
 
+#ceval-settings option {
+	background: var(--backgroundColor) !important;
+	color: var(--textColor) !important;
+}
+
 .analyse__side {
 	border-radius: var(--borderRadius) var(--borderRadius) 0 0 !important;
 	height: auto !important;
