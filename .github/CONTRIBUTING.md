@@ -75,7 +75,7 @@ npm install
 
 ### Build
 
-During the build, the output files from webpack are placed in the `.dist/` folder. There are two ways to start this process. For a single build, run:
+During the build, webpack places the Chrome output in `dist-chrome/` and the Firefox output in `dist-firefox/`. There are two ways to start this process. For a single build of both targets, run:
 
 ```
 npm run build
@@ -95,7 +95,7 @@ npm run watch
 -   Enable the developer mode.
 -   Disable the official Prettierlichess version.
 -   Click _Load unpacked extension_
--   Navigate to the `.dist/` folder and include the extension.
+-   Navigate to the `dist-chrome/` folder and include the extension.
 
 #### Firefox
 
@@ -103,7 +103,7 @@ npm run watch
 -   Disable the official Prettierlichess version.
 -   Go to the `about:debugging#addons` page.
 -   Click _Load Temporary Add-on_
--   Navigate to the `.dist/manifest.json` file and include the extension.
+-   Navigate to the `dist-firefox/manifest.json` file and include the extension.
 
 ### Testing
 
@@ -114,7 +114,7 @@ If possible, feel free to test for both Firefox and Chrome. If this is not possi
 
 ### Testing with http-server
 
-It is possible to run the popup on a local http server as a stand-alone website, making it easier to edit and test. The functionality for this is implemented in the `/testing` folder. There you will find a script that can start the http server. This requires a built version of the extension in the `/dist` folder. Then the script can be started with
+It is possible to run the popup on a local http server as a stand-alone website, making it easier to edit and test. The functionality for this is implemented in the `/testing` folder. There you will find a script that can start the http server. This requires a built version of the extension in the `dist-chrome/` folder. Then the script can be started with
 
 ```
 npm run popup:run --port=PORT
@@ -125,7 +125,7 @@ There is also a mock script that is passed to the server to mock all Chrome API 
 
 ### Automated testing with cypress
 
-To test the functionality of the popup automatically, [Cypress](https://github.com/cypress-io/cypress) is used as well. The automated test system also relies on the http server concept.
+To test the functionality of the popup automatically, [Cypress](https://github.com/cypress-io/cypress) is used as well. The automated test system also relies on the http server concept. Cypress loads the extension from the matching browser's build directory.
 
 The concrete test cases are located in the `/cypress/e2e` folder and test as many of the popup's and extension's features as possible.
 
