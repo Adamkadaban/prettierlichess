@@ -38,6 +38,20 @@ module.exports = {
 				{
 					from: 'src',
 					to: '.',
+					transform(content, absoluteFrom) {
+						if (
+							browserTarget === 'firefox' &&
+							absoluteFrom.endsWith('.css')
+						) {
+							return content
+								.toString()
+								.replaceAll(
+									'chrome-extension://',
+									'moz-extension://'
+								);
+						}
+						return content;
+					},
 					globOptions: {
 						ignore: ['./popup.js'],
 					},
