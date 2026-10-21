@@ -323,6 +323,89 @@ describe('Test broadcast stylesheet fixtures', () => {
 	});
 });
 
+describe('Test broadcast control spacing fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 390, height: 900, nativeHeight: 45},
+		{width: 799, height: 900, nativeHeight: 57},
+		{width: 800, height: 900, nativeHeight: 57},
+		{width: 740, height: 390, nativeHeight: 57},
+	].forEach(({width, height, nativeHeight}) => {
+		it(`Preserves broadcast control spacing at ${width}x${height}`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'broadcast-control-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: ${height}px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html>
+					<html><head>
+						<style>
+							.analyse__controls { margin: 11px 7px 13px; }
+							@media (max-width: 799px) and (orientation: portrait) {
+								.analyse.is-relay .analyse__controls {
+									margin-top: ${nativeHeight}px;
+								}
+							}
+						</style>
+						<link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<div id="main-wrap">
+							<main id="game" class="analyse has-players is-relay">
+								<div class="analyse__controls analyse-controls"></div>
+							</main>
+							<main id="overview" class="analyse has-players is-relay has-relay-tour">
+								<div class="analyse__controls analyse-controls"></div>
+							</main>
+							<main id="study" class="analyse has-players">
+								<div class="analyse__controls analyse-controls"></div>
+							</main>
+							<main id="analysis" class="analyse">
+								<div class="analyse__controls analyse-controls"></div>
+							</main>
+						</div>
+						<div id="standalone" class="analyse__controls analyse-controls"></div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#broadcast-control-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const ruleCount =
+					doc.querySelector('link')?.sheet?.cssRules.length || 0;
+				expect(ruleCount, 'loaded built stylesheet').to.be.greaterThan(
+					0
+				);
+				expect(win.innerWidth).to.equal(width);
+				expect(win.innerHeight).to.equal(height);
+				const gameMargin =
+					width < 800 && height >= width ? nativeHeight : 0;
+				for (const [selector, top] of [
+					['#game .analyse__controls', gameMargin],
+					['#overview .analyse__controls', 0],
+					['#study .analyse__controls', 0],
+					['#analysis .analyse__controls', 0],
+					['#standalone', 0],
+				]) {
+					const style = win.getComputedStyle(
+						doc.querySelector(selector)
+					);
+					expect(style.marginTop, selector).to.equal(`${top}px`);
+					expect(
+						[
+							style.marginRight,
+							style.marginBottom,
+							style.marginLeft,
+						],
+						selector
+					).to.deep.equal(['16px', '0px', '16px']);
+				}
+			});
+		});
+	});
+});
+
 describe('Test navigation', () => {
 	beforeEach(cy.startup);
 
