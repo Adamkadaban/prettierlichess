@@ -214,6 +214,8 @@ textarea::placeholder,
 .tview2 eval,
 .tview2 line move,
 .tview2 move index,
+.analyse__fork move,
+.action-menu__tools > a,
 #analyse-cm a,
 .chat__members,
 .rclock .tour-rank,
@@ -2273,6 +2275,10 @@ button.rematch-decline::before {
 .analyse-controls .jumps .fbt.active {
 	background: var(--primaryColor) !important;
 	color: var(--backgroundColor) !important;
+}
+
+.tview2 {
+	--c-base: var(--textColor) !important;
 }
 
 .tview2 eval,
