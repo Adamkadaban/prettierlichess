@@ -335,6 +335,9 @@ describe('Test optional custom pieces', () => {
 		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
 		cy.get('#pieceSetSelect').should('have.value', 'native');
 		cy.get('#piecePreview img').should('have.length', 12);
+		cy.get('#piecePreviewLabel')
+			.should('be.visible')
+			.and('have.text', 'Saved upload (not active)');
 		cy.get('#piecePreview img')
 			.first()
 			.should(($image) => {
@@ -349,9 +352,11 @@ describe('Test optional custom pieces', () => {
 				expect(context.getImageData(10, 10, 1, 1).data[3]).to.eq(255);
 			});
 		cy.get('#pieceSetSelect').select('uploaded');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
 		cy.reload();
 		cy.get('#pieceSetSelect').should('have.value', 'uploaded');
 		cy.get('#pieceSetSelect').select('native');
+		cy.get('#piecePreviewLabel').should('be.visible');
 		cy.window().should((win) => {
 			expect(stored(win).selection).to.eq('native');
 			expect(Object.keys(stored(win).uploaded)).to.have.length(12);
@@ -363,9 +368,12 @@ describe('Test optional custom pieces', () => {
 				'keep me'
 			);
 		});
+		cy.get('#pieceSetSelect').select('uploaded');
 		cy.get('#deletePieces').click();
 		cy.window().should((win) => expect(stored(win).uploaded).to.eq(null));
+		cy.get('#pieceSetSelect').should('have.value', 'native');
 		cy.get('#piecePreview img').should('not.exist');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
 	});
 
 	it('Rejects incomplete, duplicate, disguised, oversized and damaged PNGs without replacing the active set', () => {
