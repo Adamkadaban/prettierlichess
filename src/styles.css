@@ -214,6 +214,8 @@ textarea::placeholder,
 .tview2 eval,
 .tview2 line move,
 .tview2 move index,
+.analyse__fork move,
+.action-menu__tools > a,
 #analyse-cm a,
 .chat__members,
 .rclock .tour-rank,
@@ -275,6 +277,7 @@ rm6 .message::before,
 .relay-tour__round-select .time,
 .relay-tour__round-select .status,
 .relay-tour__side__empty::before,
+.relay-board-player .team,
 .study__player .team,
 .tpp a,
 .tpp__games td:first-child {
@@ -749,9 +752,24 @@ coords coord {
 	color: var(--coordLight) !important;
 }
 
+html[data-prettierlichess-native-board] coords {
+	--coordDark: var(---cg-ccb, #fff) !important;
+	--coordLight: var(---cg-ccw, #fff) !important;
+}
+
+html[data-prettierlichess-native-board] .is3d .cg-wrap coords {
+	--coordDark: #fff !important;
+	--coordLight: #fff !important;
+}
+
 cg-resize::before,
 cg-resize::after {
 	background-color: var(--coordDark) !important;
+}
+
+html[data-prettierlichess-native-board] cg-resize::before,
+html[data-prettierlichess-native-board] cg-resize::after {
+	background-color: currentColor !important;
 }
 
 cg-resize {
@@ -1929,14 +1947,20 @@ a.button.button-metal:hover {
 
 .lobby__support a,
 .ublog-post-card {
-	transition: all 0.2s ease-in-out !important;
 	backdrop-filter: blur(16px) !important;
+
+	&:not(.lobby__blog *) {
+		transition: all 0.2s ease-in-out !important;
+	}
 }
 
 .ublog-post-card:hover,
 .lobby__support a:hover {
-	transform: scale(0.98) !important;
 	background: var(--surfaceColorHover) !important;
+
+	&:not(.lobby__blog *) {
+		transform: scale(0.98) !important;
+	}
 }
 
 .ublog-post-card__over-image {
@@ -2267,6 +2291,10 @@ button.rematch-decline::before {
 .analyse-controls .jumps .fbt.active {
 	background: var(--primaryColor) !important;
 	color: var(--backgroundColor) !important;
+}
+
+.tview2 {
+	--c-base: var(--textColor) !important;
 }
 
 .tview2 eval,
@@ -3218,6 +3246,21 @@ html .eval-gauge tick.zero {
 	background: var(--backgroundColor) !important;
 }
 
+.analysis-settings-view {
+	--c-bg-mid: var(--backgroundColor) !important;
+	--c-bg-input: var(--backgroundColor) !important;
+	--c-bg-zebra: var(--surfaceColor) !important;
+	--c-bg-zebra2: var(--surfaceColor) !important;
+	--c-border: var(--surfaceColorHover) !important;
+	--c-font: var(--textColor) !important;
+	--c-font-dim: var(--textColor) !important;
+	--c-good: var(--primaryColor) !important;
+}
+
+.analysis-settings-view .form-check__label::after {
+	border-color: var(--backgroundColor) !important;
+}
+
 .analyse .mchat,
 #ceval-settings {
 	background: var(--surfaceColor) !important;
@@ -3226,6 +3269,11 @@ html .eval-gauge tick.zero {
 	border-radius: var(--borderRadius) !important;
 	border-top: none !important;
 	min-height: 300px !important;
+}
+
+#ceval-settings option {
+	background: var(--backgroundColor) !important;
+	color: var(--textColor) !important;
 }
 
 .analyse__side {
@@ -5254,6 +5302,7 @@ body #main-wrap group.radio input:checked + label,
 .relay-tour__header,
 .relay-tour__side__header button,
 .relay-tour__side__header,
+.relay-board-player,
 .study__glyphs button,
 .study__invite .info,
 .study__buttons .mode,
@@ -5271,6 +5320,7 @@ body #main-wrap group.radio input:checked + label,
 }
 
 .relay-tour__mselect .mselect__list a,
+.relay-board-player a.name,
 th[aria-sort]:not(.no-sort),
 th[role='columnheader']:not(.no-sort):after,
 .study__player .info a.name {
@@ -5284,8 +5334,8 @@ th[role='columnheader']:not(.no-sort):after,
 .relay-tour__side__header button:hover,
 .mselect__item:hover,
 .relay-tour__mselect .mselect__list a:hover,
-.relay-tour__round-select tr:hover *,
-.relay-tour__round-select tr:hover .round-state::before {
+.relay-tour__round-select a:hover *,
+.relay-tour__round-select a:hover .round-state::before {
 	background: var(--primaryColor) !important;
 	color: var(--backgroundColor) !important;
 	box-shadow: none !important;
@@ -5362,6 +5412,8 @@ th[aria-sort]:not(.no-sort),
 .relay-game:hover::before,
 .relay-tour__round-select .finished::before,
 .relay-tour__header h1,
+.relay-board-player a.name:hover,
+.relay-board-player a.team:hover,
 .study__player .info a.name:hover,
 .tpp a:hover {
 	color: var(--primaryColor) !important;
@@ -5400,6 +5452,7 @@ th[aria-sort]:not(.no-sort),
 .relay-tour__note,
 .relay-tour__side__empty,
 .relay-tour__side__preload,
+.relay-board-player,
 .study__message,
 .study__server-eval,
 .analyse__underboard .study__multiboard,
@@ -5421,7 +5474,11 @@ th[aria-sort]:not(.no-sort),
 	box-shadow: none !important;
 }
 
-.relay-tour__round-select tr.current-round,
+.relay-tour__round-select a.current-round {
+	background: var(--surfaceColorHover) !important;
+	border-left-color: var(--primaryColor) !important;
+}
+
 .toggle-box,
 .toggle-box legend {
 	background: var(--surfaceColorHover) !important;
@@ -5996,7 +6053,6 @@ body.blind-mode #top .pl-sidebar-toggle {
 	#main-wrap .analyse {
 		grid-template-columns: 100% !important;
 		grid-template-rows: auto !important;
-		margin: 0 !important;
 		grid-template-areas:
 			'board         '
 			'controls      '
@@ -6007,8 +6063,26 @@ body.blind-mode #top .pl-sidebar-toggle {
 			'chat          '
 			'uchat         ';
 	}
-	.analyse.has-players {
+
+	#main-wrap .analyse.is-relay.has-relay-tour {
+		grid-template-areas:
+			'relay-tour'
+			'side'
+			'relay-admin' !important;
+	}
+
+	#main-wrap .analyse:not(.is-relay),
+	#main-wrap .analyse.has-relay-tour {
+		margin: 0 !important;
+	}
+
+	.analyse.has-players:not(.is-relay),
+	.analyse.has-players.has-relay-tour {
 		margin-top: 30px !important;
+	}
+
+	#main-wrap main.is-relay:not(.has-relay-tour) {
+		overflow: visible !important;
 	}
 
 	.analyse__acpl,
