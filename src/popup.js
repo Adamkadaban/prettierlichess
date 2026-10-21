@@ -433,6 +433,8 @@ function setupCustomPieces() {
 	const remove = document.querySelector('#deletePieces');
 	const status = document.querySelector('#pieceStatus');
 	const preview = document.querySelector('#piecePreview');
+	const previewLabel = document.querySelector('#piecePreviewLabel');
+	const eyesAttribution = document.querySelector('#eyesAttribution');
 	let state = pieceSets.empty();
 	let busy = true;
 	let ready = false;
@@ -449,6 +451,8 @@ function setupCustomPieces() {
 		select.disabled = files.disabled = busy || !ready;
 		select.querySelector('[value="uploaded"]').disabled = !state.uploaded;
 		remove.disabled = busy || !ready || !state.uploaded;
+		previewLabel.hidden = !state.uploaded || state.selection !== 'native';
+		eyesAttribution.hidden = state.selection !== 'eyes';
 		preview.replaceChildren();
 		const images = pieceSets.images(state, (path) =>
 			chrome.runtime.getURL(path)
@@ -549,7 +553,16 @@ function setupCustomPieces() {
 			const next = await pieceSets.importFiles(files.files);
 			if (current !== revision) return;
 			files.value = '';
-			save(next, 'Upload saved. Select Uploaded pieces to apply it.');
+			save(
+				{
+					...next,
+					selection:
+						state.selection === 'uploaded'
+							? 'native'
+							: state.selection,
+				},
+				'Upload saved. Select Uploaded pieces to apply it.'
+			);
 		} catch (error) {
 			if (current !== revision) return;
 			busy = false;
@@ -564,7 +577,17 @@ function setupCustomPieces() {
 	});
 
 	remove.addEventListener('click', () => {
-		save(pieceSets.empty(), 'Upload deleted. Lichess pieces restored.');
+		const next = {
+			...pieceSets.empty(),
+			selection:
+				state.selection === 'uploaded' ? 'native' : state.selection,
+		};
+		save(
+			next,
+			next.selection === 'native'
+				? 'Upload deleted. Lichess pieces restored.'
+				: 'Upload deleted. Selected pieces remain enabled.'
+		);
 	});
 }
 

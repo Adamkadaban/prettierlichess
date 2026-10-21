@@ -52,7 +52,8 @@ transparency and discarding metadata. The same size limit applies after
 re-encoding. Use images you have permission to use.
 
 Uploading saves a set but **does not enable it**. Select **Uploaded pieces**
-to opt in. A preview helps check the filenames. Missing, duplicate, unreadable
+to opt in. A preview helps check the filenames; **Saved upload (not active)**
+identifies an uploaded preview while Lichess pieces are selected. Missing, duplicate, unreadable
 or invalid files and storage failures leave the previous saved set unchanged.
 Restored images undergo the same complete PNG integrity and decoding checks
 before any override is applied. Invalid saved data falls back to native pieces
@@ -79,6 +80,9 @@ local set by Maurizio Monge. It is never enabled by default and does not
 overwrite your uploaded set. Select **Uploaded pieces** to return to your
 upload, or **Lichess pieces** to restore the native choice. No images are
 downloaded at runtime. The same 2D-only, live-update behavior applies.
+Adding, replacing or deleting a saved upload leaves Eyes selected. Deleting an
+active uploaded set restores Lichess pieces instead. The Eyes credit is shown
+only alongside the Eyes preview, never alongside an arbitrary upload.
 
 The author's [Chess Art repository](https://github.com/maurimo/chess-art)
 explicitly licenses these artworks under MIT. The packaged

@@ -335,6 +335,9 @@ describe('Test optional custom pieces', () => {
 		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
 		cy.get('#pieceSetSelect').should('have.value', 'native');
 		cy.get('#piecePreview img').should('have.length', 12);
+		cy.get('#piecePreviewLabel')
+			.should('be.visible')
+			.and('have.text', 'Saved upload (not active)');
 		cy.get('#piecePreview img')
 			.first()
 			.should(($image) => {
@@ -349,9 +352,11 @@ describe('Test optional custom pieces', () => {
 				expect(context.getImageData(10, 10, 1, 1).data[3]).to.eq(255);
 			});
 		cy.get('#pieceSetSelect').select('uploaded');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
 		cy.reload();
 		cy.get('#pieceSetSelect').should('have.value', 'uploaded');
 		cy.get('#pieceSetSelect').select('native');
+		cy.get('#piecePreviewLabel').should('be.visible');
 		cy.window().should((win) => {
 			expect(stored(win).selection).to.eq('native');
 			expect(Object.keys(stored(win).uploaded)).to.have.length(12);
@@ -363,9 +368,12 @@ describe('Test optional custom pieces', () => {
 				'keep me'
 			);
 		});
+		cy.get('#pieceSetSelect').select('uploaded');
 		cy.get('#deletePieces').click();
 		cy.window().should((win) => expect(stored(win).uploaded).to.eq(null));
+		cy.get('#pieceSetSelect').should('have.value', 'native');
 		cy.get('#piecePreview img').should('not.exist');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
 	});
 
 	it('Rejects incomplete, duplicate, disguised, oversized and damaged PNGs without replacing the active set', () => {
@@ -667,8 +675,11 @@ describe('Test optional custom pieces', () => {
 		});
 	});
 
-	it('Opts into bundled artwork without overwriting the uploaded set', () => {
+	it('Keeps Eyes selected while adding, replacing and deleting an inactive upload', () => {
+		cy.get('#eyesAttribution').should('not.be.visible');
 		cy.get('#pieceSetSelect').select('eyes');
+		cy.get('#eyesAttribution').should('be.visible');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
 		cy.get('#piecePreview img')
 			.should('have.length', 12)
 			.each(($image) => {
@@ -681,21 +692,66 @@ describe('Test optional custom pieces', () => {
 			});
 		cy.window().should((win) => expect(stored(win).uploaded).to.eq(null));
 		upload();
-		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
-		cy.get('#pieceSetSelect').should('have.value', 'native');
-		cy.get('#pieceSetSelect').select('uploaded');
+		cy.get('#pieceFiles').should('be.enabled');
+		cy.get('#pieceSetSelect').should('have.value', 'eyes');
 		cy.window().then((win) => {
 			const previous = stored(win).uploaded;
-			cy.get('#pieceSetSelect').select('eyes');
+			expect(Object.keys(previous)).to.have.length(12);
+			upload(
+				files.map((file, index) => ({
+					...file,
+					contents: files[(index + 1) % files.length].contents,
+				}))
+			);
+			cy.get('#pieceFiles').should('be.enabled');
+			cy.window().should((current) => {
+				expect(stored(current).selection).to.eq('eyes');
+				expect(stored(current).uploaded).not.to.deep.eq(previous);
+			});
 			cy.reload();
 			cy.get('#pieceSetSelect').should('have.value', 'eyes');
-			cy.get('#pieceSetSelect').select('native');
-			cy.get('#pieceSetSelect').select('uploaded');
-			cy.window().should((current) => {
-				expect(stored(current).uploaded).to.deep.eq(previous);
-				expect(stored(current).selection).to.eq('uploaded');
-			});
 		});
+		cy.get('#eyesAttribution').should('be.visible');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
+		cy.get('#pieceStatus').should(
+			'not.contain.text',
+			'Lichess pieces restored'
+		);
+		cy.get('#piecePreview img').each(($image) => {
+			expect($image.attr('src')).to.include('/pieces/eyes/');
+		});
+		cy.window().then((win) => {
+			const replacement = stored(win).uploaded;
+			cy.get('#pieceSetSelect').select('native');
+			cy.get('#eyesAttribution').should('not.be.visible');
+			cy.get('#piecePreviewLabel').should('be.visible');
+			cy.get('#pieceSetSelect').select('uploaded');
+			cy.get('#eyesAttribution').should('not.be.visible');
+			cy.get('#piecePreviewLabel').should('not.be.visible');
+			cy.window().should((current) =>
+				expect(stored(current).uploaded).to.deep.eq(replacement)
+			);
+		});
+		cy.get('#pieceSetSelect').select('eyes');
+		cy.get('#deletePieces').click();
+		cy.get('#pieceFiles').should('be.enabled');
+		cy.window().should((win) => {
+			expect(stored(win).selection).to.eq('eyes');
+			expect(stored(win).uploaded).to.eq(null);
+		});
+		cy.get('#pieceSetSelect').should('have.value', 'eyes');
+		cy.get('#deletePieces').should('be.disabled');
+		cy.get('#piecePreview img')
+			.should('have.length', 12)
+			.each(($image) => {
+				expect($image.attr('src')).to.include('/pieces/eyes/');
+			});
+		cy.get('#piecePreviewLabel').should('not.be.visible');
+		cy.get('#eyesAttribution').should('be.visible');
+		cy.get('#pieceStatus').should(
+			'not.contain.text',
+			'Lichess pieces restored'
+		);
 	});
 
 	for (const outcome of ['success', 'failure']) {
