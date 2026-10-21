@@ -32,28 +32,9 @@ With the pop-up you can then customise the colours and choose themes. Have fun!
 
 ### Focus move comments (experimental)
 
-This optional popup checkbox is **off by default**. In analysis and studies it
-shows the selected mainline move's comments instead of all mainline comments.
-Select another move or use Lichess's normal move navigation to read its notes.
-Starting-position notes, variations and their comments, move annotations, and
-native controls remain unchanged. Turn it off to restore all comments immediately,
-without reloading. Reset to Defaults also turns it off; color imports preserve
-your existing choice and cannot opt you in. If saving the checkbox fails, the
-popup restores its previous state and displays an error so you can retry.
+This popup option is **off by default**. It shows the selected mainline move's comments in analysis and studies, while preserving starting notes, variations, annotations, and comments containing keyboard focus. Turn it off to browse all notes again. Reset to Defaults disables it; color imports preserve your choice.
 
-The experiment uses the semantic `.tview2-column` / `.tview2-inline` move tree and
-Lichess's `.active` state, not comment text, timers, observers, or custom scrolling.
-It supports multiple comments and both white- and black-move comments. A comment
-containing keyboard focus stays visible until focus leaves it. Lichess's own
-comment-visibility and variation-disclosure settings still take precedence.
-
-This is not an engine-review redesign: there is no separate notes panel or new
-navigation UI. Collapsing comments changes list height and can move rows during
-navigation; native scrolling is not overridden. Column-view placeholder moves and
-repeated move numbers are deliberately retained. Comments have no new move-list
-indicator, so turn the option off when browsing all notes. Browsers without the
-required complex CSS selectors retain the normal view. Chromium runtime checks
-are required; Firefox and Safari have not been verified.
+This is a small experiment, not an engine-review redesign. Filtering can move rows during navigation; native scrolling and placeholder moves remain unchanged. Firefox and Safari have not been verified.
 
 ## Community Themes
 
