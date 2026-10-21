@@ -34,7 +34,7 @@ With the pop-up you can then customise the colours and choose themes. Have fun!
 
 Expand **Saved Color Profiles** in the popup to name and save your current colors,
 including colors you have imported. Choose a saved profile to apply it immediately;
-use **Apply** to reapply the selected profile. Use the name field to rename it, or
+use **Reapply** to reapply the selected profile. Use the name field to rename it, or
 delete it without changing your current colors.
 Profiles include default values for colors you have not customized. Switching
 profiles leaves layout, vertical mode, and the native/custom board preference alone.
