@@ -12,7 +12,7 @@
 			"exclude_matches": ["*://lichess.org/api*"],
 			"run_at": "document_start",
 			"css": ["styles.css"],
-			"js": ["content.js"],
+			"js": ["content.js", "sidebar.js"],
 			"all_frames": true
 		}
 	],

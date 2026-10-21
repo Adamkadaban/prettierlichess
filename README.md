@@ -30,6 +30,24 @@ The extension is not published in the Apple Store, but it is possible to get it 
 To install the extension, go to the official website for [Firefox](https://addons.mozilla.org/en-US/firefox/addon/prettier-lichess) or [Chrome](https://chrome.google.com/webstore/detail/prettier-lichess/epgnobcgnmchnhgkgpedebbmhbblfcob). Set Lichess to dark background to have the best compatibility with prettierlichess. \
 With the pop-up you can then customise the colours and choose themes. Have fun!
 
+### Optional collapsible sidebar
+
+Enable **Collapsible left sidebar** in the extension popup to add a **Hide
+sidebar / Show sidebar** button to the site header. It is off by default. The
+button also works with Tab and Enter or Space, and reports its expanded state to
+screen readers. The option and your last explicit collapse/expand choice are
+saved across pages and browser restarts. Disabling the option restores the
+normal layout immediately; **Reset to Defaults** turns it off.
+
+This applies to ordinary analysis, studies, and game/TV pages with a left column
+on desktop (over 1260px). It hides the left information panel, including study
+chapters/members and chat where present, without moving or deleting them.
+**Show sidebar** restores them. Board size, move navigation, and the popup's
+**Lichess layout** option are unchanged. On smaller or stacked layouts the
+sidebar stays visible and the button is hidden; returning to desktop restores
+your choice. Broadcasts, practice, embedded boards, blind mode, and Zen mode are
+not supported.
+
 ## Community Themes
 
 Check out the community driven theme library [here](https://github.com/algertc/prettierlichess-themes).

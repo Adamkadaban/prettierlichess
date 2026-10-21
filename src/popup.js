@@ -364,6 +364,14 @@ document.querySelector('#layoutSelect').addEventListener('change', function () {
 	reloadAllTabs();
 });
 
+const sidebarOption = document.querySelector('#collapsibleSidebar');
+chrome.storage.sync.get('collapsibleSidebar', (result) => {
+	sidebarOption.checked = result.collapsibleSidebar === true;
+});
+sidebarOption.addEventListener('change', () => {
+	syncSet('collapsibleSidebar', sidebarOption.checked);
+});
+
 for (let scheme in defaultColorScheme) {
 	pickrCreate(scheme);
 }

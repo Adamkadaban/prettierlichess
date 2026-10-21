@@ -173,6 +173,14 @@ describe('Test reset', () => {
 describe('Test storage', () => {
 	beforeEach(cy.startup);
 
+	it('Keeps the sidebar opt-in across popup reloads', () => {
+		cy.get('#collapsibleSidebar').should('not.be.checked').check();
+		cy.reload();
+		cy.get('#collapsibleSidebar').should('be.checked').uncheck();
+		cy.reload();
+		cy.get('#collapsibleSidebar').should('not.be.checked');
+	});
+
 	it('Test storage', () => {
 		cy.get('#layoutSelect').select('lichess');
 		cy.get('.pickr').changeColor('#000000', true);
