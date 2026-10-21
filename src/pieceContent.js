@@ -1,20 +1,23 @@
 (() => {
 	let style;
 	let changed = false;
+	let revision = 0;
 
-	function apply(state) {
-		const css = pieceSets.styles(state);
-		if (!css) {
-			if (style) style.remove();
-			style = null;
-			return;
-		}
-		if (!style) {
+	async function apply(state) {
+		const current = ++revision;
+		if (style) style.remove();
+		style = null;
+		try {
+			const css = await pieceSets.styles(state || pieceSets.empty());
+			if (current !== revision || !css) return;
 			style = document.createElement('style');
 			style.id = 'prettierlichess-pieces';
+			style.textContent = css;
 			(document.head || document.documentElement).appendChild(style);
+		} catch (error) {
+			if (current === revision)
+				console.warn('Prettier Lichess:', error.message);
 		}
-		style.textContent = css;
 	}
 
 	chrome.storage.onChanged.addListener((changes, area) => {

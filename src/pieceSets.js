@@ -21,6 +21,7 @@ const pieceSets = (() => {
 		];
 		if (
 			bytes.length < 24 ||
+			bytes.length > maxBytes ||
 			!header.every((value, index) => bytes[index] === value)
 		) {
 			throw new Error(
@@ -39,10 +40,61 @@ const pieceSets = (() => {
 				'Each PNG must be square, from 16 × 16 to 512 × 512 pixels.'
 			);
 		}
-		return width;
+		let hasImageData = false;
+		for (let offset = 8; offset + 12 <= bytes.length; ) {
+			const length = view.getUint32(offset);
+			const end = offset + length + 12;
+			if (end > bytes.length) throw new Error('Incomplete PNG data.');
+			const type = String.fromCharCode(
+				...bytes.subarray(offset + 4, offset + 8)
+			);
+			if (type === 'acTL') {
+				throw new Error(
+					'Animated PNGs are not supported. Export static PNGs instead.'
+				);
+			}
+			let crc = 0xffffffff;
+			for (let i = offset + 4; i < end - 4; i++) {
+				crc ^= bytes[i];
+				for (let bit = 0; bit < 8; bit++) {
+					crc = (crc >>> 1) ^ (-(crc & 1) & 0xedb88320);
+				}
+			}
+			if ((crc ^ 0xffffffff) >>> 0 !== view.getUint32(end - 4)) {
+				throw new Error('Corrupt PNG data.');
+			}
+			if (type === 'IDAT' && length) hasImageData = true;
+			if (type === 'IEND') {
+				if (length || end !== bytes.length || !hasImageData) break;
+				return width;
+			}
+			offset = end;
+		}
+		throw new Error('Incomplete PNG data.');
 	}
 
-	function valid(state) {
+	async function decodePng(bytes) {
+		const size = pngSize(bytes);
+		const url = URL.createObjectURL(new Blob([bytes], {type: 'image/png'}));
+		try {
+			const image = await new Promise((resolve, reject) => {
+				const image = new Image();
+				image.onload = () => resolve(image);
+				image.onerror = () =>
+					reject(new Error('Could not decode PNG image.'));
+				image.src = url;
+			});
+			if (typeof image.decode === 'function') await image.decode();
+			if (image.naturalWidth !== size || image.naturalHeight !== size) {
+				throw new Error('Invalid PNG dimensions.');
+			}
+			return image;
+		} finally {
+			URL.revokeObjectURL(url);
+		}
+	}
+
+	async function valid(state) {
 		if (
 			!state ||
 			state.version !== 1 ||
@@ -58,7 +110,7 @@ const pieceSets = (() => {
 		) {
 			return false;
 		}
-		return names.every((name) => {
+		for (const name of names) {
 			const data = state.uploaded[name];
 			if (
 				typeof data !== 'string' ||
@@ -68,24 +120,31 @@ const pieceSets = (() => {
 				return false;
 			}
 			try {
-				pngSize(
-					Uint8Array.from(atob(data.slice(22, 54)), (c) =>
+				await decodePng(
+					Uint8Array.from(atob(data.slice(22)), (c) =>
 						c.charCodeAt(0)
 					)
 				);
-				return true;
 			} catch {
 				return false;
 			}
-		});
+		}
+		return true;
 	}
 
-	function styles(state) {
-		if (!valid(state) || state.selection !== 'uploaded') return '';
+	async function styles(state) {
+		if (!(await valid(state))) {
+			throw new Error(
+				'Saved pieces are invalid. Lichess pieces are used; upload a complete set again.'
+			);
+		}
+		if (state.selection !== 'uploaded') return '';
 		return names
 			.map((name) => {
 				const color = name[0] === 'w' ? 'white' : 'black';
-				return `body.is2d piece.${color}.${roles[name[1]]} {
+				return `.is2d piece.${color}.${
+					roles[name[1]]
+				}:not(.is3d piece) {
 	background-image: url("${state.uploaded[name]}") !important;
 }`;
 			})
@@ -133,57 +192,22 @@ const pieceSets = (() => {
 		const uploaded = {};
 		for (const file of selected) {
 			const bytes = await readFile(file);
-			const size = pngSize(bytes);
-			const view = new DataView(bytes.buffer);
-			for (let offset = 8; offset + 12 <= bytes.length; ) {
-				const length = view.getUint32(offset);
-				if (offset + length + 12 > bytes.length) {
-					throw new Error(`Invalid PNG data in ${file.name}.`);
-				}
-				if (view.getUint32(offset + 4) === 0x6163544c) {
-					throw new Error(
-						'Animated PNGs are not supported. Export static PNGs instead.'
-					);
-				}
-				offset += length + 12;
+			const image = await decodePng(bytes);
+			const canvas = document.createElement('canvas');
+			canvas.width = canvas.height = image.naturalWidth;
+			const context = canvas.getContext('2d');
+			if (!context)
+				throw new Error('This browser cannot process PNG images.');
+			context.drawImage(image, 0, 0);
+			const data = canvas.toDataURL('image/png');
+			if (data.length > maxDataLength) {
+				throw new Error(
+					`${file.name} is too large after decoding. Try a smaller image.`
+				);
 			}
-			const url = URL.createObjectURL(
-				new Blob([bytes], {type: 'image/png'})
-			);
-			try {
-				const image = await new Promise((resolve, reject) => {
-					const image = new Image();
-					image.onload = () => resolve(image);
-					image.onerror = () =>
-						reject(new Error(`Could not decode ${file.name}.`));
-					image.src = url;
-				});
-				if (
-					image.naturalWidth !== size ||
-					image.naturalHeight !== size
-				) {
-					throw new Error(`Invalid PNG dimensions in ${file.name}.`);
-				}
-				const canvas = document.createElement('canvas');
-				canvas.width = canvas.height = size;
-				const context = canvas.getContext('2d');
-				if (!context)
-					throw new Error('This browser cannot process PNG images.');
-				context.drawImage(image, 0, 0);
-				const data = canvas.toDataURL('image/png');
-				if (data.length > maxDataLength) {
-					throw new Error(
-						`${file.name} is too large after decoding. Try a smaller image.`
-					);
-				}
-				uploaded[file.name.replace(/\.png$/i, '')] = data;
-			} finally {
-				URL.revokeObjectURL(url);
-			}
+			uploaded[file.name.replace(/\.png$/i, '')] = data;
 		}
-		const state = {...empty(), uploaded};
-		if (!valid(state)) throw new Error('Could not prepare the PNG images.');
-		return state;
+		return {...empty(), uploaded};
 	}
 
 	return {key, names, empty, valid, styles, importFiles};

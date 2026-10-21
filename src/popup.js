@@ -437,6 +437,7 @@ function setupCustomPieces() {
 	let busy = true;
 	let ready = false;
 	let changed = false;
+	let revision = 0;
 
 	function report(message, error = false) {
 		status.textContent = message;
@@ -460,11 +461,13 @@ function setupCustomPieces() {
 	}
 
 	function save(next, message) {
+		const current = ++revision;
 		busy = true;
 		render();
 		chrome.storage.local.set({[pieceSets.key]: next}, () => {
-			busy = false;
-			if (chrome.runtime.lastError) {
+			const error = chrome.runtime.lastError;
+			if (current !== revision) return;
+			if (error) {
 				report(
 					'Could not save pieces. Your previous set is unchanged. Free extension storage and try again.',
 					true
@@ -473,40 +476,55 @@ function setupCustomPieces() {
 				state = next;
 				report(message);
 			}
+			busy = false;
 			render();
 		});
+	}
+
+	async function restore(next = pieceSets.empty()) {
+		const current = ++revision;
+		busy = true;
+		ready = true;
+		render();
+		const valid = await pieceSets.valid(next);
+		if (current !== revision) return;
+		state = valid ? next : pieceSets.empty();
+		busy = false;
+		if (!valid) {
+			report(
+				'Saved pieces are invalid. Lichess pieces are used; upload a complete set again.',
+				true
+			);
+		} else if (state.selection === 'native' && state.uploaded) {
+			report('Upload saved. Select Uploaded pieces to apply it.');
+		} else {
+			report(
+				state.selection === 'native'
+					? 'Lichess pieces restored.'
+					: 'Selected pieces enabled on 2D boards.'
+			);
+		}
+		render();
 	}
 
 	chrome.storage.onChanged.addListener((changes, area) => {
 		if (area !== 'local' || !changes[pieceSets.key]) return;
 		changed = true;
-		const next = changes[pieceSets.key].newValue;
-		state = pieceSets.valid(next) ? next : pieceSets.empty();
-		render();
+		restore(changes[pieceSets.key].newValue);
 	});
 	chrome.storage.local.get(pieceSets.key, (result) => {
-		busy = false;
-		if (chrome.runtime.lastError) {
+		const error = chrome.runtime.lastError;
+		if (changed) return;
+		if (error) {
+			busy = false;
 			report(
 				'Could not read local piece storage. Reopen this popup to try again.',
 				true
 			);
+			render();
 		} else {
-			ready = true;
-			if (
-				!changed &&
-				result[pieceSets.key] &&
-				!pieceSets.valid(result[pieceSets.key])
-			) {
-				report(
-					'Saved pieces are invalid. Lichess pieces are used; upload a complete set again.',
-					true
-				);
-			} else if (!changed) {
-				state = result[pieceSets.key] || pieceSets.empty();
-			}
+			restore(result[pieceSets.key] || pieceSets.empty());
 		}
-		render();
 	});
 
 	select.addEventListener('change', () => {

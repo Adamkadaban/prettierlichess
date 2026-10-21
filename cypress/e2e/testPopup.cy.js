@@ -251,6 +251,7 @@ describe('Test optional custom pieces', () => {
 		'bP',
 	];
 	let files;
+	let nativeImage;
 
 	function stored(win) {
 		return JSON.parse(win.localStorage.getItem('local:pieceSet'));
@@ -260,24 +261,53 @@ describe('Test optional custom pieces', () => {
 		cy.get('#pieceFiles').selectFile(selected, {force: true});
 	}
 
+	function mountPieces() {
+		cy.document().then((doc) => {
+			nativeImage = `data:image/png;base64,${files[11].contents.toString(
+				'base64'
+			)}`;
+			const fixture = doc.createElement('div');
+			fixture.id = 'piece-fixture';
+			fixture.innerHTML =
+				'<div id="main-wrap" class="is2d"><cg-board><piece class="white king" data-name="wK"></piece></cg-board><div class="mini-board orientation-black"><cg-board><piece class="black knight" data-name="bN"></piece></cg-board></div><div id="promotion-choice"><piece class="white queen" data-name="wQ"></piece></div><div class="is3d"><piece class="white king"></piece></div></div><div class="is3d"><cg-board><piece class="black knight"></piece></cg-board></div>';
+			doc.body.appendChild(fixture);
+			const native = doc.createElement('style');
+			native.textContent = `#piece-fixture piece { background-image: url("${nativeImage}"); }`;
+			doc.head.appendChild(native);
+			const script = doc.createElement('script');
+			script.src = 'pieceContent.js';
+			return new Cypress.Promise((resolve, reject) => {
+				script.onload = resolve;
+				script.onerror = reject;
+				doc.head.appendChild(script);
+			});
+		});
+	}
+
 	beforeEach(() => {
 		cy.visit('http://localhost:8000/popup.html?pieces');
+		cy.location('search').should('eq', '?pieces');
 		cy.window().then((win) => {
 			win.localStorage.clear();
 			const canvas = win.document.createElement('canvas');
 			canvas.width = canvas.height = 32;
 			const context = canvas.getContext('2d');
-			context.fillStyle = '#ff0000';
-			context.fillRect(8, 8, 16, 16);
-			const contents = Cypress.Buffer.from(
-				canvas.toDataURL('image/png').split(',')[1],
-				'base64'
-			);
-			files = names.map((name) => ({
-				contents,
-				fileName: `${name}.png`,
-				mimeType: 'image/png',
-			}));
+			files = names.map((name, index) => {
+				context.clearRect(0, 0, 32, 32);
+				context.fillStyle = `hsl(${index * 30}, 80%, 50%)`;
+				context.fillRect(8, 8, 16, 16);
+				context.fillStyle = '#000';
+				context.font = '8px sans-serif';
+				context.fillText(name, 10, 20);
+				return {
+					contents: Cypress.Buffer.from(
+						canvas.toDataURL('image/png').split(',')[1],
+						'base64'
+					),
+					fileName: `${name}.png`,
+					mimeType: 'image/png',
+				};
+			});
 		});
 		cy.reload();
 		cy.get('#pieceFiles').should('be.enabled');
@@ -413,35 +443,169 @@ describe('Test optional custom pieces', () => {
 	});
 
 	it('Updates rendered pieces live, includes promotions and mini boards, and leaves 3D native', () => {
-		cy.document().then((doc) => {
-			doc.body.classList.add('is2d');
-			const board = doc.createElement('div');
-			board.innerHTML =
-				'<cg-board><piece class="white king"></piece></cg-board><div class="mini-board orientation-black"><cg-board><piece class="black knight"></piece></cg-board></div><div id="promotion-choice"><piece class="white queen"></piece></div>';
-			doc.body.appendChild(board);
-			const script = doc.createElement('script');
-			script.src = 'pieceContent.js';
-			return new Cypress.Promise((resolve, reject) => {
-				script.onload = resolve;
-				script.onerror = reject;
-				doc.head.appendChild(script);
-			});
-		});
+		mountPieces();
 		cy.get('#prettierlichess-pieces').should('not.exist');
 		upload();
 		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
 		cy.get('#prettierlichess-pieces').should('not.exist');
 		cy.get('#pieceSetSelect').select('uploaded');
-		cy.get('piece').each(($piece) => {
-			expect($piece.css('background-image')).to.include(
-				'data:image/png;base64,'
+		cy.get('#prettierlichess-pieces').should('exist');
+		cy.window().then((win) => {
+			cy.get('#piece-fixture piece[data-name]').each(($piece) => {
+				expect($piece.css('background-image')).to.eq(
+					`url("${stored(win).uploaded[$piece.attr('data-name')]}")`
+				);
+			});
+		});
+		cy.get('#piece-fixture .is3d piece').each(($piece) => {
+			expect($piece.css('background-image')).to.eq(
+				`url("${nativeImage}")`
 			);
 		});
-		cy.document().then((doc) => doc.body.classList.replace('is2d', 'is3d'));
-		cy.get('piece').should('have.css', 'background-image', 'none');
-		cy.document().then((doc) => doc.body.classList.replace('is3d', 'is2d'));
+		cy.get('#main-wrap').invoke('attr', 'class', 'is3d');
+		cy.get('#piece-fixture piece').each(($piece) => {
+			expect($piece.css('background-image')).to.eq(
+				`url("${nativeImage}")`
+			);
+		});
+		cy.get('#main-wrap').invoke('attr', 'class', 'is2d');
 		cy.get('#pieceSetSelect').select('native');
 		cy.get('#prettierlichess-pieces').should('not.exist');
-		cy.get('piece').should('have.css', 'background-image', 'none');
+		cy.get('#piece-fixture piece').each(($piece) => {
+			expect($piece.css('background-image')).to.eq(
+				`url("${nativeImage}")`
+			);
+		});
+	});
+
+	it('Rejects incomplete, corrupt and undecodable restored images before overriding native pieces', () => {
+		cy.then(() => {
+			const corrupt = Cypress.Buffer.from(files[0].contents);
+			corrupt[corrupt.length - 17] ^= 1;
+			for (const bytes of [
+				files[0].contents.subarray(0, 24),
+				files[0].contents.subarray(0, files[0].contents.length - 12),
+				corrupt,
+			]) {
+				cy.window().then((win) => {
+					win.localStorage.setItem(
+						'local:pieceSet',
+						JSON.stringify({
+							version: 1,
+							selection: 'uploaded',
+							uploaded: Object.fromEntries(
+								names.map((name) => [
+									name,
+									`data:image/png;base64,${bytes.toString(
+										'base64'
+									)}`,
+								])
+							),
+						})
+					);
+				});
+				cy.reload();
+				mountPieces();
+				cy.get('#pieceStatus').should(
+					'contain.text',
+					'Saved pieces are invalid'
+				);
+				cy.get('#pieceSetSelect').should('have.value', 'native');
+				cy.get('#prettierlichess-pieces').should('not.exist');
+				cy.get('#piece-fixture piece').each(($piece) => {
+					expect($piece.css('background-image')).to.eq(
+						`url("${nativeImage}")`
+					);
+				});
+			}
+		});
+		cy.window().then((win) => {
+			cy.stub(win.HTMLImageElement.prototype, 'decode')
+				.rejects(new Error('Image decode failed'))
+				.as('decodeFailure');
+			win.chrome.storage.local.set(
+				{
+					pieceSet: {
+						version: 1,
+						selection: 'uploaded',
+						uploaded: Object.fromEntries(
+							files.map((file, index) => [
+								names[index],
+								`data:image/png;base64,${file.contents.toString(
+									'base64'
+								)}`,
+							])
+						),
+					},
+				},
+				() => {}
+			);
+		});
+		cy.get('@decodeFailure').should('have.been.called');
+		cy.get('#pieceSetSelect')
+			.should('be.enabled')
+			.and('have.value', 'native');
+		cy.get('#pieceStatus').should(
+			'contain.text',
+			'Saved pieces are invalid'
+		);
+		cy.get('#prettierlichess-pieces').should('not.exist');
+	});
+
+	it('Keeps the latest selection when older image decoding finishes later', () => {
+		let release;
+		let holding = true;
+		mountPieces();
+		cy.window().then((win) => {
+			const pending = new Cypress.Promise((resolve) => {
+				release = resolve;
+			});
+			cy.stub(win.HTMLImageElement.prototype, 'decode')
+				.callsFake(() =>
+					holding ? pending : Cypress.Promise.resolve()
+				)
+				.as('decodeGate');
+			win.chrome.storage.local.set(
+				{
+					pieceSet: {
+						version: 1,
+						selection: 'uploaded',
+						uploaded: Object.fromEntries(
+							files.map((file, index) => [
+								names[index],
+								`data:image/png;base64,${file.contents.toString(
+									'base64'
+								)}`,
+							])
+						),
+					},
+				},
+				() => {}
+			);
+		});
+		cy.get('@decodeGate').should('have.been.called');
+		cy.window().then((win) => {
+			win.chrome.storage.local.set(
+				{
+					pieceSet: {version: 1, selection: 'native', uploaded: null},
+				},
+				() => {}
+			);
+		});
+		cy.get('#pieceSetSelect')
+			.should('be.enabled')
+			.and('have.value', 'native');
+		cy.then(() => {
+			holding = false;
+			release();
+		});
+		cy.get('@decodeGate').should('have.callCount', 24);
+		cy.get('#pieceSetSelect').should('have.value', 'native');
+		cy.get('#prettierlichess-pieces').should('not.exist');
+		cy.get('#piece-fixture piece').each(($piece) => {
+			expect($piece.css('background-image')).to.eq(
+				`url("${nativeImage}")`
+			);
+		});
 	});
 });
