@@ -63,16 +63,21 @@ const chrome = {
 			},
 			set: async function (items, caller) {
 				for (let item in items) {
-					await localStorage.setItem(item, items[item]);
+					localStorage.setItem(item, items[item]);
 				}
-				if (caller) caller();
+				await Promise.resolve();
+				if (caller) {
+					caller();
+				}
 			},
 			clear: async function (caller) {
 				for (const key of Object.keys(localStorage)) {
-					if (!key.startsWith('local:'))
-						await localStorage.removeItem(key);
+					if (!key.startsWith('local:')) localStorage.removeItem(key);
 				}
-				if (caller) caller();
+				await Promise.resolve();
+				if (caller) {
+					caller();
+				}
 			},
 		},
 	},
