@@ -1929,14 +1929,20 @@ a.button.button-metal:hover {
 
 .lobby__support a,
 .ublog-post-card {
-	transition: all 0.2s ease-in-out !important;
 	backdrop-filter: blur(16px) !important;
+
+	&:not(.lobby__blog *) {
+		transition: all 0.2s ease-in-out !important;
+	}
 }
 
 .ublog-post-card:hover,
 .lobby__support a:hover {
-	transform: scale(0.98) !important;
 	background: var(--surfaceColorHover) !important;
+
+	&:not(.lobby__blog *) {
+		transform: scale(0.98) !important;
+	}
 }
 
 .ublog-post-card__over-image {
