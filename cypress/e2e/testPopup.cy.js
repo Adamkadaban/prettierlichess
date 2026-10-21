@@ -608,4 +608,84 @@ describe('Test optional custom pieces', () => {
 			);
 		});
 	});
+
+	for (const outcome of ['success', 'failure']) {
+		it(`Ignores superseded import ${outcome} after a storage update and newer selection`, () => {
+			let release;
+			let expected;
+			let status;
+			let input;
+			cy.window().then((win) => {
+				const read = win.FileReader.prototype.readAsArrayBuffer;
+				cy.stub(
+					win.FileReader.prototype,
+					'readAsArrayBuffer'
+				).callsFake(function (file) {
+					if (!release) {
+						release = () =>
+							outcome === 'success'
+								? read.call(this, file)
+								: this.onerror();
+					} else {
+						read.call(this, file);
+					}
+				});
+				cy.spy(win.HTMLCanvasElement.prototype, 'toDataURL').as(
+					'importEncode'
+				);
+				expected = {
+					version: 1,
+					selection: 'uploaded',
+					uploaded: Object.fromEntries(
+						names.map((name, index) => [
+							name,
+							`data:image/png;base64,${files[
+								(index + 1) % files.length
+							].contents.toString('base64')}`,
+						])
+					),
+				};
+			});
+			upload();
+			cy.get('#pieceSetSelect').should('be.disabled');
+			cy.window().then((win) => {
+				win.chrome.storage.local.set(
+					{
+						pieceSet: {...expected, selection: 'native'},
+					},
+					() => {}
+				);
+			});
+			cy.get('#pieceSetSelect').should('be.enabled').select('uploaded');
+			cy.get('#pieceSetSelect').should('be.enabled');
+			cy.get('#pieceStatus')
+				.invoke('text')
+				.then((text) => {
+					status = text;
+				});
+			cy.get('#pieceFiles')
+				.invoke('val')
+				.then((value) => {
+					input = value;
+				});
+			cy.then(() => release());
+			if (outcome === 'success') {
+				cy.get('@importEncode').should('have.callCount', 12);
+			}
+			cy.window().should((win) =>
+				expect(stored(win)).to.deep.eq(expected)
+			);
+			cy.get('#pieceSetSelect')
+				.should('be.enabled')
+				.and('have.value', 'uploaded');
+			cy.get('#pieceStatus').should(($status) => {
+				expect($status.text()).to.eq(status);
+				expect($status.attr('data-error')).to.eq('false');
+			});
+			cy.get('#pieceFiles').should(($files) => {
+				expect($files.val()).to.eq(input);
+				expect($files.prop('disabled')).to.eq(false);
+			});
+		});
+	}
 });
