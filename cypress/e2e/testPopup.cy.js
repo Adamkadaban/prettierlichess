@@ -35,7 +35,7 @@ describe('Test color pickrs', () => {
 				.eq(i)
 				.getColor()
 				.then(($color) => {
-					Cypress.env(NAMES[i], $color);
+					Cypress.expose(NAMES[i], $color);
 				});
 		}
 	});
@@ -129,14 +129,22 @@ describe('Test custom board colors', () => {
 	});
 	it('Test reset of custom board colors', () => {
 		cy.get('#boardTab').click();
-		cy.get('.pickr').eq(8).shouldHaveColor(Cypress.env('darkSquareColor'));
-		cy.get('.pickr').eq(9).shouldHaveColor(Cypress.env('lightSquareColor'));
+		cy.get('.pickr')
+			.eq(8)
+			.shouldHaveColor(Cypress.expose('darkSquareColor'));
+		cy.get('.pickr')
+			.eq(9)
+			.shouldHaveColor(Cypress.expose('lightSquareColor'));
 		cy.get('.pickr').eq(8).changeColor('#B406A6');
 		cy.get('.pickr').eq(9).changeColor('#B406A6');
 		cy.get('#hideBoardColors').click();
 		cy.get('#hideBoardColors').click();
-		cy.get('.pickr').eq(8).shouldHaveColor(Cypress.env('darkSquareColor'));
-		cy.get('.pickr').eq(9).shouldHaveColor(Cypress.env('lightSquareColor'));
+		cy.get('.pickr')
+			.eq(8)
+			.shouldHaveColor(Cypress.expose('darkSquareColor'));
+		cy.get('.pickr')
+			.eq(9)
+			.shouldHaveColor(Cypress.expose('lightSquareColor'));
 	});
 });
 
@@ -150,7 +158,7 @@ describe('Test reset', () => {
 		cy.get('#resetButton').click();
 
 		for (let i = 0; i < NAMES.length; i++) {
-			cy.get('.pickr').eq(i).shouldHaveColor(Cypress.env(NAMES[i]));
+			cy.get('.pickr').eq(i).shouldHaveColor(Cypress.expose(NAMES[i]));
 		}
 	});
 	it('Test custom board colors after reset', () => {
@@ -209,7 +217,7 @@ describe('Test import/export', () => {
 					.its('secondaryColor')
 					.then((color) => {
 						expect(color.toUpperCase()).to.eq(
-							Cypress.env('secondaryColor')
+							Cypress.expose('secondaryColor')
 						);
 					});
 			});
@@ -225,7 +233,9 @@ describe('Test import/export', () => {
 		cy.inputFile(IMPORT_STRING);
 
 		cy.get('.pickr').first().shouldHaveColor('#18D329');
-		cy.get('.pickr').eq(1).shouldHaveColor(Cypress.env('secondaryColor'));
+		cy.get('.pickr')
+			.eq(1)
+			.shouldHaveColor(Cypress.expose('secondaryColor'));
 		cy.window().then((win) => {
 			expect(win.localStorage.getItem('preMove')).to.eq('#12345678');
 		});
@@ -233,7 +243,7 @@ describe('Test import/export', () => {
 	it('Test empty export', () => {
 		const stub = cy.stub();
 		cy.on('window:alert', stub);
-		cy.clearLocalStorage();
+		cy.window().then((win) => win.chrome.storage.sync.clear());
 		cy.get('#exportButton').click();
 
 		cy.then(() => {
@@ -246,7 +256,9 @@ describe('Test import/export', () => {
 		cy.get('.pickr').first().changeColor('#123456');
 		cy.get('#basicImport').invoke('val', '{}');
 		cy.get('#importAction').click({force: true});
-		cy.get('.pickr').first().shouldHaveColor(Cypress.env('primaryColor'));
+		cy.get('.pickr')
+			.first()
+			.shouldHaveColor(Cypress.expose('primaryColor'));
 	});
 	it('Rejects invalid imports without changing settings or reloading', () => {
 		let original;
@@ -257,9 +269,9 @@ describe('Test import/export', () => {
 			win.localStorage.setItem('defaultBoardSwitch', 'true');
 			original = {...win.localStorage};
 			cy.stub(win, 'alert').as('importError');
-			cy.spy(win.eval('chrome').storage.sync, 'set').as('save');
-			cy.spy(win.eval('chrome').storage.sync, 'clear').as('clear');
-			cy.spy(win.eval('chrome').tabs, 'query').as('reloadTabs');
+			cy.spy(win.chrome.storage.sync, 'set').as('save');
+			cy.spy(win.chrome.storage.sync, 'clear').as('clear');
+			cy.spy(win.chrome.tabs, 'query').as('reloadTabs');
 			win.addEventListener('beforeunload', cy.stub().as('reloadPopup'));
 		});
 		const invalid = [
@@ -342,7 +354,7 @@ describe('Test import/export', () => {
 		let finishWrite;
 		let original;
 		cy.window().then((win) => {
-			const mock = win.eval('chrome');
+			const mock = win.chrome;
 			original = {...win.localStorage};
 			const set = mock.storage.sync.set.bind(mock.storage.sync);
 			cy.stub(mock.storage.sync, 'get').callsFake((key, callback) => {
@@ -383,7 +395,7 @@ describe('Test import/export', () => {
 		it(`Reports storage ${operation} errors without reloading`, () => {
 			let original;
 			cy.window().then((win) => {
-				const mock = win.eval('chrome');
+				const mock = win.chrome;
 				original = {...win.localStorage};
 				cy.stub(win, 'alert').as('importError');
 				cy.spy(mock.storage.sync, 'clear').as('clear');

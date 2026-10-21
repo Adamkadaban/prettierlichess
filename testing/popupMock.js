@@ -73,3 +73,5 @@ const chrome = {
 		},
 	},
 };
+
+window.chrome = chrome;
