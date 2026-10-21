@@ -11,13 +11,9 @@ class FirefoxManifestPlugin {
 	apply(compiler) {
 		if (browserTarget === 'firefox') {
 			compiler.hooks.afterEmit.tap('FirefoxManifestPlugin', () => {
-				try {
-					execSync('node ./scripts/generate-firefox-manifest.js', {
-						stdio: 'inherit',
-					});
-				} catch (err) {
-					console.error('Failed to generate Firefox manifest:', err);
-				}
+				execSync('node ./scripts/generate-firefox-manifest.js', {
+					stdio: 'inherit',
+				});
 			});
 		}
 	}
