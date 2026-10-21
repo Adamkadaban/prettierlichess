@@ -38,6 +38,8 @@ button also works with Tab and Enter or Space, and reports its expanded state to
 screen readers. The option and your last explicit collapse/expand choice are
 saved across pages and browser restarts. Disabling the option restores the
 normal layout immediately; **Reset to Defaults** turns it off.
+If saving fails, the popup shows an error and restores the previous checkbox
+value so you can retry.
 
 This applies to ordinary analysis, studies, and game/TV pages with a left column
 on desktop (over 1260px). It hides the left information panel, including study

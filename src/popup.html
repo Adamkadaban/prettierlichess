@@ -15,12 +15,17 @@
 			</select>
 		</div>
 		<label class="sidebarOption">
-			<input type="checkbox" id="collapsibleSidebar" />
+			<input
+				type="checkbox"
+				id="collapsibleSidebar"
+				aria-describedby="sidebarStatus"
+				disabled />
 			<span>
 				Collapsible left sidebar
 				<small>Show a sidebar toggle on desktop boards</small>
 			</span>
 		</label>
+		<p id="sidebarStatus" role="status" aria-live="polite"></p>
 		<div class="tabGroup">
 			<div class="tab active" id="siteTab">Site Colors</div>
 			<div class="tab" id="boardTab">Board Colors</div>

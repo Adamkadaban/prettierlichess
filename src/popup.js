@@ -388,11 +388,32 @@ document.querySelector('#layoutSelect').addEventListener('change', function () {
 });
 
 const sidebarOption = document.querySelector('#collapsibleSidebar');
+const sidebarStatus = document.querySelector('#sidebarStatus');
+let savedSidebarOption = false;
 chrome.storage.sync.get('collapsibleSidebar', (result) => {
-	sidebarOption.checked = result.collapsibleSidebar === true;
+	if (chrome.runtime.lastError) {
+		sidebarStatus.textContent =
+			'Could not read the sidebar setting. Reopen this popup to try again.';
+		return;
+	}
+	savedSidebarOption = result.collapsibleSidebar === true;
+	sidebarOption.checked = savedSidebarOption;
+	sidebarOption.disabled = false;
 });
 sidebarOption.addEventListener('change', () => {
-	syncSet('collapsibleSidebar', sidebarOption.checked);
+	const requested = sidebarOption.checked;
+	sidebarOption.disabled = true;
+	sidebarStatus.textContent = '';
+	chrome.storage.sync.set({collapsibleSidebar: requested}, () => {
+		if (chrome.runtime.lastError) {
+			sidebarOption.checked = savedSidebarOption;
+			sidebarStatus.textContent =
+				'Could not save the sidebar setting. Please try again.';
+		} else {
+			savedSidebarOption = requested;
+		}
+		sidebarOption.disabled = false;
+	});
 });
 
 for (let scheme in defaultColorScheme) {
