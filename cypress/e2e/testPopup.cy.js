@@ -138,6 +138,83 @@ describe('Test color pickrs', () => {
 	});
 });
 
+describe('Test navigation containing-block fixtures', () => {
+	beforeEach(cy.startup);
+
+	[390, 768, 1000, 1020, 1440].forEach((width) => {
+		it(`Preserves navigation bounds in a header fixture at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'navigation-width-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 800px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html>
+					<html><head>
+						<style>
+							* { box-sizing: border-box; }
+							html { ---site-header-height: 64px; }
+							body { margin: 0; }
+							header#top {
+								position: relative;
+								width: calc(100% - 20px);
+								height: 64px;
+							}
+							.topnav-toggle { display: none; }
+							#topnav { top: 0; left: 0; }
+						</style>
+						<link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<header id="top">
+							<input class="topnav-toggle" type="checkbox" checked>
+							<nav id="topnav">
+								<section><a href="#play">Play</a></section>
+							</nav>
+						</header>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#navigation-width-fixture').should(($frame) => {
+				const frame = $frame[0];
+				const doc = frame.contentDocument;
+				const win = frame.contentWindow;
+				const link = doc.querySelector('link[rel="stylesheet"]');
+				expect(link, 'built stylesheet link').to.exist;
+				expect(link.sheet, 'loaded built stylesheet').to.exist;
+				expect(link.sheet.cssRules.length).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+
+				const nav = doc.getElementById('topnav');
+				const header = doc.getElementById('top');
+				const bounds = nav.getBoundingClientRect();
+				const headerBounds = header.getBoundingClientRect();
+				if (width >= 1020) {
+					const left = headerBounds.left + header.clientLeft;
+					expect(header.clientWidth).to.be.lessThan(win.innerWidth);
+					expect(nav.offsetParent).to.equal(header);
+					expect(bounds.left).to.be.closeTo(left, 1);
+					expect(bounds.top).to.be.closeTo(headerBounds.top, 1);
+					expect(bounds.width).to.be.closeTo(header.clientWidth, 1);
+					expect(bounds.right).to.be.at.most(
+						left + header.clientWidth + 1
+					);
+				} else {
+					expect(win.getComputedStyle(nav).position).to.equal(
+						'fixed'
+					);
+					expect(bounds.left).to.be.closeTo(0, 1);
+					expect(bounds.top).to.be.closeTo(headerBounds.bottom, 1);
+					expect(bounds.width).to.be.closeTo(
+						width * (width <= 713 ? 0.9 : 0.6),
+						1
+					);
+					expect(bounds.bottom).to.be.closeTo(800, 1);
+				}
+			});
+		});
+	});
+});
+
 describe('Test broadcast stylesheet fixtures', () => {
 	beforeEach(cy.startup);
 
