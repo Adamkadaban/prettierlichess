@@ -35,7 +35,7 @@ describe('Test color pickrs', () => {
 				.eq(i)
 				.getColor()
 				.then(($color) => {
-					Cypress.env(NAMES[i], $color);
+					Cypress.expose(NAMES[i], $color);
 				});
 		}
 	});
@@ -129,14 +129,22 @@ describe('Test custom board colors', () => {
 	});
 	it('Test reset of custom board colors', () => {
 		cy.get('#boardTab').click();
-		cy.get('.pickr').eq(8).shouldHaveColor(Cypress.env('darkSquareColor'));
-		cy.get('.pickr').eq(9).shouldHaveColor(Cypress.env('lightSquareColor'));
+		cy.get('.pickr')
+			.eq(8)
+			.shouldHaveColor(Cypress.expose('darkSquareColor'));
+		cy.get('.pickr')
+			.eq(9)
+			.shouldHaveColor(Cypress.expose('lightSquareColor'));
 		cy.get('.pickr').eq(8).changeColor('#B406A6');
 		cy.get('.pickr').eq(9).changeColor('#B406A6');
 		cy.get('#hideBoardColors').click();
 		cy.get('#hideBoardColors').click();
-		cy.get('.pickr').eq(8).shouldHaveColor(Cypress.env('darkSquareColor'));
-		cy.get('.pickr').eq(9).shouldHaveColor(Cypress.env('lightSquareColor'));
+		cy.get('.pickr')
+			.eq(8)
+			.shouldHaveColor(Cypress.expose('darkSquareColor'));
+		cy.get('.pickr')
+			.eq(9)
+			.shouldHaveColor(Cypress.expose('lightSquareColor'));
 	});
 });
 
@@ -150,7 +158,7 @@ describe('Test reset', () => {
 		cy.get('#resetButton').click();
 
 		for (let i = 0; i < NAMES.length; i++) {
-			cy.get('.pickr').eq(i).shouldHaveColor(Cypress.env(NAMES[i]));
+			cy.get('.pickr').eq(i).shouldHaveColor(Cypress.expose(NAMES[i]));
 		}
 	});
 	it('Test custom board colors after reset', () => {
@@ -245,7 +253,6 @@ describe('Test import/export', () => {
 		cy.get('.pickr').first().shouldHaveColor('#18D329');
 	});
 	it('Test export', () => {
-		cy.clearLocalStorage();
 		cy.get('.pickr').first().changeColor('#7918D3');
 		cy.get('#exportButton').should('be.visible').click();
 
@@ -256,7 +263,7 @@ describe('Test import/export', () => {
 					.should('eq', '#7918D3');
 				cy.readFile('./cypress/downloads/prettierlichess_config.json')
 					.its('secondaryColor')
-					.should('not.exist');
+					.should('eq', '#f5c276');
 			});
 		});
 	});
@@ -269,12 +276,14 @@ describe('Test import/export', () => {
 		cy.inputFile(IMPORT_STRING);
 
 		cy.get('.pickr').first().shouldHaveColor('#18D329');
-		cy.get('.pickr').eq(1).shouldHaveColor(Cypress.env('secondaryColor'));
+		cy.get('.pickr')
+			.eq(1)
+			.shouldHaveColor(Cypress.expose('secondaryColor'));
 	});
 	it('Test empty export', () => {
-		cy.clearLocalStorage();
 		const stub = cy.stub();
 		cy.on('window:alert', stub);
+		cy.window().then((win) => win.chrome.storage.sync.clear());
 		cy.get('#exportButton').click();
 
 		cy.then(() => {
