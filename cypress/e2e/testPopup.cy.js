@@ -239,6 +239,48 @@ describe('Test focused comments experiment', () => {
 		cy.inputFile('{"primaryColor":"#18D329","focusedComments":true}');
 		cy.get('#focusedComments').should('not.be.checked');
 	});
+
+	for (const failure of ['callback', 'throw', 'reject']) {
+		it(`Restores focused comments after a ${failure} write failure`, () => {
+			const enabled = failure !== 'callback';
+			cy.window().then((win) =>
+				win.chrome.storage.sync.set({focusedComments: enabled})
+			);
+			cy.reload();
+			cy.window().then((win) => {
+				cy.stub(win.chrome.storage.sync, 'set')
+					.callsFake((items, callback) => {
+						const error = new Error('Storage unavailable');
+						if (failure === 'throw') throw error;
+						if (failure === 'reject') return Promise.reject(error);
+						win.chrome.runtime = {lastError: error};
+						callback();
+						delete win.chrome.runtime.lastError;
+					})
+					.as('saveFocusedComments');
+			});
+			cy.get('#focusedComments')
+				.should(enabled ? 'be.checked' : 'not.be.checked')
+				.click()
+				.should(enabled ? 'be.checked' : 'not.be.checked')
+				.and('not.be.disabled');
+			cy.get('#focusedCommentsStatus')
+				.should('be.visible')
+				.and('contain.text', 'Could not save focused comments');
+			cy.window().then((win) => {
+				expect(win.localStorage.getItem('focusedComments')).to.equal(
+					String(enabled)
+				);
+			});
+			cy.get('@saveFocusedComments').invoke('restore');
+			cy.get('#focusedComments').click().should('not.be.disabled');
+			cy.get('#focusedCommentsStatus').should('be.empty');
+			cy.reload();
+			cy.get('#focusedComments').should(
+				enabled ? 'not.be.checked' : 'be.checked'
+			);
+		});
+	}
 });
 
 describe('Test import/export', () => {

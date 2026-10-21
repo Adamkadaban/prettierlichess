@@ -53,6 +53,10 @@ body {
 	line-height: 1.5 !important;
 }
 
+.analysisOption p:empty {
+	margin: 0 !important;
+}
+
 /* Tabs */
 
 .tabGroup {

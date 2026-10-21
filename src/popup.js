@@ -27,6 +27,7 @@ const resetButton = document.querySelector('#resetButton');
 const importButton = document.querySelector('#importButton');
 const exportButton = document.querySelector('#exportButton');
 const focusedComments = document.querySelector('#focusedComments');
+const focusedCommentsStatus = document.querySelector('#focusedCommentsStatus');
 
 const siteTab = document.querySelector('#siteTab');
 const boardTab = document.querySelector('#boardTab');
@@ -373,7 +374,26 @@ chrome.storage.sync.get('focusedComments', (result) => {
 });
 
 focusedComments.addEventListener('change', () => {
-	syncSet('focusedComments', focusedComments.checked);
+	const enabled = focusedComments.checked;
+	focusedComments.disabled = true;
+	focusedCommentsStatus.textContent = '';
+	const finish = (error) => {
+		focusedComments.disabled = false;
+		if (error) {
+			focusedComments.checked = !enabled;
+			focusedCommentsStatus.textContent =
+				'Could not save focused comments. Please try again.';
+		}
+	};
+	try {
+		const pending = chrome.storage.sync.set(
+			{focusedComments: enabled},
+			() => finish(chrome.runtime?.lastError)
+		);
+		pending?.catch(finish);
+	} catch (error) {
+		finish(error);
+	}
 });
 
 for (let scheme in defaultColorScheme) {

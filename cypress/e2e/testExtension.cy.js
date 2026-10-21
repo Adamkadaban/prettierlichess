@@ -225,6 +225,21 @@ describe('Test whole extension', () => {
 					''
 				)
 			);
+			cy.document().then((doc) => {
+				const classes = doc.documentElement.className;
+				doc.documentElement.className = 'lichess-reconstructed';
+				expect(
+					doc.documentElement.hasAttribute(
+						'data-prettier-focused-comments'
+					)
+				).to.equal(true);
+				expect(
+					doc.defaultView.getComputedStyle(
+						doc.querySelector(`${tree} .black-note`)
+					).display
+				).to.equal('none');
+				doc.documentElement.className = classes;
+			});
 			cy.get(`${tree} .white-note`)
 				.should('be.visible')
 				.should('have.length', 2);

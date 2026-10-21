@@ -38,7 +38,8 @@ Select another move or use Lichess's normal move navigation to read its notes.
 Starting-position notes, variations and their comments, move annotations, and
 native controls remain unchanged. Turn it off to restore all comments immediately,
 without reloading. Reset to Defaults also turns it off; color imports preserve
-your existing choice and cannot opt you in.
+your existing choice and cannot opt you in. If saving the checkbox fails, the
+popup restores its previous state and displays an error so you can retry.
 
 The experiment uses the semantic `.tview2-column` / `.tview2-inline` move tree and
 Lichess's `.active` state, not comment text, timers, observers, or custom scrolling.
