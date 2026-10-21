@@ -15,7 +15,7 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.ref }}
           persist-credentials: false
 
       - name: Setup Node.js and npm
@@ -55,7 +55,7 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.ref }}
           persist-credentials: false
 
       - name: Bundle the source files
@@ -98,7 +98,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release upload "$RELEASE_TAG" ./build.zip ./build-firefox.zip ./sourcecode.zip --clobber
+        run: gh release upload --clobber -- "$RELEASE_TAG" ./build.zip ./build-firefox.zip ./sourcecode.zip
 
   publish-firefox:
     name: Publish for Firefox
