@@ -36,6 +36,18 @@ This popup option is **off by default**. It shows the selected mainline move's c
 
 This is a small experiment, not an engine-review redesign. Filtering can move rows during navigation; native scrolling and placeholder moves remain unchanged. Firefox and Safari have not been verified.
 
+### Importing colours
+
+Import a JSON object containing colour names and `#RRGGBB` or `#RRGGBBAA`
+values, for example `{"primaryColor": "#18D329"}`. Invalid JSON or invalid
+values for known colours show an error without changing settings.
+Nonempty objects must contain at least one known colour; extra unknown keys
+alongside known colours are ignored. Omitted colours return to their defaults; an
+empty object restores all default colours. Layout, vertical mode and the
+native-board choice are preserved, with native-board colours kept transparent.
+Imports save a complete palette, so subsequent exports include default colours
+as well (except native-board colours).
+
 ## Community Themes
 
 Check out the community driven theme library [here](https://github.com/algertc/prettierlichess-themes).
