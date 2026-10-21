@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   lint-source:
-    name: Lint source
+    name: Lint Firefox source
     runs-on: ubuntu-latest
 
     steps:
@@ -31,17 +31,25 @@ jobs:
           node-version: 24
           cache: 'npm'
 
-      - run: npm install
+      - run: npm ci
+
+      - name: Use Firefox manifest for source lint
+        run: cp ./src/manifest.firefox.json ./src/manifest.json
 
       - name: Run web-ext lint
-        run: |
-          cd ./src/
-          npm install --global web-ext
-          web-ext lint
+        run: ./node_modules/.bin/web-ext lint --source-dir ./src
 
   lint-build:
-    name: Lint build
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chrome
+            name: Build Chrome
+          - browser: firefox
+            name: Build and lint Firefox
 
     steps:
       - name: Checkout the repo
@@ -61,12 +69,10 @@ jobs:
           node-version: 24
           cache: 'npm'
 
-      - run: npm install
+      - run: npm ci
 
-      - run: npm run build
+      - run: npm run build:${{ matrix.browser }}
 
-      - name: Run web-ext lint
-        run: |
-          cd ./dist/
-          npm install --global web-ext
-          web-ext lint
+      - name: Run web-ext lint on Firefox build
+        if: matrix.browser == 'firefox'
+        run: ./node_modules/.bin/web-ext lint --source-dir ./dist-firefox
