@@ -5961,6 +5961,13 @@ body .glowing {
 			'uchat         ';
 	}
 
+	#main-wrap .analyse.is-relay.has-relay-tour {
+		grid-template-areas:
+			'relay-tour'
+			'side'
+			'relay-admin' !important;
+	}
+
 	#main-wrap .analyse:not(.is-relay),
 	#main-wrap .analyse.has-relay-tour {
 		margin: 0 !important;
