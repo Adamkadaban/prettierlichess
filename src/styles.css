@@ -1094,6 +1094,10 @@ nav section a:target-within {
 	color: var(--backgroundColor) !important;
 }
 
+#dasher_app .button.more:hover {
+	color: var(--primaryColor) !important;
+}
+
 #dasher_app .piece .list {
 	background: none !important;
 	box-shadow: none !important;
