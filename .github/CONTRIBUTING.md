@@ -25,6 +25,8 @@ Please always remain friendly.
 
 The styles.css file is injected when lichess is called and thus contains all the style changes that prettierlichess makes. The default styling of lichess is overwritten.
 
+Extension resource URLs in CSS use `chrome-extension://` in the source; the Firefox build converts them to `moz-extension://`.
+
 The colours set by the user are transferred to the file by variables. The variables are:
 `--primaryColor`, `--backgroundColor`, `--surfaceColor`, `--surfaceColorHover`, `--secondaryColor`, `--tertiaryColor`, `--defaultWhite`, `--textColor`, `--arrowPrimary`, `--arrowSecondary`, `--arrowTertiary`, `--arrowAlternate`, `--lastMove`, `--preMove`, `--moveIndicator`, `--boardDark`, `--boardLight`, `--coordDark`, `--coordLight`
 

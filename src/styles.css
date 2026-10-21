@@ -2,64 +2,56 @@
 	font-family: 'Red Hat Text';
 	font-style: normal;
 	font-weight: 400;
-	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-Regular.ttf),
-		url(moz-extension://__MSG_@@extension_id__/fonts/RedHatText-Regular.ttf);
+	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-Regular.ttf);
 }
 
 @font-face {
 	font-family: 'Red Hat Text';
 	font-style: italic;
 	font-weight: 400;
-	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-Italic.ttf),
-		url(moz-extension://__MSG_@@extension_id__/fonts/RedHatText-Italic.ttf);
+	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-Italic.ttf);
 }
 
 @font-face {
 	font-family: 'Red Hat Text';
 	font-style: normal;
 	font-weight: 500;
-	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-Medium.ttf),
-		url(moz-extension://__MSG_@@extension_id__/fonts/RedHatText-Medium.ttf);
+	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-Medium.ttf);
 }
 
 @font-face {
 	font-family: 'Red Hat Text';
 	font-style: italic;
 	font-weight: 500;
-	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-MediumItalic.ttf),
-		url(moz-extension://__MSG_@@extension_id__/fonts/RedHatText-MediumItalic.ttf);
+	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-MediumItalic.ttf);
 }
 
 @font-face {
 	font-family: 'Red Hat Text';
 	font-style: normal;
 	font-weight: 700;
-	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-Bold.ttf),
-		url(moz-extension://__MSG_@@extension_id__/fonts/RedHatText-Bold.ttf);
+	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-Bold.ttf);
 }
 
 @font-face {
 	font-family: 'Red Hat Text';
 	font-style: italic;
 	font-weight: 700;
-	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-BoldItalic.ttf),
-		url(moz-extension://__MSG_@@extension_id__/fonts/RedHatText-BoldItalic.ttf);
+	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatText-BoldItalic.ttf);
 }
 
 @font-face {
 	font-family: 'Red Hat Display';
 	font-style: normal;
 	font-weight: 400;
-	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatDisplay-Regular.ttf),
-		url(moz-extension://__MSG_@@extension_id__/fonts/RedHatDisplay-Regular.ttf);
+	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatDisplay-Regular.ttf);
 }
 
 @font-face {
 	font-family: 'Red Hat Display';
 	font-style: normal;
 	font-weight: 700;
-	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatDisplay-Bold.ttf),
-		url(moz-extension://__MSG_@@extension_id__/fonts/RedHatDisplay-Bold.ttf);
+	src: url(chrome-extension://__MSG_@@extension_id__/fonts/RedHatDisplay-Bold.ttf);
 }
 
 :root {
@@ -1043,7 +1035,12 @@ nav section a:target-within {
 	backdrop-filter: blur(16px) !important;
 }
 
-#topnav div.topnavHover {
+#topnav.hover section:hover > div,
+#topnav section:active > div,
+#topnav section.active > div,
+#topnav section:focus-within > div {
+	visibility: visible !important;
+	max-height: none !important;
 	opacity: 1 !important;
 	margin-top: 0 !important;
 	clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%) !important;
@@ -3191,7 +3188,11 @@ a.context-streamer:hover {
 	margin-left: auto !important;
 	margin-right: auto !important;
 	width: 80% !important;
-	background: none !important;
+	background: linear-gradient(
+		to bottom,
+		rgb(26, 26, 26) var(--eval-percent, 50%),
+		rgb(225, 225, 225) var(--eval-percent, 50%)
+	) !important;
 	border-radius: calc(var(--borderRadius) / 2) !important;
 	overflow: hidden !important;
 	border: 1px solid var(--surfaceColorHover) !important;
@@ -3199,25 +3200,6 @@ a.context-streamer:hover {
 
 .eval-gauge::after {
 	box-shadow: none !important;
-}
-
-.eval-gauge::before {
-	content: '' !important;
-	display: block !important;
-	position: absolute !important;
-	top: 0 !important;
-	bottom: 0 !important;
-	left: 0 !important;
-	right: 0 !important;
-	background: rgb(225, 225, 225) !important;
-	border-radius: calc(var(--borderRadius) / 2) !important;
-	z-index: -1 !important;
-}
-
-.eval-gauge .black {
-	background: rgb(26, 26, 26) !important;
-	border-radius: 0 !important;
-	z-index: 9 !important;
 }
 
 .eval-gauge tick {
