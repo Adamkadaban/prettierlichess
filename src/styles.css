@@ -751,9 +751,24 @@ coords coord {
 	color: var(--coordLight) !important;
 }
 
+html[data-prettierlichess-native-board] coords {
+	--coordDark: var(---cg-ccb, #fff) !important;
+	--coordLight: var(---cg-ccw, #fff) !important;
+}
+
+html[data-prettierlichess-native-board] .is3d .cg-wrap coords {
+	--coordDark: #fff !important;
+	--coordLight: #fff !important;
+}
+
 cg-resize::before,
 cg-resize::after {
 	background-color: var(--coordDark) !important;
+}
+
+html[data-prettierlichess-native-board] cg-resize::before,
+html[data-prettierlichess-native-board] cg-resize::after {
+	background-color: currentColor !important;
 }
 
 cg-resize {
