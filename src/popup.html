@@ -106,9 +106,14 @@
 				>
 				<fieldset id="profileControls" disabled>
 					<label for="profileSelect">Choose a profile to apply</label>
-					<select id="profileSelect">
-						<option value="">No saved profiles yet</option>
-					</select>
+					<div id="profileSelection">
+						<select id="profileSelect">
+							<option value="">No saved profiles yet</option>
+						</select>
+						<button class="button" id="applyProfile" disabled
+							>Apply</button
+						>
+					</div>
 					<label for="profileName">Profile name</label>
 					<input id="profileName" type="text" autocomplete="off" />
 					<button class="button" id="saveProfile"

@@ -37,6 +37,7 @@ const profileControls = document.querySelector('#profileControls');
 const profileSelect = document.querySelector('#profileSelect');
 const profileName = document.querySelector('#profileName');
 const saveProfileButton = document.querySelector('#saveProfile');
+const applyProfileButton = document.querySelector('#applyProfile');
 const renameProfileButton = document.querySelector('#renameProfile');
 const deleteProfileButton = document.querySelector('#deleteProfile');
 const profileStatus = document.querySelector('#profileStatus');
@@ -103,6 +104,7 @@ async function readProfiles() {
 }
 
 function updateProfileButtons() {
+	applyProfileButton.disabled = !profileSelect.value;
 	renameProfileButton.disabled = !profileSelect.value;
 	deleteProfileButton.disabled = !profileSelect.value;
 }
@@ -128,10 +130,8 @@ async function runProfileAction(action) {
 	profileStatus.textContent = '';
 	try {
 		await action(await readProfiles());
-		return true;
 	} catch (error) {
 		alert(`Unable to use saved color profiles: ${error.message}`);
-		return false;
 	} finally {
 		profileControls.disabled = false;
 		updateProfileButtons();
@@ -171,7 +171,7 @@ saveProfileButton.addEventListener('click', () => {
 	});
 });
 
-profileSelect.addEventListener('change', async () => {
+async function applySelectedProfile() {
 	const name = profileSelect.value;
 	profileName.value = name;
 	if (!name) {
@@ -179,7 +179,7 @@ profileSelect.addEventListener('change', async () => {
 		updateProfileButtons();
 		return;
 	}
-	const applied = await runProfileAction(async (profiles) => {
+	await runProfileAction(async (profiles) => {
 		const profile = profiles.find((profile) => profile.name === name);
 		if (!profile) throw new Error('This profile no longer exists.');
 		const colors = profileColors(profile.colors);
@@ -199,11 +199,10 @@ profileSelect.addEventListener('change', async () => {
 		}
 		profileStatus.textContent = `Applied “${name}”.`;
 	});
-	if (!applied) {
-		profileSelect.value = '';
-		updateProfileButtons();
-	}
-});
+}
+
+profileSelect.addEventListener('change', applySelectedProfile);
+applyProfileButton.addEventListener('click', applySelectedProfile);
 
 renameProfileButton.addEventListener('click', () => {
 	runProfileAction(async (profiles) => {

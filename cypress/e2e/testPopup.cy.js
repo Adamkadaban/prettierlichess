@@ -340,7 +340,7 @@ describe('Test saved color profiles', () => {
 		cy.get('.pickr').first().shouldHaveColor('#123456');
 	});
 
-	it('Preserves all preferences and honors native or custom board mode', () => {
+	it('Reapplies the selected profile while preserving preferences and board mode', () => {
 		cy.get('#boardTab').click();
 		cy.get('.pickr').eq(8).changeColor('#334455');
 		openProfiles();
@@ -383,15 +383,23 @@ describe('Test saved color profiles', () => {
 			).to.deep.equal({enabled: true});
 			win.localStorage.setItem('defaultBoardSwitch', 'false');
 		});
-		cy.reload();
-		openProfiles();
+		cy.get('#profileSelect').should('have.value', 'Custom board');
+		cy.get('#applyProfile').click();
+		cy.get('#profileStatus').should('have.text', 'Applied “Custom board”.');
+		cy.window().then((win) => {
+			expect(JSON.parse(win.localStorage.getItem('boardDark'))).to.equal(
+				'#334455'
+			);
+		});
 		cy.get('#profileSelect').select('Native board');
+		cy.get('#profileStatus').should('have.text', 'Applied “Native board”.');
 		cy.window().then((win) => {
 			expect(JSON.parse(win.localStorage.getItem('boardDark'))).to.equal(
 				'#71828F'
 			);
 		});
 		cy.get('#profileSelect').select('Custom board');
+		cy.get('#profileStatus').should('have.text', 'Applied “Custom board”.');
 		cy.window().then((win) => {
 			expect(JSON.parse(win.localStorage.getItem('boardDark'))).to.equal(
 				'#334455'
@@ -407,6 +415,9 @@ describe('Test saved color profiles', () => {
 				JSON.parse(win.localStorage.getItem('futurePreference'))
 			).to.deep.equal({enabled: true});
 		});
+		cy.reload();
+		cy.get('#boardTab').click();
+		cy.get('.pickr').eq(8).should('be.visible').shouldHaveColor('#334455');
 	});
 
 	it('Renames and deletes profiles without changing active colors', () => {
@@ -440,6 +451,7 @@ describe('Test saved color profiles', () => {
 		cy.get('#profileSelect').should('have.value', 'Woodland');
 		cy.get('#deleteProfile').click();
 		cy.get('#profileSelect option').should('have.length', 1);
+		cy.get('#applyProfile').should('be.disabled');
 		cy.get('#renameProfile').should('be.disabled');
 		cy.get('#deleteProfile').should('be.disabled');
 		cy.get('.pickr').first().shouldHaveColor('#123456');
@@ -488,7 +500,7 @@ describe('Test saved color profiles', () => {
 	});
 
 	it('Reports local quota and sync write failures without claiming success', () => {
-		const alert = cy.stub();
+		const alert = cy.stub().as('profileAlert');
 		cy.on('window:alert', alert);
 		cy.get('.pickr').first().changeColor('#123456');
 		openProfiles();
@@ -501,7 +513,9 @@ describe('Test saved color profiles', () => {
 		});
 		cy.get('#profileName').clear().type('Night');
 		cy.get('#saveProfile').click();
-		cy.then(() => expect(alert.lastCall.args[0]).to.contain('QUOTA_BYTES'));
+		cy.get('@profileAlert')
+			.should('have.been.calledOnce')
+			.and('have.been.calledWithMatch', 'QUOTA_BYTES');
 		cy.get('#profileStatus').should('be.empty');
 		cy.window().then((win) => {
 			expect(
@@ -516,11 +530,13 @@ describe('Test saved color profiles', () => {
 			});
 		});
 		cy.get('#profileSelect').select('Forest');
-		cy.then(() =>
-			expect(alert.lastCall.args[0]).to.contain(
-				'Sync storage unavailable'
-			)
-		);
+		cy.get('#profileControls').should('not.be.disabled');
+		cy.then(() => alert.resetHistory());
+		cy.get('#profileSelect').should('have.value', 'Forest');
+		cy.get('#applyProfile').click();
+		cy.get('@profileAlert')
+			.should('have.been.calledOnce')
+			.and('have.been.calledWithMatch', 'Sync storage unavailable');
 		cy.get('#profileStatus').should('be.empty');
 		cy.get('.pickr').first().shouldHaveColor('#654321');
 		cy.window().then((win) => {
@@ -529,5 +545,8 @@ describe('Test saved color profiles', () => {
 			).to.equal('#654321');
 			write.restore();
 		});
+		cy.get('#applyProfile').click();
+		cy.get('#profileStatus').should('have.text', 'Applied “Forest”.');
+		cy.get('.pickr').first().shouldHaveColor('#123456');
 	});
 });
