@@ -3173,7 +3173,19 @@ a.context-streamer:hover {
 }
 
 .analyse__controls {
-	margin: 0 16px !important;
+	margin-right: 16px !important;
+	margin-bottom: 0 !important;
+	margin-left: 16px !important;
+}
+
+.analyse__controls:not(main.is-relay:not(.has-relay-tour) *) {
+	margin-top: 0 !important;
+}
+
+@media (min-width: 800px), (orientation: landscape) {
+	.analyse__controls {
+		margin-top: 0 !important;
+	}
 }
 
 .pv_box .pv[data-uci]:hover,
