@@ -31,4 +31,31 @@ describe('Test whole extension', () => {
 			.should('contain.text', 'Disable Vertical Layout')
 			.click();
 	});
+	it('Shows both sides of the evaluation gauge', () => {
+		cy.visit('https://lichess.org/analysis');
+		cy.window().its('site.analysis').should('exist');
+		cy.window().then((win) => {
+			win.site.analysis.node.eval = {cp: 400};
+			win.site.analysis.redraw();
+		});
+		cy.get('.eval-gauge').should(($gauge) => {
+			const background = $gauge.css('background-image');
+			expect(background).to.include('rgb(26, 26, 26)');
+			expect(background).to.include('rgb(225, 225, 225)');
+		});
+		cy.get('.eval-gauge').then(($gauge) => {
+			for (const percent of [0, 25, 50, 75, 100]) {
+				$gauge.css({
+					transition: 'none',
+					'--eval-percent': `${percent}%`,
+				});
+				expect($gauge.css('background-image')).to.include(
+					`rgb(26, 26, 26) ${percent}%`
+				);
+				expect($gauge.css('background-image')).to.include(
+					`rgb(225, 225, 225) ${percent}%`
+				);
+			}
+		});
+	});
 });
