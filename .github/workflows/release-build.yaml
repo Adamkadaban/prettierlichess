@@ -4,27 +4,25 @@ on:
   release:
     types: [ published ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref_name }}
-
-      - name: Set up npm cache
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          persist-credentials: false
 
       - name: Setup Node.js and npm
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 18
-          cache: 'npm'
+          node-version: 24
+          package-manager-cache: false
 
       - run: npm install
 
@@ -36,7 +34,7 @@ jobs:
           cd ..
 
       - name: Upload build version as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
         with:
           name: build-version
           path: ./dist/build.zip
@@ -46,15 +44,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref_name }}
+          persist-credentials: false
 
       - name: Bundle the source files
-        run: zip -r sourcecode.zip $(<'sourcelist.txt')
+        run: zip -r sourcecode.zip -@ < sourcelist.txt
 
       - name: Upload source code as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
         with:
           name: sourcecode
           path: ./sourcecode.zip
@@ -63,21 +62,23 @@ jobs:
     name: Upload build to github release
     needs: [ build, bundle-source ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download build version
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: build-version
           path: .
 
       - name: Download source code
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: sourcecode
           path: .
 
       - name: Upload build to release
-        uses: svenstaro/upload-release-action@cc92c9093e5f785e23a3d654fe2671640b851b5f
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./build.zip
@@ -85,7 +86,7 @@ jobs:
           overwrite: true
 
       - name: Upload sourcecode to release
-        uses: svenstaro/upload-release-action@cc92c9093e5f785e23a3d654fe2671640b851b5f
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./sourcecode.zip
@@ -103,7 +104,7 @@ jobs:
 
     steps:
       - name: Download build version
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: build-version
           path: .
@@ -119,7 +120,7 @@ jobs:
 
     steps:
       - name: Download build version
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: build-version
           path: .

@@ -6,7 +6,14 @@ module.exports = defineConfig({
 		defaultCommandTimeout: 10000,
 		setupNodeEvents(on, config) {
 			on('before:browser:launch', (browser, launchOptions) => {
-				launchOptions.extensions.push(path.resolve(__dirname, 'dist'));
+				launchOptions.extensions.push(
+					path.resolve(
+						__dirname,
+						browser.name === 'firefox'
+							? 'dist-firefox'
+							: 'dist-chrome'
+					)
+				);
 				return launchOptions;
 			});
 		},

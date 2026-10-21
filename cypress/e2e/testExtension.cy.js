@@ -16,7 +16,58 @@ describe('Test whole extension', () => {
 			'rgb(39, 42, 44)'
 		);
 	});
+	it('Test destination hit testing while dragging', () => {
+		cy.visit(
+			'https://lichess.org/analysis/standard/4k3/8/8/3p4/4P3/8/8/4K3_w_-_-_0_1'
+		);
+		cy.window().its('lichess.chessground').should('be.a', 'function');
+		cy.window().then((win) => {
+			const ground = win.lichess.chessground();
+			const board = ground.state.dom.elements.board;
+			const bounds = board.getBoundingClientRect();
+			const from = {
+				clientX: bounds.left + (bounds.width * 4.5) / 8,
+				clientY: bounds.top + (bounds.height * 4.5) / 8,
+			};
+			const trustAllEvents = ground.state.trustAllEvents;
+			ground.state.trustAllEvents = true;
+			board.dispatchEvent(
+				new win.MouseEvent('mousedown', {
+					bubbles: true,
+					buttons: 1,
+					...from,
+				})
+			);
+			ground.state.trustAllEvents = trustAllEvents;
+
+			for (const file of [4.5, 3.5]) {
+				const to = {
+					clientX: bounds.left + (bounds.width * file) / 8,
+					clientY: bounds.top + (bounds.height * 3.5) / 8,
+				};
+				cy.document().trigger('mousemove', {buttons: 1, ...to});
+				cy.get('.main-board cg-board').should(() => {
+					expect(ground.state.draggable.current.started).to.be.true;
+					const destination = win.document.elementFromPoint(
+						to.clientX,
+						to.clientY
+					);
+					expect(destination.tagName).to.equal('SQUARE');
+					expect(destination.classList.contains('move-dest')).to.be
+						.true;
+					expect(destination.classList.contains('oc')).to.equal(
+						file === 3.5
+					);
+					expect(win.getComputedStyle(destination).cursor).to.equal(
+						'grabbing'
+					);
+				});
+			}
+			cy.then(() => ground.cancelMove());
+		});
+	});
 	it('Opens navigation menus added after page load', () => {
+		cy.viewport(1280, 800);
 		cy.document().then((doc) => {
 			const section = doc.createElement('section');
 			section.id = 'prettier-test-menu';
@@ -49,6 +100,61 @@ describe('Test whole extension', () => {
 			.should('contain.text', 'Disable Vertical Layout')
 			.click();
 	});
+
+	[390, 768, 1000].forEach((width) => {
+		it(`Test mobile navigation scrolling at ${width}px`, () => {
+			cy.viewport(width, 600);
+			cy.get('#topnav').should(($nav) => {
+				expect($nav[0].getBoundingClientRect().right).to.be.at.most(1);
+			});
+			cy.get('.hbg').click();
+			cy.get('.topnav-toggle').should('be.checked');
+			cy.get('#topnav')
+				.should(($nav) => {
+					const nav = $nav[0];
+					const bounds = nav.getBoundingClientRect();
+					const header = nav.ownerDocument.getElementById('top');
+					expect(bounds.top).to.be.closeTo(
+						header.getBoundingClientRect().bottom,
+						1
+					);
+					expect(bounds.left).to.be.closeTo(0, 1);
+					expect(bounds.bottom).to.be.at.most(600);
+					expect(nav.scrollHeight).to.be.greaterThan(
+						nav.clientHeight
+					);
+				})
+				.scrollTo('bottom')
+				.should(($nav) => {
+					expect($nav[0].scrollTop).to.be.greaterThan(0);
+				});
+			cy.get('#topnav section:last-child div a')
+				.last()
+				.should('be.visible')
+				.should(($link) => {
+					const link = $link[0];
+					const nav = link.closest('#topnav').getBoundingClientRect();
+					const bounds = link.getBoundingClientRect();
+					expect(bounds.top).to.be.at.least(nav.top);
+					expect(bounds.bottom).to.be.at.most(nav.bottom);
+				});
+			cy.get('.hbg').click();
+			cy.get('.topnav-toggle').should('not.be.checked');
+			cy.get('#topnav').should(($nav) => {
+				expect($nav[0].getBoundingClientRect().right).to.be.at.most(1);
+			});
+		});
+	});
+
+	it('Test desktop navigation above the mobile breakpoint', () => {
+		cy.viewport(1020, 600);
+		cy.get('.hbg').should('not.be.visible');
+		cy.get('#topnav')
+			.should('be.visible')
+			.and('have.css', 'position', 'absolute')
+			.and('have.css', 'transform', 'none');
+	});
+
 	it('Shows both sides of the evaluation gauge', () => {
 		cy.visit('https://lichess.org/analysis');
 		cy.window().its('site.analysis').should('exist');
