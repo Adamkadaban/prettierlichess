@@ -111,7 +111,9 @@ Cypress.Commands.add(
 Cypress.Commands.add('inputFile', (content) => {
 	if (Cypress.browser.name === 'firefox') {
 		cy.get('#importButton').click();
-		cy.get('#basicImport').should('be.visible').type(content);
+		cy.get('#basicImport')
+			.should('be.visible')
+			.type(content, {parseSpecialCharSequences: false});
 		cy.get('#importAction').should('be.visible').click();
 	} else {
 		cy.writeFile('./cypress/downloads/temp.json', content);
