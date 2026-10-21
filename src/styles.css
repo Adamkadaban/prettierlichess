@@ -159,7 +159,7 @@ body,
 .mini-game:hover,
 .ruser a,
 .user-link,
-rm6 u8t.a1t,
+:is(rm6, i5d) :is(u8t, z7yx).a1t,
 .fbt,
 .tv-single .tv-history h2,
 .site-buttons .link,
@@ -224,7 +224,7 @@ input::placeholder,
 .form-help,
 .password-complexity-label,
 .study__share .ply-wrap,
-rm6 .message::before,
+:is(rm6, i5d) .message::before,
 .tview2-column line comment,
 .copyables .name,
 .pagination span,
@@ -2851,8 +2851,8 @@ main.round {
 }
 
 .round .pocket piece::after,
-rb1 .fbt.active,
-rm6 kwdb:hover {
+:is(rb1, bo3) .fbt.active,
+:is(rm6, i5d) kwdb:hover {
 	color: var(--backgroundColor) !important;
 	background: var(--primaryColor) !important;
 	text-shadow: none !important;
@@ -2868,7 +2868,7 @@ rm6 kwdb:hover {
 .context-streamer,
 .round__app__table,
 .rclock .time,
-rm6 .buttons,
+:is(rm6, i5d) .buttons,
 .rcontrols .rematch-decline {
 	box-shadow: none !important;
 }
@@ -2902,53 +2902,53 @@ rm6 .buttons,
 	border-left: 2px solid var(--surfaceColorHover) !important;
 }
 
-rm6 {
+:is(rm6, i5d) {
 	margin-bottom: 0 !important;
 	background: none !important;
 }
 
-rm6 .board-menu {
+:is(rm6, i5d) .board-menu {
 	background: var(--surfaceColorHover) !important;
 	border-top: 2px solid var(--primaryColor) !important;
 	backdrop-filter: blur(16px) !important;
 }
 
-rm6 rb1 {
+:is(rm6, i5d) :is(rb1, bo3) {
 	background: none !important;
 	box-shadow: none !important;
 }
 
-rm6 l4x,
-rm6 .buttons {
+:is(rm6, i5d) :is(l4x, app),
+:is(rm6, i5d) .buttons {
 	background: none !important;
 	border-left: 2px solid var(--surfaceColorHover) !important;
 	border-right: 2px solid var(--surfaceColorHover) !important;
 }
 
-rm6 l4x {
+:is(rm6, i5d) :is(l4x, app) {
 	flex: 0 0 30svh !important;
 	line-height: 40px !important;
 }
 
-rm6 .buttons {
+:is(rm6, i5d) .buttons {
 	height: 40px !important;
 	border-bottom: 2px solid var(--surfaceColorHover) !important;
 	z-index: 1 !important;
 }
 
-rm6 i5z,
-rm6 u8t:hover,
-rm6 u8t.a1t,
-rm6 kwdb.a1t {
+:is(rm6, i5d) :is(i5z, qzm),
+:is(rm6, i5d) :is(u8t, z7yx):hover,
+:is(rm6, i5d) :is(u8t, z7yx).a1t,
+:is(rm6, i5d) kwdb.a1t {
 	background: var(--surfaceColorHover) !important;
 	color: var(--textColor) !important;
 }
 
-rm6 u8t.a1t {
+:is(rm6, i5d) :is(u8t, z7yx).a1t {
 	box-shadow: inset 0 0 0 1px var(--defaultWhite) !important;
 }
 
-rm6 .result {
+:is(rm6, i5d) .result {
 	border-top: 2px solid var(--surfaceColorHover) !important;
 }
 
@@ -5765,7 +5765,7 @@ body .glowing {
 		grid-template-rows: auto auto 50px 20px auto auto 20px 30px auto !important;
 	}
 
-	rm6 {
+	:is(rm6, i5d) {
 		border: 2px solid var(--surfaceColorHover) !important;
 		border-radius: var(--borderRadius) !important;
 	}
@@ -5838,13 +5838,13 @@ body .glowing {
 		background: none !important;
 	}
 
-	rm6 l4x {
+	:is(rm6, i5d) :is(l4x, app) {
 		box-shadow: none !important;
 	}
 
-	rm6 i5z,
-	rm6 u8t:hover,
-	rm6 u8t.a1t {
+	:is(rm6, i5d) :is(i5z, qzm),
+	:is(rm6, i5d) :is(u8t, z7yx):hover,
+	:is(rm6, i5d) :is(u8t, z7yx).a1t {
 		background: var(--surfaceColor) !important;
 	}
 

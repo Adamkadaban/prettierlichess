@@ -53,7 +53,7 @@ const STREAMER_STYLES = `
 		align-self: center;
 	}
 
-    rm6 {
+    :is(rm6, i5d) {
         border-radius: var(--borderRadius);
 		overflow: hidden;
     }
