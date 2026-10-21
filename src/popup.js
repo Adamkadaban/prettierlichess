@@ -541,13 +541,17 @@ function setupCustomPieces() {
 
 	files.addEventListener('change', async () => {
 		if (!files.files.length || busy || !ready) return;
+		const current = ++revision;
 		busy = true;
 		render();
 		report('Checking all 12 pieces…');
 		try {
 			const next = await pieceSets.importFiles(files.files);
+			if (current !== revision) return;
+			files.value = '';
 			save(next, 'Upload saved. Select Uploaded pieces to apply it.');
 		} catch (error) {
+			if (current !== revision) return;
 			busy = false;
 			report(
 				error.message || 'Could not import pieces. Please try again.',
@@ -555,7 +559,7 @@ function setupCustomPieces() {
 			);
 			render();
 		} finally {
-			files.value = '';
+			if (current === revision) files.value = '';
 		}
 	});
 
