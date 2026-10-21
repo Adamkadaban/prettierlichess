@@ -215,7 +215,7 @@ describe('Test import/export', () => {
 					.should('eq', '#7918D3');
 				cy.readFile('./cypress/downloads/prettierlichess_config.json')
 					.its('secondaryColor')
-					.should('not.exist');
+					.should('eq', '#f5c276');
 			});
 		});
 	});
@@ -235,6 +235,7 @@ describe('Test import/export', () => {
 	it('Test empty export', () => {
 		const stub = cy.stub();
 		cy.on('window:alert', stub);
+		cy.window().then((win) => win.chrome.storage.sync.clear());
 		cy.get('#exportButton').click();
 
 		cy.then(() => {
