@@ -3221,6 +3221,8 @@ html .eval-gauge tick.zero {
 .analysis-settings-view {
 	--c-bg-mid: var(--backgroundColor) !important;
 	--c-bg-input: var(--backgroundColor) !important;
+	--c-bg-zebra: var(--surfaceColor) !important;
+	--c-bg-zebra2: var(--surfaceColor) !important;
 	--c-border: var(--surfaceColorHover) !important;
 	--c-font: var(--textColor) !important;
 	--c-font-dim: var(--textColor) !important;
