@@ -269,30 +269,48 @@ function pickrCreate(scheme) {
  * @param {string} data - The imported JSON-scheme as a string
  */
 function importScheme(data) {
-	chrome.storage.sync.get(null, function (result) {
-		chrome.storage.sync.clear();
-		let json;
-		try {
-			json = JSON.parse(data);
-		} catch {
-			json = {};
-			console.warn('Error while reading the specified JSON input data');
+	const colors = {...defaultColorScheme};
+	try {
+		const json = JSON.parse(data);
+		if (!json || typeof json !== 'object' || Array.isArray(json)) {
+			throw new Error('Expected a color object');
 		}
-		if (result['defaultBoardSwitch']) {
-			json['boardLight'] = transparent;
-			json['boardDark'] = transparent;
-			// If the defaultBoardSwitch is activated it needs to be written
-			// in the synced memory again after the sync.clear()
-			syncSet('defaultBoardSwitch', true);
-		}
-		for (let scheme in defaultColorScheme) {
-			if (json[scheme]) {
-				setColor(scheme, json[scheme]);
+		for (const scheme in defaultColorScheme) {
+			if (Object.prototype.hasOwnProperty.call(json, scheme)) {
+				if (
+					typeof json[scheme] !== 'string' ||
+					!/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(json[scheme])
+				) {
+					throw new Error('Invalid color');
+				}
+				colors[scheme] = json[scheme];
 			}
 		}
+	} catch {
+		alert(
+			'Invalid color scheme. Use a JSON object with colors in #RRGGBB or #RRGGBBAA format.'
+		);
+		return;
+	}
+
+	chrome.storage.sync.get('defaultBoardSwitch', function (result) {
+		if (chrome.runtime.lastError) {
+			alert('Could not read your settings. Please try again.');
+			return;
+		}
+		if (result['defaultBoardSwitch']) {
+			colors['boardLight'] = transparent;
+			colors['boardDark'] = transparent;
+		}
+		chrome.storage.sync.set(colors, function () {
+			if (chrome.runtime.lastError) {
+				alert('Could not save the color scheme. Please try again.');
+				return;
+			}
+			reloadAllTabs();
+			location.reload();
+		});
 	});
-	location.reload();
-	reloadAllTabs();
 }
 /**
  * Exports the current scheme as JSON file
@@ -402,12 +420,24 @@ fileSelector.id = 'fileSelector';
 fileSelector.style.display = 'none';
 fileSelector.setAttribute('type', 'file');
 fileSelector.onchange = function () {
+	const file = fileSelector.files[0];
+	if (!file) {
+		return;
+	}
+	fileSelector.value = '';
 	let reader = new FileReader();
 
 	reader.onload = function (e) {
 		importScheme(e.target.result);
 	};
-	reader.readAsText(fileSelector.files[0]);
+	reader.onerror = reader.onabort = function () {
+		alert('Could not read the color scheme file. Please try again.');
+	};
+	try {
+		reader.readAsText(file);
+	} catch {
+		reader.onerror();
+	}
 };
 document.body.appendChild(fileSelector);
 
