@@ -67,6 +67,8 @@ Therefore, contributions that improve the white background in particular are app
 
 ## Build and test workflow
 
+Use Node.js 22, 24, or 26+ for the development tools.
+
 Execute this command for the setup to get all packages:
 
 ```
@@ -129,13 +131,15 @@ To test the functionality of the popup automatically, [Cypress](https://github.c
 
 The concrete test cases are located in the `/cypress/e2e` folder and test as many of the popup's and extension's features as possible.
 
-To run the tests locally you can either open the Cypress test suite (this is necessary for the extension tests) with
+Use Chromium or Chrome for Testing for extension tests. Regular Chrome 137 and later no longer load extensions through Cypress's browser launch arguments.
+
+To run the tests locally you can either open the Cypress test suite with
 
 ```
 npm run cy:open
 ```
 
-or run the tests in headless mode (Firefox and Chrome) with
+or run the popup tests in headless mode (Firefox and Chrome) with
 
 ```
 npm run test:popup
