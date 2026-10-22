@@ -1049,6 +1049,194 @@ describe('Test Insights control palette fixtures', () => {
 	});
 });
 
+describe('Test toolbar hover capability fixtures (Chrome CDP)', () => {
+	const protocol = (command, params) =>
+		Cypress.automation('remote:debugger:protocol', {command, params});
+
+	const findNode = (node, id) => {
+		const attributes = node.attributes || [];
+		for (let i = 0; i < attributes.length; i += 2) {
+			if (attributes[i] === 'id' && attributes[i + 1] === id) return node;
+		}
+		for (const child of [
+			...(node.children || []),
+			...(node.contentDocument ? [node.contentDocument] : []),
+		]) {
+			const found = findNode(child, id);
+			if (found) return found;
+		}
+	};
+
+	const hoverControl = (id) =>
+		cy
+			.then(() => protocol('DOM.getDocument', {depth: -1, pierce: true}))
+			.then(({root}) => {
+				const fixture = findNode(root, 'toolbar-hover-fixture');
+				const button = findNode(fixture.contentDocument, id);
+				return protocol('DOM.getBoxModel', {nodeId: button.nodeId});
+			})
+			.then(({model}) =>
+				// CDP's quad includes the scaled, nested Cypress AUT iframe.
+				protocol('Input.dispatchMouseEvent', {
+					type: 'mouseMoved',
+					x: (model.border[0] + model.border[4]) / 2,
+					y: (model.border[1] + model.border[5]) / 2,
+					button: 'none',
+					pointerType: 'mouse',
+				})
+			);
+
+	beforeEach(function () {
+		if (Cypress.browser.family !== 'chromium') this.skip();
+		cy.startup();
+	});
+
+	afterEach(() => {
+		if (Cypress.browser.family === 'chromium') {
+			cy.then(() =>
+				protocol('Emulation.setTouchEmulationEnabled', {enabled: false})
+			);
+		}
+	});
+
+	[
+		{width: 1440, canHover: true},
+		{width: 390, canHover: false},
+		{width: 390, canHover: true},
+		{width: 1440, canHover: false},
+	].forEach(({width, canHover}) => {
+		it(`Preserves toolbar states at ${width}px with hover ${
+			canHover ? 'available' : 'unavailable'
+		}`, () => {
+			cy.viewport(width, 900);
+			cy.then(() =>
+				protocol('Emulation.setTouchEmulationEnabled', {
+					enabled: !canHover,
+					maxTouchPoints: 1,
+				})
+			);
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'toolbar-hover-fixture';
+				frame.style.cssText =
+					'position: fixed; inset: 0; width: 100%; height: 100%; ' +
+					'border: 0; z-index: 2147483647;';
+				frame.srcdoc = `<!doctype html>
+					<html><head><style>
+						:root { --c-bg: #262421; --c-bg-page: #161512; }
+						.fbt, #native-background { background: transparent; }
+						.fbt { width: 80px; height: 48px; }
+						.fbt.disabled, .fbt:disabled { opacity: 0.4; }
+						@media (max-width: 799px) and (orientation: portrait) {
+							.analyse__controls .fbt, #native-background {
+								background: color-mix(in oklab, var(--c-bg) 50%, var(--c-bg-page));
+							}
+						}
+						@media (hover: hover) {
+							.fbt:hover:not(.disabled):not([disabled]) {
+								background: #369; color: #fff;
+							}
+						}
+						#toolbar { position: fixed; top: 20px; left: 20px; display: flex; gap: 8px; }
+					</style><link rel="stylesheet" href="/styles.css"></head>
+					<body>
+						<div id="toolbar" class="analyse__controls">
+							<button id="explorer" class="fbt" data-act="opening-explorer">
+								Explorer<svg class="spinner" width="12" height="12"><path d="M0 0L12 12"/></svg>
+							</button>
+							<button id="disabled-attribute" class="fbt" disabled>Disabled</button>
+							<button id="disabled-class" class="fbt disabled">Disabled</button>
+							<div id="native-background" hidden></div>
+						</div>
+						<div id="palette" hidden style="background: var(--primaryColor); color: var(--textColor); border-color: var(--backgroundColor)"></div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#toolbar-hover-fixture')
+				.should(($frame) => {
+					const doc = $frame[0].contentDocument;
+					expect(
+						doc.querySelector('link')?.sheet?.cssRules.length || 0,
+						'loaded built stylesheet'
+					).to.be.greaterThan(0);
+					expect($frame[0].contentWindow.innerWidth).to.equal(width);
+				})
+				.then(($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					const palette = win.getComputedStyle(
+						doc.getElementById('palette')
+					);
+					const nativeBackground = win.getComputedStyle(
+						doc.getElementById('native-background')
+					).backgroundColor;
+					const assertColors = (id, active = false) =>
+						cy.get('#toolbar-hover-fixture').should(() => {
+							expect(
+								win.matchMedia('(hover: hover)').matches
+							).to.equal(canHover);
+							expect(
+								win.matchMedia('(hover: none)').matches
+							).to.equal(!canHover);
+							const button = doc.getElementById(id);
+							expect(button.matches(':hover'), 'real CSS hover')
+								.to.be.true;
+							expect(
+								button.classList.contains('active')
+							).to.equal(active);
+							const disabled = id !== 'explorer';
+							const highlighted =
+								active || (canHover && !disabled);
+							const style = win.getComputedStyle(button);
+							expect(
+								style.backgroundColor,
+								`${id} background`
+							).to.equal(
+								highlighted
+									? palette.backgroundColor
+									: nativeBackground
+							);
+							expect(style.color, `${id} foreground`).to.equal(
+								highlighted
+									? palette.borderTopColor
+									: palette.color
+							);
+							if (disabled) expect(style.opacity).to.equal('0.4');
+							else if (!active) {
+								expect(
+									win.getComputedStyle(
+										button.querySelector('path')
+									).stroke,
+									'hovered inactive spinner stroke'
+								).to.equal(
+									canHover
+										? palette.borderTopColor
+										: palette.backgroundColor
+								);
+							}
+						});
+
+					hoverControl('explorer');
+					assertColors('explorer');
+					cy.then(() =>
+						doc.getElementById('explorer').classList.add('active')
+					);
+					assertColors('explorer', true);
+					cy.then(() =>
+						doc
+							.getElementById('explorer')
+							.classList.remove('active')
+					);
+					assertColors('explorer');
+					for (const id of ['disabled-attribute', 'disabled-class']) {
+						hoverControl(id);
+						assertColors(id);
+					}
+				});
+		});
+	});
+});
+
 describe('Test native round row sizing', () => {
 	beforeEach(cy.startup);
 
