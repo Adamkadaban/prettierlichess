@@ -811,6 +811,7 @@ describe('Test native round row sizing', () => {
 					'max-width: none; flex-shrink: 0;';
 				frame.srcdoc = `<!doctype html>
 					<html><head><style>
+						* { box-sizing: border-box; }
 						body { margin: 0; }
 						.round__app {
 							display: grid;
@@ -821,6 +822,11 @@ describe('Test native round row sizing', () => {
 						}
 						.round__app__board { grid-area: board; height: ${boardHeight}px; }
 						.ruser-bottom { grid-area: user-bot; }
+						.rclock-top {
+							grid-area: 2 / 1 / 4 / 2;
+							display: flex;
+							justify-self: end;
+						}
 						i5d { grid-area: moves; min-height: 40px; }
 						@media (min-width: 800px) {
 							.round__app {
@@ -828,11 +834,12 @@ describe('Test native round row sizing', () => {
 								grid-template-rows: auto;
 								grid-template-areas: 'board moves';
 							}
-							.ruser-bottom { display: none; }
+							.ruser-bottom, .rclock-top { display: none; }
 						}
 					</style><link rel="stylesheet" href="/styles.css"></head>
 					<body><main class="round"><div class="round__app">
 						<div class="round__app__board"></div>
+						<div class="rclock rclock-top"><div class="time">03:00</div></div>
 						<div class="ruser-bottom">Player</div>
 						<i5d><button>Previous</button><button>Next</button></i5d>
 					</div></main></body></html>`;
@@ -857,6 +864,11 @@ describe('Test native round row sizing', () => {
 				const moves = doc.querySelector('i5d').getBoundingClientRect();
 				if (width < 800) {
 					expect(moves.top).to.be.at.least(board.bottom);
+					expect(
+						doc
+							.querySelector('.rclock-top .time')
+							.getBoundingClientRect().bottom
+					).to.be.at.most(board.top);
 				} else {
 					expect(moves.left).to.be.at.least(board.right);
 				}

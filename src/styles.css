@@ -5873,10 +5873,6 @@ body .glowing {
 		border: 0 !important;
 	}
 
-	.rclock-top {
-		margin-top: 8px !important;
-	}
-
 	.rclock .time {
 		position: relative !important;
 		font-size: 1.5em !important;
