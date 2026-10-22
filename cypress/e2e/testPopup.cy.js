@@ -1745,6 +1745,260 @@ describe('Test round markup fixtures', () => {
 	});
 });
 
+describe('Test Explorer spacing stylesheet providers', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 1280, panelWidth: 280, ratingRows: 2},
+		{width: 390, panelWidth: 320},
+		{width: 1280, panelWidth: 480, ratingRows: 1},
+	].forEach(({width, panelWidth, ratingRows}) => {
+		it(`Contains choice labels in a ${panelWidth}px provider at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const choices = (name, labels) =>
+					`<section class="${name}"><label>${name}</label><div class="choices">` +
+					labels
+						.map(
+							(label, index) =>
+								`<button aria-pressed="${
+									index > 0
+								}">${label}</button>`
+						)
+						.join('') +
+					'</div></section>';
+				const speeds = choices(
+					'speed',
+					['U', 'B', 'Z', 'R', 'C', 'M'].map(
+						(icon) => `<icon data-icon="${icon}"></icon>`
+					)
+				);
+				const frame = doc.createElement('iframe');
+				frame.id = 'explorer-spacing-provider';
+				frame.style.cssText =
+					`width: ${width}px; height: 800px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				// Layout provider from lila 178a998d's explorer/_config.scss,
+				// _explorer.scss and lib/css/base; not signed-in/native UI.
+				frame.srcdoc = `<!doctype html>
+					<html><head>
+						<style>
+							*, *::before, *::after {
+								box-sizing: border-box;
+								margin: 0;
+								padding: 0;
+							}
+							html {
+								font-size: clamp(12px, calc(12px + 2 * ((100vw - 300px) / 900)), 14px);
+							}
+							body { ---block-gap: 10px; }
+							@media (min-width: 800px) {
+								body { ---block-gap: 15px; }
+							}
+							button {
+								appearance: none;
+								background: none;
+								border: none;
+								font: inherit;
+								text-align: inherit;
+							}
+							.explorer-box {
+								position: relative;
+								flex: 3 1 0;
+								white-space: nowrap;
+								overflow-x: hidden;
+								overflow-y: auto;
+								font-size: 0.9em;
+								width: ${panelWidth}px;
+							}
+							.explorer__config section {
+								margin: 0.4em var(---block-gap) 0;
+							}
+							.explorer__config label {
+								font-weight: bold;
+								display: block;
+								line-height: 2em;
+							}
+							.explorer__config .choices { display: flex; }
+							.explorer__config .choices button {
+								flex-grow: 1;
+								padding: 5px 0;
+								text-align: center;
+								border: 1px solid #888;
+								border-width: 1px 0 1px 1px;
+								text-transform: capitalize;
+							}
+							.explorer__config .choices button:last-child {
+								border-right-width: 1px;
+							}
+							.explorer__config .choices button[aria-pressed='true'],
+							.explorer__config .choices button.active {
+								font-weight: bold;
+							}
+							.explorer__config .name > div {
+								display: flex;
+								align-items: center;
+								flex-wrap: wrap;
+							}
+							.explorer__config .name .player-name {
+								font-weight: bold;
+								padding-inline: 1em;
+								text-transform: none;
+								margin-inline-end: 0.5em;
+							}
+							/* Local-font icon stand-ins, not native icon glyphs. */
+							[data-icon]::before {
+								font-family: 'Explorer Fixture Text';
+								font-size: 1.2em;
+								font-style: normal;
+								font-weight: normal;
+								vertical-align: middle;
+								text-transform: none;
+								content: attr(data-icon);
+								opacity: 0.9;
+								unicode-bidi: isolate;
+							}
+							.ordinary-settings .choices { display: flex; }
+							.ordinary-settings button { padding: 5px 12px; }
+						</style>
+						<link rel="stylesheet" href="/styles.css">
+						<style>
+							/* Same bundled font, without extension-URL font faces. */
+							@font-face {
+								font-family: 'Explorer Fixture Text';
+								font-weight: 400;
+								src: url('/fonts/RedHatText-Regular.ttf');
+							}
+							@font-face {
+								font-family: 'Explorer Fixture Text';
+								font-weight: 700;
+								src: url('/fonts/RedHatText-Bold.ttf');
+							}
+							html, body {
+								font-family: 'Explorer Fixture Text', sans-serif !important;
+							}
+						</style>
+					</head><body>
+						<section class="explorer-box sub-box explorer__config">
+							<div class="config"><div>
+								${speeds}
+								${choices('rating', [400, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500])}
+							</div></div>
+						</section>
+						<section class="explorer-box sub-box explorer__config">
+							<div class="config"><div class="player-db">
+								<section class="name"><label>Player</label><div>
+									<div class="choices"><button class="player-name active">ExamplePlayer</button></div>
+								</div></section>
+								${speeds}
+								${choices('mode', ['Casual', 'Rated'])}
+							</div></div>
+						</section>
+						<div class="ordinary-settings"><div class="config">
+							<div class="choices"><button aria-pressed="true">Ordinary</button><button aria-pressed="false">Controls</button></div>
+						</div></div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#explorer-spacing-provider')
+				.should(($frame) => {
+					const doc = $frame[0].contentDocument;
+					expect(
+						doc.querySelector('link')?.sheet?.cssRules.length || 0
+					).to.be.greaterThan(0);
+				})
+				.then(($frame) => {
+					const fonts = $frame[0].contentDocument.fonts;
+					return fonts
+						.load('12px "Explorer Fixture Text"')
+						.then(() => fonts.ready);
+				});
+			cy.get('#explorer-spacing-provider').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(win.innerWidth).to.equal(width);
+				const labelBounds = (button) => {
+					const icon = button.querySelector('icon');
+					if (icon) return icon.getBoundingClientRect();
+					const range = doc.createRange();
+					range.selectNodeContents(button);
+					return range.getBoundingClientRect();
+				};
+				for (const group of doc.querySelectorAll(
+					'.explorer__config .choices'
+				)) {
+					const groupBounds = group.getBoundingClientRect();
+					const panel = group.closest('.explorer-box');
+					const panelBounds = panel.getBoundingClientRect();
+					expect(panelBounds.width).to.be.closeTo(panelWidth, 1);
+					expect(groupBounds.left).to.be.at.least(panelBounds.left);
+					expect(groupBounds.right).to.be.at.most(panelBounds.right);
+					expect(group.scrollWidth).to.be.at.most(
+						group.clientWidth + 1
+					);
+					let previous;
+					const rows = new Set();
+					for (const button of group.querySelectorAll('button')) {
+						const bounds = button.getBoundingClientRect();
+						const label = labelBounds(button);
+						rows.add(Math.round(bounds.top));
+						expect(bounds.left).to.be.at.least(groupBounds.left);
+						expect(bounds.right).to.be.at.most(
+							groupBounds.right + 1
+						);
+						expect(bounds.top).to.be.at.least(groupBounds.top);
+						expect(bounds.bottom).to.be.at.most(
+							groupBounds.bottom + 1
+						);
+						expect(label.width, button.outerHTML).to.be.greaterThan(
+							0
+						);
+						expect(label.left - bounds.left).to.be.at.least(4.5);
+						expect(bounds.right - label.right).to.be.at.least(4.5);
+						expect(label.top).to.be.at.least(bounds.top - 1);
+						expect(label.bottom).to.be.at.most(bounds.bottom + 1);
+						if (
+							previous &&
+							Math.abs(previous.bounds.top - bounds.top) < 1
+						) {
+							expect(bounds.left).to.be.at.least(
+								previous.bounds.right - 1
+							);
+							expect(
+								label.left - previous.label.right
+							).to.be.at.least(9);
+						} else if (previous) {
+							expect(bounds.top).to.be.at.least(
+								previous.bounds.bottom - 1
+							);
+						}
+						previous = {bounds, label};
+					}
+					if (group.closest('.rating') && ratingRows) {
+						expect(rows.size, 'rating rows').to.equal(ratingRows);
+					}
+				}
+				for (const button of doc.querySelectorAll(
+					'.ordinary-settings button, .player-name'
+				)) {
+					const style = win.getComputedStyle(button);
+					const inset = button.classList.contains('player-name')
+						? parseFloat(style.fontSize)
+						: 12;
+					const bounds = button.getBoundingClientRect();
+					const label = labelBounds(button);
+					expect(label.left - bounds.left).to.be.closeTo(inset, 1);
+					expect(bounds.right - label.right).to.be.closeTo(inset, 1);
+				}
+				expect(
+					win.getComputedStyle(
+						doc.querySelector('.ordinary-settings .choices')
+					).flexWrap
+				).to.equal('nowrap');
+			});
+		});
+	});
+});
+
 describe('Test navigation', () => {
 	beforeEach(cy.startup);
 
