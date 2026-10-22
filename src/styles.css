@@ -5851,10 +5851,6 @@ body .glowing {
 		margin-top: 10px !important;
 	}
 
-	.round .round__app {
-		grid-template-rows: auto auto 50px 20px auto auto 20px 30px auto !important;
-	}
-
 	rm6 {
 		border: 2px solid var(--surfaceColorHover) !important;
 		border-radius: var(--borderRadius) !important;
@@ -5875,10 +5871,6 @@ body .glowing {
 
 	.ruser-bottom {
 		border: 0 !important;
-	}
-
-	.rclock-top {
-		margin-top: 8px !important;
 	}
 
 	.rclock .time {
