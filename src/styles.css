@@ -287,6 +287,8 @@ input::placeholder,
 /* General */
 
 body {
+	/* Capture the native chart surface before the Insights palette overrides it. */
+	--prettier-insight-canvas-bg: var(--c-bg-opaque);
 	font-family: 'Red Hat Text', sans-serif !important;
 	background: var(--backgroundColor) !important;
 }
@@ -4372,6 +4374,13 @@ hr {
 
 .tv-channel > span {
 	justify-content: space-between !important;
+}
+
+/* Insights */
+
+#insight canvas.chart {
+	background-color: var(--prettier-insight-canvas-bg) !important;
+	border-radius: var(--borderRadius) !important;
 }
 
 /* Tournaments / Simuls*/
