@@ -794,6 +794,240 @@ describe('Test analysis control palette fixtures', () => {
 	});
 });
 
+describe('Test Insights control palette fixtures', () => {
+	beforeEach(cy.startup);
+
+	[390, 1440].forEach((width) => {
+		['light', 'dark'].forEach((theme) => {
+			it(`Themes Insights controls without resizing at ${width}px in ${theme}`, () => {
+				cy.document().then((doc) => {
+					const frame = doc.createElement('iframe');
+					frame.id = 'insights-control-palette';
+					frame.style.cssText =
+						`width: ${width}px; height: 900px; border: 0; ` +
+						'max-width: none; flex-shrink: 0;';
+					const controls = `
+						<div class="view-tabs"><div class="tab active">Insights</div><div class="tab">Filters</div></div>
+						<div class="panel-tabs"><a class="tab active">Presets</a><a class="tab">Filters</a></div>
+						<header><div class="axis-form">
+							${['metric', 'dimension']
+								.map(
+									(axis) => `
+								<div class="ms-parent ${axis}" style="width: var(---drop-menu-width)">
+									<button class="ms-choice selected"><span>${axis}</span><div></div></button>
+									<div class="ms-drop bottom" style="display: block">
+										<ul>
+											<li><label class="optgroup">Moves</label></li>
+											<li class="selected"><label><input type="radio" checked>Accuracy</label></li>
+											<li><label>Move time</label></li>
+											<li><label class="disabled">Unavailable</label></li>
+										</ul>
+									</div>
+								</div>`
+								)
+								.join('')}
+						</div></header>
+						<div class="insight__main box"><canvas class="chart" width="300" height="100"></canvas></div>
+						<div class="filters"><div class="items"><div class="categ box">
+							<div class="top">Game</div>
+							<div class="ms-parent">
+								<button class="ms-choice selected"><span>Blitz</span><div></div></button>
+								<div class="ms-drop" style="display: block">
+									<div class="ms-search"><input type="text" placeholder="Search"></div>
+									<ul><li class="selected"><label><input type="checkbox" checked>Blitz</label></li></ul>
+								</div>
+							</div>
+							<div class="ms-parent"><button class="ms-choice disabled"><span>Unavailable</span></button></div>
+						</div></div></div>`;
+					frame.srcdoc = `<!doctype html>
+						<html class="${theme}"><head><style>
+							:root {
+								--c-bg: #262421; --c-bg-box: var(--c-bg); --c-bg-opaque: #262421;
+								--c-bg-zebra: #33312e; --c-font: #bababa; --c-font-page: #949494;
+								--c-border: #404040; --c-shade: #4d4d4d; --c-primary: #3692e7;
+								--c-link: var(--c-primary); --c-accent: #d64f00; --c-over: white;
+								--c-metal-top: #3c3934; --c-metal-bottom: #33312e;
+							}
+							html.light {
+								--c-bg: #fff; --c-bg-opaque: #fff; --c-bg-zebra: #f7f6f5;
+								--c-font: #4d4d4d; --c-font-page: #5e5e5e; --c-border: #d9d9d9;
+								--c-shade: #d6d6d6; --c-primary: #1b78d1;
+								--c-metal-top: #f5f5f5; --c-metal-bottom: #ededed;
+							}
+							* { box-sizing: border-box; }
+							body { margin: 0; }
+							button, input { font: inherit; }
+							.ms-parent { display: inline-block; position: relative; vertical-align: middle; }
+							.ms-choice {
+								display: block; width: 100%; height: 26px; padding: 0;
+								border: 1px solid var(--c-border); line-height: 26px;
+								border-radius: 2px; background-color: var(--c-bg-box);
+							}
+							.ms-choice.disabled { background-color: var(--c-shade); }
+							.ms-choice > span { position: absolute; top: 0; left: 0; right: 20px; padding-left: 8px; }
+							.ms-drop {
+								width: 100%; position: absolute; z-index: 1000; margin-top: -1px;
+								background: var(--c-bg-opaque); border: 1px solid var(--c-border);
+							}
+							.ms-drop.bottom { top: 100%; }
+							.ms-drop ul { margin: 0; padding: 0; }
+							.ms-drop li { list-style: none; }
+							.ms-drop label { display: block; white-space: nowrap; }
+							.ms-drop .disabled { opacity: 0.35; }
+							.ms-search { padding: 4px; }
+							.ms-search input { width: 100%; border: 1px solid var(--c-border); }
+							/* Mirror native page rules on a control outside #insight to check scope and geometry. */
+							:is(#insight, #outside) .view-tabs,
+							:is(#insight, #outside) .panel-tabs { display: flex; border-bottom: 2px solid var(--c-border); }
+							:is(#insight, #outside) .tab {
+								flex: 1 1 auto; padding: 0.5em 0.2em; position: relative;
+								text-align: center; color: var(--c-font-page);
+							}
+							:is(#insight, #outside) .tab::after {
+								content: ''; position: absolute; bottom: -2px; height: 2px; width: 96%;
+								background: rgb(from var(--c-accent) r g b / calc(alpha * 0.6));
+							}
+							:is(#insight, #outside) .tab.active { color: var(--c-accent); }
+							:is(#insight, #outside) header { height: var(---header-height); background: var(--c-bg-zebra); }
+							:is(#insight, #outside) .axis-form { height: 100%; display: flex; justify-content: space-evenly; }
+							:is(#insight, #outside) .axis-form .ms-choice {
+								padding: calc(var(---header-height) / 2) 2px; border-width: 0 1px; border-radius: 0;
+							}
+							:is(#insight, #outside) .axis-form .ms-choice span { line-height: var(---header-height); }
+							:is(#insight, #outside) .axis-form .ms-drop { color: var(--c-font); }
+							:is(#insight, #outside) .axis-form input { display: none; }
+							:is(#insight, #outside) .axis-form .selected label { background: var(--c-accent); color: var(--c-over); }
+							:is(#insight, #outside) .ms-drop label:not(.optgroup) { padding: 4px 8px; text-indent: 1em; }
+							:is(#insight, #outside) .ms-drop label:not(.optgroup):hover { background: color-mix(in oklab, var(--c-accent) 20%, var(--c-bg)); }
+							:is(#insight, #outside) .top {
+								background: linear-gradient(to bottom, var(--c-metal-top), var(--c-metal-bottom));
+								border-bottom: 1px solid var(--c-border);
+							}
+							:is(#insight, #outside) .filters .ms-parent { display: block; }
+							:is(#insight, #outside) .filters .ms-choice { padding: 15px 10px; border-width: 0 0 1px; }
+							:is(#insight, #outside) .filters .ms-choice.selected {
+								background: color-mix(in oklab, var(--c-primary) 20%, var(--c-bg)); border-left: 3px solid var(--c-link);
+							}
+							:is(#insight, #outside) .filters .ms-drop { top: 0; margin-inline-start: 50%; }
+						</style><link rel="stylesheet" href="/styles.css"></head><body>
+							${['insight', 'outside']
+								.map(
+									(id) => `
+								<main id="${id}" style="width: ${Math.min(width, 800)}px;
+									---header-height: ${width < 800 ? 30 : 60}px;
+									---drop-menu-width: ${width < 800 ? 154 : 200}px">
+									${controls}
+								</main>`
+								)
+								.join('')}
+						</body></html>`;
+					doc.body.appendChild(frame);
+				});
+				cy.get('#insights-control-palette').should(($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					expect(
+						doc.querySelector('link')?.sheet?.cssRules.length || 0,
+						'loaded built stylesheet'
+					).to.be.greaterThan(0);
+					expect(win.innerWidth).to.equal(width);
+					const style = (selector) =>
+						win.getComputedStyle(doc.querySelector(selector));
+					for (const selector of [
+						'header',
+						'.axis-form .ms-choice',
+						'.ms-drop',
+						'.ms-search input',
+					]) {
+						expect(
+							style(`#insight ${selector}`).backgroundColor,
+							selector
+						).to.equal('rgb(51, 53, 56)');
+					}
+					expect(
+						style('#insight .axis-form .ms-drop').color
+					).to.equal('rgb(170, 170, 170)');
+					expect(
+						style('#insight .axis-form .ms-drop').borderTopColor
+					).to.equal('rgb(64, 66, 70)');
+					expect(
+						style('#insight .axis-form .selected label')
+							.backgroundColor
+					).to.equal('rgb(159, 192, 162)');
+					expect(
+						style('#insight .axis-form .selected label').color
+					).to.equal('rgb(39, 42, 44)');
+					expect(
+						style('#insight .filters .ms-choice.selected')
+							.borderLeftColor
+					).to.equal('rgb(159, 192, 162)');
+					expect(style('#insight .top').backgroundImage).to.equal(
+						'linear-gradient(rgb(51, 53, 56), rgb(51, 53, 56))'
+					);
+					for (const selector of ['.view-tabs', '.panel-tabs']) {
+						expect(
+							style(`#insight ${selector} .active`).color
+						).to.equal('rgb(159, 192, 162)');
+						expect(
+							style(`#insight ${selector} .tab:not(.active)`)
+								.color
+						).to.equal('rgb(170, 170, 170)');
+					}
+					expect(
+						style('#outside .axis-form .ms-choice').backgroundColor
+					).to.equal(
+						theme === 'light'
+							? 'rgb(255, 255, 255)'
+							: 'rgb(38, 36, 33)'
+					);
+					expect(style('#outside .tab.active').color).to.equal(
+						'rgb(214, 79, 0)'
+					);
+					expect(
+						style('#outside .axis-form .selected label').color
+					).to.equal('rgb(255, 255, 255)');
+					const inside = doc.querySelector('#insight');
+					const outside = doc.querySelector('#outside');
+					const origin = inside.getBoundingClientRect();
+					const controlOrigin = outside.getBoundingClientRect();
+					const controls = outside.querySelectorAll('*');
+					inside.querySelectorAll('*').forEach((element, index) => {
+						const rect = element.getBoundingClientRect();
+						const control = controls[index].getBoundingClientRect();
+						for (const dimension of ['width', 'height']) {
+							expect(
+								rect[dimension],
+								`${element.className} ${dimension}`
+							).to.equal(control[dimension]);
+						}
+						expect(rect.x - origin.x).to.equal(
+							control.x - controlOrigin.x
+						);
+						if (rect.width || rect.height) {
+							expect(rect.y - origin.y).to.equal(
+								control.y - controlOrigin.y
+							);
+						}
+						for (const property of [
+							'fontFamily',
+							'fontSize',
+							'fontWeight',
+							'lineHeight',
+						]) {
+							expect(
+								win.getComputedStyle(element)[property],
+								property
+							).to.equal(
+								win.getComputedStyle(controls[index])[property]
+							);
+						}
+					});
+				});
+			});
+		});
+	});
+});
+
 describe('Test native round row sizing', () => {
 	beforeEach(cy.startup);
 

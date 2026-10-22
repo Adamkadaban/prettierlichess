@@ -4385,6 +4385,28 @@ hr {
 	background-color: var(--surfaceColor) !important;
 }
 
+#insight {
+	--c-bg: var(--surfaceColor) !important;
+	--c-bg-box: var(--surfaceColor) !important;
+	--c-bg-opaque: var(--surfaceColor) !important;
+	--c-bg-zebra: var(--surfaceColor) !important;
+	--c-metal-top: var(--surfaceColor) !important;
+	--c-metal-bottom: var(--surfaceColor) !important;
+	--c-border: var(--surfaceColorHover) !important;
+	--c-shade: var(--surfaceColorHover) !important;
+	--c-font: var(--textColor) !important;
+	--c-font-page: var(--textColor) !important;
+	--c-primary: var(--primaryColor) !important;
+	--c-accent: var(--primaryColor) !important;
+	--c-link: var(--primaryColor) !important;
+	--c-over: var(--backgroundColor) !important;
+}
+
+#insight .ms-drop ul > li label:not(.optgroup):hover {
+	background: var(--surfaceColorHover) !important;
+	color: var(--defaultWhite) !important;
+}
+
 .tour__side {
 	overflow: hidden !important;
 }
