@@ -242,22 +242,10 @@ function schemeSet(scheme) {
 
 // Coordinates
 
-//Check if using default board
-//if true, use lichess variable
-//else use custom variables
-
-chrome.storage.sync.get(null, function (result) {
-	let darkCoord = result['defaultBoardSwitch']
-		? 'var(--cg-coord-color-black)'
-		: 'var(--boardDark)';
-	let lightCoord = result['defaultBoardSwitch']
-		? 'var(--cg-coord-color-white)'
-		: 'var(--boardLight)';
-	let getStyle = document.documentElement.getAttribute('style');
-	let appendStyle = getStyle ? getStyle : '';
-	document.documentElement.setAttribute(
-		'style',
-		`${appendStyle} --coordDark: ${darkCoord} !important; --coordLight: ${lightCoord} !important;`
+chrome.storage.sync.get('defaultBoardSwitch', function (result) {
+	document.documentElement.toggleAttribute(
+		'data-prettierlichess-native-board',
+		!!result['defaultBoardSwitch']
 	);
 });
 
@@ -380,18 +368,9 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
 		}
 		// Keep coord variables in sync when default board toggles
 		if (key === 'defaultBoardSwitch') {
-			const useDefault = !!changes[key].newValue;
-			const darkCoord = useDefault
-				? 'var(--cg-coord-color-black)'
-				: 'var(--boardDark)';
-			const lightCoord = useDefault
-				? 'var(--cg-coord-color-white)'
-				: 'var(--boardLight)';
-			const currentStyle =
-				document.documentElement.getAttribute('style') || '';
-			document.documentElement.setAttribute(
-				'style',
-				`${currentStyle} --coordDark: ${darkCoord} !important; --coordLight: ${lightCoord} !important;`
+			document.documentElement.toggleAttribute(
+				'data-prettierlichess-native-board',
+				!!change.newValue
 			);
 		}
 	}

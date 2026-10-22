@@ -277,6 +277,7 @@ input::placeholder,
 .relay-tour__round-select .time,
 .relay-tour__round-select .status,
 .relay-tour__side__empty::before,
+.relay-board-player .team,
 .study__player .team,
 .tpp a,
 .tpp__games td:first-child {
@@ -751,9 +752,24 @@ coords coord {
 	color: var(--coordLight) !important;
 }
 
+html[data-prettierlichess-native-board] coords {
+	--coordDark: var(---cg-ccb, #fff) !important;
+	--coordLight: var(---cg-ccw, #fff) !important;
+}
+
+html[data-prettierlichess-native-board] .is3d .cg-wrap coords {
+	--coordDark: #fff !important;
+	--coordLight: #fff !important;
+}
+
 cg-resize::before,
 cg-resize::after {
 	background-color: var(--coordDark) !important;
+}
+
+html[data-prettierlichess-native-board] cg-resize::before,
+html[data-prettierlichess-native-board] cg-resize::after {
+	background-color: currentColor !important;
 }
 
 cg-resize {
@@ -986,7 +1002,7 @@ square.selected {
 #topnav {
 	display: flex !important;
 	position: absolute !important;
-	width: 100vw !important;
+	width: 100% !important;
 	align-items: center !important;
 	justify-content: center !important;
 	max-width: 1800px !important;
@@ -3107,6 +3123,10 @@ a.context-streamer:hover {
 	flex: 1 1 auto !important;
 }
 
+.analyse__controls [data-mode='ceval']::after {
+	color: inherit !important;
+}
+
 .analyse__moves {
 	border-top: 2px solid var(--surfaceColorHover) !important;
 }
@@ -3157,7 +3177,21 @@ a.context-streamer:hover {
 }
 
 .analyse__controls {
-	margin: 0 16px !important;
+	--c-bg: var(--surfaceColor) !important;
+	--c-bg-page: var(--surfaceColor) !important;
+	margin-right: 16px !important;
+	margin-bottom: 0 !important;
+	margin-left: 16px !important;
+}
+
+.analyse__controls:not(main.is-relay:not(.has-relay-tour) *) {
+	margin-top: 0 !important;
+}
+
+@media (min-width: 800px), (orientation: landscape) {
+	.analyse__controls {
+		margin-top: 0 !important;
+	}
 }
 
 .pv_box .pv[data-uci]:hover,
@@ -5286,6 +5320,7 @@ body #main-wrap group.radio input:checked + label,
 .relay-tour__header,
 .relay-tour__side__header button,
 .relay-tour__side__header,
+.relay-board-player,
 .study__glyphs button,
 .study__invite .info,
 .study__buttons .mode,
@@ -5303,6 +5338,7 @@ body #main-wrap group.radio input:checked + label,
 }
 
 .relay-tour__mselect .mselect__list a,
+.relay-board-player a.name,
 th[aria-sort]:not(.no-sort),
 th[role='columnheader']:not(.no-sort):after,
 .study__player .info a.name {
@@ -5316,8 +5352,8 @@ th[role='columnheader']:not(.no-sort):after,
 .relay-tour__side__header button:hover,
 .mselect__item:hover,
 .relay-tour__mselect .mselect__list a:hover,
-.relay-tour__round-select tr:hover *,
-.relay-tour__round-select tr:hover .round-state::before {
+.relay-tour__round-select a:hover *,
+.relay-tour__round-select a:hover .round-state::before {
 	background: var(--primaryColor) !important;
 	color: var(--backgroundColor) !important;
 	box-shadow: none !important;
@@ -5394,6 +5430,8 @@ th[aria-sort]:not(.no-sort),
 .relay-game:hover::before,
 .relay-tour__round-select .finished::before,
 .relay-tour__header h1,
+.relay-board-player a.name:hover,
+.relay-board-player a.team:hover,
 .study__player .info a.name:hover,
 .tpp a:hover {
 	color: var(--primaryColor) !important;
@@ -5432,6 +5470,7 @@ th[aria-sort]:not(.no-sort),
 .relay-tour__note,
 .relay-tour__side__empty,
 .relay-tour__side__preload,
+.relay-board-player,
 .study__message,
 .study__server-eval,
 .analyse__underboard .study__multiboard,
@@ -5453,7 +5492,11 @@ th[aria-sort]:not(.no-sort),
 	box-shadow: none !important;
 }
 
-.relay-tour__round-select tr.current-round,
+.relay-tour__round-select a.current-round {
+	background: var(--surfaceColorHover) !important;
+	border-left-color: var(--primaryColor) !important;
+}
+
 .toggle-box,
 .toggle-box legend {
 	background: var(--surfaceColorHover) !important;
@@ -5644,10 +5687,18 @@ body .glowing {
 		display: none !important;
 	}
 
-	#main-wrap .analyse {
+	#main-wrap .analyse:not(main.is-relay:not(.has-relay-tour)) {
 		grid-template-columns:
 			var(---col2-uniboard-width) calc(3 * var(---block-gap))
 			minmax(240px, 400px) !important;
+	}
+
+	@media (min-width: 800px), (orientation: portrait) {
+		#main-wrap main.analyse.is-relay:not(.has-relay-tour) {
+			grid-template-columns:
+				var(---col2-uniboard-width) calc(3 * var(---block-gap))
+				minmax(240px, 400px) !important;
+		}
 	}
 
 	.analyse__side {
@@ -5770,9 +5821,12 @@ body .glowing {
 	#main-wrap main {
 		width: 100vw !important;
 		max-width: 100% !important;
-		grid-template-columns: 100% !important;
 		padding: 0 8px !important;
 		overflow: hidden !important;
+	}
+
+	#main-wrap main:not(.analyse.is-relay:not(.has-relay-tour)) {
+		grid-template-columns: 100% !important;
 	}
 
 	.lobby__side {
@@ -5787,7 +5841,7 @@ body .glowing {
 		border-radius: 0 !important;
 	}
 
-	.main-board {
+	.main-board:not(main.analyse.is-relay:not(.has-relay-tour) *) {
 		width: 100vw !important;
 		height: 100vw !important;
 		margin-left: -10px !important;
@@ -5795,10 +5849,6 @@ body .glowing {
 
 	.round__underboard {
 		margin-top: 10px !important;
-	}
-
-	.round .round__app {
-		grid-template-rows: auto auto 50px 20px auto auto 20px 30px auto !important;
 	}
 
 	:is(rm6, i5d) {
@@ -5821,10 +5871,6 @@ body .glowing {
 
 	.ruser-bottom {
 		border: 0 !important;
-	}
-
-	.rclock-top {
-		margin-top: 8px !important;
 	}
 
 	.rclock .time {
@@ -5947,7 +5993,7 @@ body .glowing {
 
 	/* Analysis Mobile */
 
-	#main-wrap .analyse {
+	#main-wrap .analyse:not(main.is-relay:not(.has-relay-tour)) {
 		grid-template-columns: 100% !important;
 		grid-template-rows: auto !important;
 		grid-template-areas:
@@ -5997,15 +6043,42 @@ body .glowing {
 		border-radius: var(--borderRadius) !important;
 	}
 
-	.analyse__tools {
+	.analyse__tools:not(main.analyse.is-relay:not(.has-relay-tour) *) {
 		height: 50vh !important;
 	}
 
-	.analyse__tools,
+	.analyse__tools:not(main.analyse.is-relay:not(.has-relay-tour) *),
 	.analyse__side,
 	.analyse__underboard,
 	.relay-tour__text {
 		margin-bottom: 20px !important;
+	}
+
+	@media (orientation: portrait) {
+		#main-wrap main.analyse.is-relay:not(.has-relay-tour) {
+			grid-template-columns: 100% !important;
+			grid-template-rows: auto !important;
+			grid-template-areas:
+				'board'
+				'controls'
+				'tools'
+				'side'
+				'round-training'
+				'under'
+				'chat'
+				'uchat';
+		}
+
+		main.analyse.is-relay:not(.has-relay-tour) .main-board {
+			width: 100vw !important;
+			height: 100vw !important;
+			margin-left: -10px !important;
+		}
+
+		main.analyse.is-relay:not(.has-relay-tour) .analyse__tools {
+			height: 50vh !important;
+			margin-bottom: 20px !important;
+		}
 	}
 
 	.tview2 move,
