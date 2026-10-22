@@ -337,6 +337,13 @@ main {
 	width: 100% !important;
 }
 
+/* Native Insights widths omit the extension's padding and borders. */
+#insight header,
+#insight .insight__main,
+#insight .insight__main > * {
+	max-width: 100% !important;
+}
+
 .user-link.online .line,
 .is-green::before,
 good,
