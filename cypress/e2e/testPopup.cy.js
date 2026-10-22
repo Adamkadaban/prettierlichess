@@ -1236,6 +1236,134 @@ describe('Test storage', () => {
 	});
 });
 
+describe('Test focused comment stylesheet fixtures', () => {
+	beforeEach(cy.startup);
+
+	const frameDocument = () =>
+		cy.get('#focused-comment-style-fixture').its('0.contentDocument');
+	const frameGet = (selector) =>
+		frameDocument().its('body').then(cy.wrap).find(selector);
+
+	for (const mode of ['column', 'inline']) {
+		it(`Focuses ${mode} comments without hiding variations`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'focused-comment-style-fixture';
+				frame.style.cssText =
+					'width: 1280px; height: 800px; border: 0; ' +
+					'max-width: none; flex-shrink: 0;';
+				const whiteComments =
+					'<comment class="white-note"><span>White note</span></comment>' +
+					'<comment class="white-note"><span>Another author</span></comment>';
+				const blackComments =
+					'<comment class="black-note"><a href="#note">Black note</a></comment>';
+				const variations =
+					'<lines><line><move p="v1">d4</move><comment>Variation note</comment>' +
+					'<inline><move p="v2">d5</move><comment>Nested note</comment></inline>' +
+					'</line><line><move p="v3">c4</move><comment>Second variation</comment></line></lines>';
+				const markup =
+					mode === 'column'
+						? `<div class="tview2 tview2-column">
+							<interrupt><comment class="root-note">Starting note</comment></interrupt>
+							<index>1</index><move p="w1" class="active"><san>e4</san><glyph>!</glyph></move>
+							<move class="empty">...</move><interrupt>${whiteComments}${variations}</interrupt>
+							<index>1</index><move class="empty">...</move><move p="b1"><san>e5</san></move>
+							<interrupt>${blackComments}</interrupt>
+							<index>2</index><move p="w2"><san>Nf3</san></move>
+						</div>`
+						: `<div class="tview2 tview2-inline">
+							<comment class="root-note">Starting note</comment>
+							<move p="w1" class="mainline active"><index>1</index>e4<glyph>!</glyph></move>
+							${whiteComments}<interrupt>${variations}</interrupt>
+							<move p="b1" class="mainline">e5</move>${blackComments}
+							<move p="w2" class="mainline"><index>2</index>Nf3</move>
+						</div>`;
+				frame.srcdoc =
+					'<!doctype html><html><head><link rel="stylesheet" href="/styles.css"></head><body>' +
+					'<div id="prettier-test-comments" class="analyse__moves">' +
+					markup +
+					'</div></body></html>';
+				doc.body.appendChild(frame);
+			});
+			cy.get('#focused-comment-style-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const link = doc.querySelector('link[rel="stylesheet"]');
+				expect(
+					link?.sheet?.cssRules.length || 0,
+					'loaded built stylesheet'
+				).to.be.greaterThan(0);
+				expect(doc.getElementById('prettier-test-comments')).to.exist;
+			});
+			const tree = '#prettier-test-comments';
+			frameGet(`${tree} comment`).should('be.visible');
+			frameDocument().then((doc) =>
+				doc.documentElement.setAttribute(
+					'data-prettier-focused-comments',
+					''
+				)
+			);
+			frameDocument().then((doc) => {
+				const classes = doc.documentElement.className;
+				doc.documentElement.className = 'lichess-reconstructed';
+				expect(
+					doc.documentElement.hasAttribute(
+						'data-prettier-focused-comments'
+					)
+				).to.equal(true);
+				expect(
+					doc.defaultView.getComputedStyle(
+						doc.querySelector(`${tree} .black-note`)
+					).display
+				).to.equal('none');
+				doc.documentElement.className = classes;
+			});
+			frameGet(`${tree} .white-note`)
+				.should('be.visible')
+				.should('have.length', 2);
+			frameGet(`${tree} .black-note`).should('not.be.visible');
+
+			frameGet(`${tree} move.active`).invoke('removeClass', 'active');
+			frameGet(`${tree} move[p="b1"]`).invoke('addClass', 'active');
+			frameGet(`${tree} .white-note`).should('not.be.visible');
+			frameGet(`${tree} .black-note`).should('be.visible');
+			frameGet(`${tree} .black-note a`).focus();
+
+			frameGet(`${tree} move.active`).invoke('removeClass', 'active');
+			frameGet(`${tree} move[p="v2"]`).invoke('addClass', 'active');
+			frameGet(`${tree} .black-note`).should('be.visible');
+			frameGet(`${tree} .black-note a`).blur();
+			frameGet(`${tree} .black-note`).should('not.be.visible');
+			frameGet(`${tree} .white-note`).should('not.be.visible');
+			frameGet(`${tree} lines comment`)
+				.should('be.visible')
+				.should('have.length', 3);
+			frameGet(`${tree} move[p]`)
+				.should('be.visible')
+				.should('have.length', 6);
+			frameGet(`${tree} glyph`)
+				.should('be.visible')
+				.should('have.text', '!');
+			frameGet(`${tree} .root-note`).should('be.visible');
+
+			frameGet(`${tree} move.active`).invoke('removeClass', 'active');
+			frameGet(`${tree} move[p="w2"]`).invoke('addClass', 'active');
+			frameGet(`${tree} .white-note`).should('not.be.visible');
+			frameGet(`${tree} .black-note`).should('not.be.visible');
+			frameGet(`${tree} move.active`).invoke('removeClass', 'active');
+			frameGet(`${tree} .white-note`).should('not.be.visible');
+			frameGet(`${tree} .root-note`).should('be.visible');
+			frameDocument().then((doc) =>
+				doc.documentElement.removeAttribute(
+					'data-prettier-focused-comments'
+				)
+			);
+			frameGet(`${tree} comment`)
+				.should('be.visible')
+				.should('have.length', 7);
+		});
+	}
+});
+
 describe('Test focused comments experiment', () => {
 	beforeEach(cy.startup);
 
