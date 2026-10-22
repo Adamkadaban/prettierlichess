@@ -113,15 +113,29 @@ describe('Test native 3D mobile geometry fixtures', () => {
 		{kind: 'analysis', mode: '3d', width: 740, height: 390},
 		{kind: 'analysis', mode: '3d', width: 799, height: 900},
 		{kind: 'round', mode: '3d', width: 390, height: 844},
+		{
+			kind: 'round',
+			mode: '3d',
+			width: 740,
+			height: 390,
+			headerHeight: 40,
+		},
 		{kind: 'relay', mode: '3d', width: 390, height: 844},
 		{kind: 'relay', mode: '3d', width: 740, height: 390},
 		{kind: 'analysis', mode: '3d', width: 800, height: 900},
 		{kind: 'analysis', mode: '3d', width: 1440, height: 900},
 		{kind: 'analysis', mode: '2d', width: 390, height: 844},
 		{kind: 'round', mode: '2d', width: 390, height: 844},
+		{
+			kind: 'round',
+			mode: '2d',
+			width: 740,
+			height: 390,
+			headerHeight: 40,
+		},
 		{kind: 'relay', mode: '2d', width: 390, height: 844},
 		{kind: 'analysis', mode: '2d', width: 1440, height: 900},
-	].forEach(({kind, mode, width, height}) => {
+	].forEach(({kind, mode, width, height, headerHeight = 60}) => {
 		it(`Preserves ${mode} ${kind} geometry at ${width}x${height}`, () => {
 			cy.document().then((doc) => {
 				const frame = doc.createElement('iframe');
@@ -137,7 +151,7 @@ describe('Test native 3D mobile geometry fixtures', () => {
 				frame.srcdoc = `<!doctype html><html><head><style>
 					*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 					body {
-						---site-header-height: 60px;
+						---site-header-height: ${headerHeight}px;
 						---block-gap: 10px;
 						---col2-uniboard-width: min(calc(100vw - 280px), 696px);
 						---col3-uniboard-width: 696px;
@@ -188,12 +202,34 @@ describe('Test native 3D mobile geometry fixtures', () => {
 							grid-template-areas: 'board gauge tools' 'under . controls' 'under . side';
 						}
 						.analyse .eval-gauge { display: block; }
+						main.round {
+							grid-template-columns: 1fr 1fr;
+							grid-template-areas: 'app app';
+						}
+						.round__app {
+							justify-self: center;
+							grid-template-columns: var(---col2-uniboard-width) 240px;
+							column-gap: var(---block-gap);
+							grid-template-rows: minmax(0, 1fr) 0 repeat(10, auto) minmax(0, 1fr);
+							grid-template-areas:
+								'board voice' 'board .' 'board mat-top' 'board clock-top'
+								'board expi-top' 'board user-top' 'board moves' 'board controls'
+								'board user-bot' 'board expi-bot' 'board clock-bot' 'board mat-bot'
+								'board .' 'kb-move .';
+						}
+						.rclock-top { grid-area: clock-top; justify-self: start; }
+						.rclock-bottom { grid-area: clock-bot; justify-self: start; }
 					}
 					@media (max-width: 799px) and (orientation: landscape) {
 						.analyse {
 							grid-template-columns:
 								minmax(55vmin, calc(100vh - var(---site-header-height) - var(---block-gap)))
 								10px minmax(200px, 240px);
+						}
+						.round__app {
+							grid-template-columns:
+								minmax(55vmin, calc(100vh - var(---site-header-height) - var(---block-gap)))
+								minmax(200px, 240px);
 						}
 					}
 					@media (min-width: 1261px) {
@@ -289,7 +325,10 @@ describe('Test native 3D mobile geometry fixtures', () => {
 						).to.be.closeTo(476 / 512, 0.0001);
 						expect(outerRect.left).to.be.at.least(0);
 						expect(outerRect.right).to.be.at.most(width);
-					} else if (width < 800) {
+					} else if (
+						width < 800 &&
+						(kind !== 'round' || height >= width)
+					) {
 						expect(
 							outerRect.width,
 							'existing mobile 2D sizing'
@@ -298,7 +337,11 @@ describe('Test native 3D mobile geometry fixtures', () => {
 							'-10px'
 						);
 					}
-					if (mode === '3d' && kind !== 'round' && width < 800) {
+					if (
+						mode === '3d' &&
+						width < 800 &&
+						(kind !== 'round' || width > height)
+					) {
 						expect(
 							piece.top,
 							'3D piece clears sticky header'
@@ -332,23 +375,55 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					if (width === 1440)
 						expect(board.width, 'desktop board size').to.equal(696);
 					if (kind === 'round') {
-						for (const selector of ['.ruser-top', '.rclock-top']) {
+						if (width > height) {
 							expect(
-								doc
-									.querySelector(selector)
-									.getBoundingClientRect().bottom
-							).to.be.at.most(outerRect.top + 0.1);
-						}
-						for (const selector of [
-							'.ruser-bottom',
-							'.rclock-bottom',
-							'bo3',
-						]) {
+								outerRect.width,
+								'native landscape track'
+							).to.be.closeTo(height - headerHeight - 10, 0.1);
+							expect(outerRect.bottom).to.be.at.most(height);
 							expect(
-								doc
-									.querySelector(selector)
-									.getBoundingClientRect().top
-							).to.be.at.least(outerRect.bottom - 0.1);
+								win.getComputedStyle(outer).marginLeft
+							).to.equal('0px');
+							for (const element of doc.querySelectorAll(
+								'.ruser, .rclock, bo3'
+							)) {
+								const rect = element.getBoundingClientRect();
+								expect(
+									rect.left,
+									'controls beside board'
+								).to.be.at.least(board.right);
+								expect(rect.right).to.be.at.most(width);
+								expect(
+									rect.top,
+									'controls below header'
+								).to.be.at.least(header.bottom);
+								expect(
+									rect.bottom,
+									'controls inside viewport'
+								).to.be.at.most(height);
+							}
+						} else {
+							for (const selector of [
+								'.ruser-top',
+								'.rclock-top',
+							]) {
+								expect(
+									doc
+										.querySelector(selector)
+										.getBoundingClientRect().bottom
+								).to.be.at.most(outerRect.top + 0.1);
+							}
+							for (const selector of [
+								'.ruser-bottom',
+								'.rclock-bottom',
+								'bo3',
+							]) {
+								expect(
+									doc
+										.querySelector(selector)
+										.getBoundingClientRect().top
+								).to.be.at.least(outerRect.bottom - 0.1);
+							}
 						}
 						for (const button of doc.querySelectorAll(
 							'bo3 button'

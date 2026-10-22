@@ -5901,6 +5901,12 @@ body .glowing {
 		margin-left: -10px !important;
 	}
 
+	@media (orientation: landscape) {
+		.is3d main.round .main-board {
+			margin-top: calc(var(---cg-height) * 9.1 / 100) !important;
+		}
+	}
+
 	.round__underboard {
 		margin-top: 10px !important;
 	}
