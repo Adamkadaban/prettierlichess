@@ -138,6 +138,214 @@ describe('Test color pickrs', () => {
 	});
 });
 
+describe('Test Insights containment fixtures', () => {
+	beforeEach(cy.startup);
+
+	const mount = ({width, padding, id = 'insight'}) => {
+		cy.document().then((doc) => {
+			const mainWidth = width === 1440 ? 968 : width;
+			const frame = doc.createElement('iframe');
+			frame.id = 'insights-containment-fixture';
+			frame.style.cssText =
+				`width: ${width}px; height: 900px; border: 0; ` +
+				'max-width: none; flex-shrink: 0;';
+			// Model view.ts widthStyle(mainW()) and the existing scroll wrappers.
+			// Static canvas dimensions model native output, not Chart.js resizing.
+			const content = `
+				<header style="width: ${mainWidth}px">Chess Insights</header>
+				<div class="insight__main box" style="width: ${mainWidth}px">
+					<canvas class="chart" width="${mainWidth - 4}" height="600"
+						style="display: block; width: ${mainWidth - 4}px; height: 600px"></canvas>
+					<div class="hscroll" style="width: ${mainWidth}px">
+						<table><thead><tr><th>Variant</th><th>Accuracy</th><th>Number of moves</th></tr></thead>
+							<tbody><tr><td>${'UltraBullet analysis '.repeat(
+								24
+							)}</td><td>48.2%</td><td>10,472</td></tr>
+							<tr><td>Blitz</td><td>76.1%</td><td>87,181</td></tr></tbody></table>
+					</div>
+					<div class="game-sample box hscroll" style="width: ${mainWidth}px">
+						<div class="boards">${Array.from(
+							{length: 8},
+							(_, index) =>
+								`<a href="#game-${index}">Sample game ${
+									index + 1
+								}</a>`
+						).join('')}</div>
+					</div>
+				</div>`;
+			frame.srcdoc = `<!doctype html>
+				<html><head>
+					<style>
+						* { box-sizing: border-box; }
+						body { margin: 0; }
+						.ready { display: block; }
+						header { height: 60px; padding: 0 1vw; }
+						.insight__main { border: 1px solid; border-top: 0; }
+						.hscroll { overflow: auto; white-space: nowrap; }
+						table { border-collapse: collapse; }
+						th, td { padding: 8px; }
+						.boards { display: flex; width: max-content; }
+						.boards a { display: block; width: 200px; padding: 8px; }
+						@media (min-width: 800px) { .ready { display: flex; } }
+					</style>
+					<link rel="stylesheet" href="/styles.css">
+					<style>
+						#main-wrap main.fixture { padding: 0 ${padding}px !important; }
+					</style>
+				</head><body>
+					<div id="main-wrap"><main id="${id}" class="fixture">
+						<div class="ready">${
+							width === 1440
+								? `<aside style="width: 280px"></aside><span style="width: 26px"></span><div style="width: ${mainWidth}px">${content}</div>`
+								: content
+						}</div>
+					</main></div>
+				</body></html>`;
+			doc.body.appendChild(frame);
+		});
+		return cy.get('#insights-containment-fixture').should(($frame) => {
+			const frame = $frame[0];
+			const link = frame.contentDocument.querySelector('link');
+			expect(
+				link?.sheet?.cssRules.length,
+				'loaded built stylesheet'
+			).to.be.greaterThan(0);
+			expect(frame.contentWindow.innerWidth).to.equal(width);
+		});
+	};
+
+	const assertContained = (element, win) => {
+		const parent = element.parentElement;
+		const style = win.getComputedStyle(parent);
+		const left =
+			parent.getBoundingClientRect().left +
+			parent.clientLeft +
+			parseFloat(style.paddingLeft);
+		const right =
+			left +
+			parent.clientWidth -
+			parseFloat(style.paddingLeft) -
+			parseFloat(style.paddingRight);
+		const bounds = element.getBoundingClientRect();
+		expect(
+			bounds.left,
+			`${element.tagName}.${element.className} left bound`
+		).to.be.at.least(left - 1);
+		expect(
+			bounds.right,
+			`${element.tagName}.${element.className} right bound`
+		).to.be.at.most(right + 1);
+	};
+
+	const assertScrollable = (wrapper, win) => {
+		expect(win.getComputedStyle(wrapper).overflowX).to.equal('auto');
+		const maximum = wrapper.scrollWidth - wrapper.clientWidth;
+		expect(
+			maximum,
+			'intrinsic content needs horizontal scrolling'
+		).to.be.greaterThan(0);
+		const contents = wrapper.textContent;
+		wrapper.scrollLeft = maximum;
+		expect(
+			wrapper.scrollLeft,
+			'can reach horizontal scroll end'
+		).to.be.closeTo(maximum, 1);
+		const last = wrapper.querySelector(
+			'tr:last-child td:last-child, .boards a:last-child'
+		);
+		const right =
+			wrapper.getBoundingClientRect().left +
+			wrapper.clientLeft +
+			wrapper.clientWidth;
+		expect(
+			last.getBoundingClientRect().right,
+			'last data is reachable'
+		).to.be.at.most(right + 1);
+		expect(last.getBoundingClientRect().right).to.be.greaterThan(
+			wrapper.getBoundingClientRect().left
+		);
+		wrapper.scrollLeft = 0;
+		expect(
+			wrapper.scrollLeft,
+			'can restore horizontal scroll start'
+		).to.equal(0);
+		expect(wrapper.textContent, 'data survives scrolling').to.equal(
+			contents
+		);
+	};
+
+	[
+		{width: 390, padding: 8},
+		{width: 390, padding: 23},
+		{width: 1440, padding: 0},
+	].forEach(({width, padding}) => {
+		it(`Contains native inline widths at ${width}px with ${padding}px padding`, () => {
+			mount({width, padding}).then(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const main = doc.querySelector('#insight');
+				const panel = main.querySelector('.insight__main');
+				const header = main.querySelector('header');
+				const canvas = panel.querySelector('canvas');
+				const data = panel.textContent;
+				const canvasBefore = canvas.getBoundingClientRect().toJSON();
+				assertContained(header, win);
+				assertContained(panel, win);
+				Array.from(panel.children).forEach((child) =>
+					assertContained(child, win)
+				);
+				panel
+					.querySelectorAll('.hscroll')
+					.forEach((wrapper) => assertScrollable(wrapper, win));
+				expect(panel.textContent).to.equal(data);
+				expect(panel.textContent)
+					.to.include('48.2%')
+					.and.include('87,181');
+				expect(panel.querySelectorAll('.boards a')).to.have.length(8);
+				expect(canvas.getBoundingClientRect().height).to.equal(
+					canvas.height
+				);
+				if (width === 1440) {
+					// An identical subtree outside Insights is the unconstrained control.
+					main.id = 'outside-insight';
+					expect(
+						canvas.getBoundingClientRect().toJSON(),
+						'desktop canvas unchanged'
+					).to.deep.equal(canvasBefore);
+					main.id = 'insight';
+				}
+			});
+		});
+	});
+
+	it('Leaves inline widths outside Insights unchanged', () => {
+		mount({width: 390, padding: 8, id: 'outside-insight'}).then(
+			($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const panel = doc.querySelector('.insight__main');
+				const elements = [
+					doc.querySelector('header'),
+					panel,
+					...panel.children,
+				];
+				for (const element of elements) {
+					expect(
+						element.getBoundingClientRect().width,
+						element.className
+					).to.be.closeTo(parseFloat(element.style.width), 1);
+				}
+				expect(panel.getBoundingClientRect().right).to.be.greaterThan(
+					panel.parentElement.getBoundingClientRect().right
+				);
+				panel
+					.querySelectorAll('.hscroll')
+					.forEach((wrapper) => assertScrollable(wrapper, win));
+			}
+		);
+	});
+});
+
 describe('Test navigation containing-block fixtures', () => {
 	beforeEach(cy.startup);
 
