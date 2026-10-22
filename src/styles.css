@@ -4402,6 +4402,10 @@ hr {
 	--c-over: var(--backgroundColor) !important;
 }
 
+#insight .box .top {
+	box-shadow: none !important;
+}
+
 #insight .ms-drop ul > li label:not(.optgroup):hover {
 	background: var(--surfaceColorHover) !important;
 	color: var(--defaultWhite) !important;

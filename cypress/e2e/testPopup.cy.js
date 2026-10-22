@@ -807,6 +807,7 @@ describe('Test Insights control palette fixtures', () => {
 						`width: ${width}px; height: 900px; border: 0; ` +
 						'max-width: none; flex-shrink: 0;';
 					const controls = `
+						<div class="info box"><div class="top">Assios</div></div>
 						<div class="view-tabs"><div class="tab active">Insights</div><div class="tab">Filters</div></div>
 						<div class="panel-tabs"><a class="tab active">Presets</a><a class="tab">Filters</a></div>
 						<header><div class="axis-form">
@@ -847,12 +848,14 @@ describe('Test Insights control palette fixtures', () => {
 								--c-border: #404040; --c-shade: #4d4d4d; --c-primary: #3692e7;
 								--c-link: var(--c-primary); --c-accent: #d64f00; --c-over: white;
 								--c-metal-top: #3c3934; --c-metal-bottom: #33312e;
+								--c-body-gradient: hsl(37 12% 16%);
 							}
 							html.light {
 								--c-bg: #fff; --c-bg-opaque: #fff; --c-bg-zebra: #f7f6f5;
 								--c-font: #4d4d4d; --c-font-page: #5e5e5e; --c-border: #d9d9d9;
 								--c-shade: #d6d6d6; --c-primary: #1b78d1;
 								--c-metal-top: #f5f5f5; --c-metal-bottom: #ededed;
+								--c-body-gradient: hsl(37 12% 84%);
 							}
 							* { box-sizing: border-box; }
 							body { margin: 0; }
@@ -902,6 +905,12 @@ describe('Test Insights control palette fixtures', () => {
 							:is(#insight, #outside) .top {
 								background: linear-gradient(to bottom, var(--c-metal-top), var(--c-metal-bottom));
 								border-bottom: 1px solid var(--c-border);
+								box-shadow: inset 0 1px 3px -2px hsl(0 0% 45%),
+									inset 0 -4px 6px -3px hsl(from var(--c-body-gradient) h s calc(l + 3) / 0.8);
+							}
+							:where(html.light) :is(#insight, #outside) .top {
+								box-shadow: inset 0 3px 3px -2px #fff6,
+									inset 0 -4px 6px -3px hsl(from var(--c-body-gradient) h s calc(l + 5) / 0.8);
 							}
 							:is(#insight, #outside) .filters .ms-parent { display: block; }
 							:is(#insight, #outside) .filters .ms-choice { padding: 15px 10px; border-width: 0 0 1px; }
@@ -964,6 +973,18 @@ describe('Test Insights control palette fixtures', () => {
 					expect(style('#insight .top').backgroundImage).to.equal(
 						'linear-gradient(rgb(51, 53, 56), rgb(51, 53, 56))'
 					);
+					for (const selector of ['.info .top', '.filters .top']) {
+						expect(
+							style(`#outside ${selector}`).boxShadow,
+							`${selector} native metal shadow outside Insights`
+						).not.to.equal('none');
+						if (theme === 'light') {
+							expect(
+								style(`#insight ${selector}`).boxShadow,
+								`${selector} Light metal shadow`
+							).to.equal('none');
+						}
+					}
 					for (const selector of ['.view-tabs', '.panel-tabs']) {
 						expect(
 							style(`#insight ${selector} .active`).color
