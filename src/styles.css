@@ -3418,8 +3418,13 @@ html .eval-gauge tick.zero {
 }
 
 .explorer-box .config .choices {
+	flex-wrap: wrap !important;
 	border: 1px solid var(--backgroundColor) !important;
 	border-radius: var(--borderRadius) !important;
+}
+
+.explorer__config .choices button[aria-pressed] {
+	padding-inline: 5px !important;
 }
 
 .explorer-box .config .choices span {
