@@ -5841,7 +5841,10 @@ body .glowing {
 		border-radius: 0 !important;
 	}
 
-	.main-board:not(main.analyse.is-relay:not(.has-relay-tour) *) {
+	.main-board:not(
+			main.analyse.is-relay:not(.has-relay-tour) *,
+			main.round *
+		) {
 		width: 100vw !important;
 		height: 100vw !important;
 		margin-left: -10px !important;
@@ -6069,7 +6072,8 @@ body .glowing {
 				'uchat';
 		}
 
-		main.analyse.is-relay:not(.has-relay-tour) .main-board {
+		main.analyse.is-relay:not(.has-relay-tour) .main-board,
+		main.round .main-board {
 			width: 100vw !important;
 			height: 100vw !important;
 			margin-left: -10px !important;

@@ -877,6 +877,163 @@ describe('Test native round row sizing', () => {
 	});
 });
 
+describe('Test round board layout fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 390, height: 900, headerHeight: 40},
+		{width: 740, height: 390, headerHeight: 40},
+		{width: 740, height: 390, headerHeight: 64},
+		{width: 800, height: 390, headerHeight: 40},
+	].forEach(({width, height, headerHeight}) => {
+		it(`Preserves the round board at ${width}x${height} with a ${headerHeight}px header`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'round-board-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: ${height}px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html>
+					<html><head><style>
+						* { box-sizing: border-box; }
+						body {
+							margin: 0;
+							---site-header-height: ${headerHeight}px;
+							---block-gap: 10px;
+							---col2-uniboard-width: min(
+								calc(100vw - var(---block-gap) - 240px - 20px),
+								calc(100vh - var(---site-header-height) - 1rem)
+							);
+						}
+						main.round { display: grid; grid-template-areas: 'app'; }
+						.round__app {
+							grid-area: app;
+							display: grid;
+							grid-template-columns: 100%;
+							grid-template-rows: auto 30px 20px auto auto 20px 30px auto auto auto auto 0;
+							grid-template-areas: 'pocket-top' 'user-top' 'mat-top' 'board'
+								'expi-bot' 'mat-bot' 'user-bot' 'pocket-bot' 'controls' 'moves' 'voice' 'kb-move';
+						}
+						.main-board {
+							grid-area: board;
+							position: relative;
+							display: block;
+							width: 100%;
+							height: 0;
+							padding-bottom: 100%;
+						}
+						cg-container { position: absolute; width: 100%; height: 100%; }
+						cg-board { display: block; width: 100%; height: 100%; }
+						.ruser-top { grid-area: user-top; }
+						.ruser-bottom { grid-area: user-bot; }
+						.rclock-top { grid-area: 2 / 1 / 4 / 2; justify-self: end; }
+						.rclock-bottom { grid-area: 6 / 1 / 8 / 2; justify-self: end; }
+						i5d { grid-area: moves; display: block; }
+						bo3 { display: flex; }
+						bo3 button { flex: 1; min-height: 32px; }
+						@media (min-width: 800px), (orientation: landscape) {
+							main.round {
+								grid-template-columns: 1fr 1fr;
+								grid-template-areas: 'app app';
+							}
+							.round__app {
+								justify-self: center;
+								grid-template-columns: var(---col2-uniboard-width) 240px;
+								column-gap: var(---block-gap);
+								grid-template-rows: minmax(0, 1fr) 0 repeat(10, auto) minmax(0, 1fr);
+								grid-template-areas:
+									'board voice' 'board .' 'board mat-top' 'board clock-top'
+									'board expi-top' 'board user-top' 'board moves' 'board controls'
+									'board user-bot' 'board expi-bot' 'board clock-bot' 'board mat-bot'
+									'board .' 'kb-move .';
+							}
+							.rclock-top { grid-area: clock-top; justify-self: start; }
+							.rclock-bottom { grid-area: clock-bot; justify-self: start; }
+						}
+						@media (max-width: 799px) and (orientation: landscape) {
+							.round__app {
+								grid-template-columns:
+									minmax(55vmin, calc(100vh - var(---site-header-height) - var(---block-gap)))
+									minmax(200px, 240px);
+							}
+						}
+					</style><link rel="stylesheet" href="/styles.css"></head>
+					<body><div id="main-wrap"><main class="round"><div class="round__app">
+						<div class="round__app__board main-board"><cg-container><cg-board></cg-board></cg-container></div>
+						<div class="ruser ruser-top">White</div>
+						<div class="rclock rclock-top"><div class="time">03:00</div></div>
+						<div class="ruser ruser-bottom">Black</div>
+						<div class="rclock rclock-bottom"><div class="time">02:59</div></div>
+						<i5d><bo3>
+							<button>First</button><button>Previous</button><button>Next</button><button>Last</button>
+						</bo3></i5d>
+					</div></main></div></body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#round-board-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length || 0,
+					'loaded built stylesheet'
+				).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+				expect(win.innerHeight).to.equal(height);
+				const board = doc.querySelector('.main-board');
+				const boardRect = board.getBoundingClientRect();
+				expect(boardRect.height).to.be.closeTo(boardRect.width, 1);
+				const controls = doc
+					.querySelector('bo3')
+					.getBoundingClientRect();
+				if (height > width) {
+					expect(boardRect.width).to.equal(width);
+					expect(win.getComputedStyle(board).marginLeft).to.equal(
+						'-10px'
+					);
+					expect(controls.top).to.be.at.least(boardRect.bottom);
+					return;
+				}
+
+				const app = doc.querySelector('.round__app');
+				const columns = win
+					.getComputedStyle(app)
+					.gridTemplateColumns.split(' ')
+					.map(parseFloat);
+				expect(columns).to.have.length(2);
+				expect(boardRect.width, 'native board track').to.be.closeTo(
+					columns[0],
+					1
+				);
+				expect(boardRect.left).to.be.at.least(0);
+				expect(boardRect.right).to.be.at.most(width);
+				expect(boardRect.bottom).to.be.at.most(height);
+				expect(win.getComputedStyle(board).marginLeft).to.equal('0px');
+				for (const element of doc.querySelectorAll(
+					'bo3, .ruser, .rclock'
+				)) {
+					const rect = element.getBoundingClientRect();
+					expect(rect.left, 'beside the board').to.be.at.least(
+						boardRect.right
+					);
+					expect(rect.right).to.be.at.most(width);
+				}
+				for (const button of doc.querySelectorAll('bo3 button')) {
+					const rect = button.getBoundingClientRect();
+					expect(
+						button.contains(
+							doc.elementFromPoint(
+								rect.left + rect.width / 2,
+								rect.top + rect.height / 2
+							)
+						),
+						'unobstructed replay control'
+					).to.equal(true);
+				}
+			});
+		});
+	});
+});
+
 describe('Test round markup fixtures', () => {
 	beforeEach(cy.startup);
 
