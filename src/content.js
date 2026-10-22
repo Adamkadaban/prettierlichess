@@ -215,6 +215,63 @@ main.lobby {
 }
 `;
 
+function snapshotInsightCanvasBackground() {
+	const id = 'prettier-insight-canvas-background';
+	if (
+		!document.body ||
+		!document.head ||
+		!document.getElementById('insight') ||
+		document.getElementById(id)
+	)
+		return;
+
+	const unavailable = () =>
+		console.warn(
+			'[Prettier Lichess] Native Insights canvas background unavailable; retaining CSS fallback.'
+		);
+	const native = getComputedStyle(document.body)
+		.getPropertyValue('--c-bg-opaque')
+		.trim();
+	if (!native || !CSS.supports('color', native)) {
+		unavailable();
+		return;
+	}
+
+	// stop-color resolves contextual colors without forced-color remapping.
+	const probe = document.createElement('span');
+	probe.style.setProperty('display', 'none', 'important');
+	probe.style.setProperty('stop-color', native, 'important');
+	document.body.appendChild(probe);
+	const background = getComputedStyle(probe).stopColor;
+	probe.remove();
+	if (!background || !CSS.supports('color', background)) {
+		unavailable();
+		return;
+	}
+
+	// Native redraws replace #insight's style attribute, so keep our rule separate.
+	const style = document.createElement('style');
+	style.id = id;
+	document.head.appendChild(style);
+	style.sheet.insertRule('#insight {}');
+	style.sheet.cssRules[0].style.setProperty(
+		'--prettier-insight-canvas-bg',
+		background
+	);
+}
+
+if (document.readyState === 'loading') {
+	document.addEventListener(
+		'DOMContentLoaded',
+		snapshotInsightCanvasBackground,
+		{
+			once: true,
+		}
+	);
+} else {
+	snapshotInsightCanvasBackground();
+}
+
 colorScheme.forEach((scheme) => schemeSet(scheme));
 console.debug('Scheme set');
 
