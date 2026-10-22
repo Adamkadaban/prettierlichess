@@ -1331,7 +1331,11 @@ describe('Test focused comment stylesheet fixtures', () => {
 			frameGet(`${tree} move.active`).invoke('removeClass', 'active');
 			frameGet(`${tree} move[p="v2"]`).invoke('addClass', 'active');
 			frameGet(`${tree} .black-note`).should('be.visible');
-			frameGet(`${tree} .black-note a`).blur();
+			frameGet(`${tree} .black-note a`).then(($link) => {
+				const link = $link[0];
+				expect(link.ownerDocument.activeElement).to.equal(link);
+				link.blur();
+			});
 			frameGet(`${tree} .black-note`).should('not.be.visible');
 			frameGet(`${tree} .white-note`).should('not.be.visible');
 			frameGet(`${tree} lines comment`)
