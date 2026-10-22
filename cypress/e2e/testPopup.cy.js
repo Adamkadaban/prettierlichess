@@ -725,11 +725,15 @@ describe('Test analysis control palette fixtures', () => {
 				frame.srcdoc = `<!doctype html>
 					<html class="${theme}" style="--surfaceColor: #2b3a40 !important">
 					<head><style>
-						:root { --c-bg: ${background}; --c-bg-page: ${page}; }
+						:root { --c-bg: ${background}; --c-bg-page: ${page}; --c-font-dimmer: #aaa; }
 						.fbt { background: transparent; }
 						@media (max-width: 799px) and (orientation: portrait) {
 							.analyse__controls .fbt {
 								background: color-mix(in oklab, var(--c-bg) 50%, var(--c-bg-page));
+							}
+							.analyse__controls [data-mode='ceval']::after {
+								content: '';
+								color: var(--c-font-dimmer);
 							}
 						}
 					</style><link rel="stylesheet" href="/styles.css"></head>
@@ -737,7 +741,7 @@ describe('Test analysis control palette fixtures', () => {
 						<div class="analyse__controls analyse-controls">
 							<div class="jumps"><button class="fbt move">Next</button></div>
 							<button class="fbt tool">Explorer</button>
-							<button class="fbt active">Evaluation</button>
+							<button class="fbt active" data-mode="ceval">Evaluation</button>
 						</div>
 					</main></body></html>`;
 				doc.body.appendChild(frame);
@@ -759,6 +763,10 @@ describe('Test analysis control palette fixtures', () => {
 					return Array.from(context.getImageData(0, 0, 1, 1).data);
 				};
 				const root = win.getComputedStyle(doc.documentElement);
+				const mode = doc.querySelector('[data-mode="ceval"]');
+				expect(win.getComputedStyle(mode, '::after').color).to.equal(
+					win.getComputedStyle(mode).color
+				);
 				for (const [selector, color] of [
 					[
 						'.move, .tool',
