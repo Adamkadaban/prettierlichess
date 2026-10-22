@@ -105,6 +105,271 @@ describe('Test native board coordinates', () => {
 	});
 });
 
+describe('Test native 3D mobile geometry fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{kind: 'analysis', mode: '3d', width: 390, height: 844},
+		{kind: 'analysis', mode: '3d', width: 740, height: 390},
+		{kind: 'analysis', mode: '3d', width: 799, height: 900},
+		{kind: 'round', mode: '3d', width: 390, height: 844},
+		{kind: 'relay', mode: '3d', width: 390, height: 844},
+		{kind: 'relay', mode: '3d', width: 740, height: 390},
+		{kind: 'analysis', mode: '3d', width: 800, height: 900},
+		{kind: 'analysis', mode: '3d', width: 1440, height: 900},
+		{kind: 'analysis', mode: '2d', width: 390, height: 844},
+		{kind: 'round', mode: '2d', width: 390, height: 844},
+		{kind: 'relay', mode: '2d', width: 390, height: 844},
+		{kind: 'analysis', mode: '2d', width: 1440, height: 900},
+	].forEach(({kind, mode, width, height}) => {
+		it(`Preserves ${mode} ${kind} geometry at ${width}x${height}`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'native-3d-geometry-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: ${height}px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				const board = `<div class="main-board ${
+					kind === 'round' ? 'round__app__board' : 'analyse__board'
+				}"><div class="cg-wrap"><cg-container><cg-board>
+					<piece class="black king"></piece>
+				</cg-board></cg-container></div></div>`;
+				frame.srcdoc = `<!doctype html><html><head><style>
+					*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+					body {
+						---site-header-height: 60px;
+						---block-gap: 10px;
+						---col2-uniboard-width: min(calc(100vw - 280px), 696px);
+						---col3-uniboard-width: 696px;
+					}
+					#top { position: sticky; top: 0; height: var(---site-header-height); z-index: 106; }
+					#main-wrap { display: grid; grid-template-areas: 'main'; margin-top: .5vmin; }
+					main { grid-area: main; }
+					.analyse {
+						display: grid;
+						grid-template-columns: 100%;
+						grid-template-areas: 'board' 'controls' 'tools' 'side';
+					}
+					.main-board {
+						grid-area: board; position: relative; display: block;
+						width: 100%; height: 0; padding-bottom: 100%;
+					}
+					.cg-wrap { box-sizing: content-box; display: block; position: relative; }
+					.main-board .cg-wrap { position: absolute; width: 100%; height: 100%; }
+					cg-container, cg-board { position: absolute; display: block; top: 0; width: 100%; height: 100%; }
+					cg-board { left: 0; }
+					.analyse__board cg-container { right: 0; }
+					piece { position: absolute; width: 12.5%; height: 12.5%; top: 0; left: 0; z-index: 2; }
+					.is3d .main-board { padding-bottom: calc(100% * 476 / 512); }
+					.is3d .main-board .cg-wrap { height: calc(100% * 464.5 / 476); }
+					.is3d piece { width: 16.741%; height: 23.563%; left: -1.85%; top: -9.1%; }
+					.is3d .main-board, .is3d .eval-gauge { margin-top: calc(var(---cg-height) * 2 / 100); }
+					.eval-gauge { display: none; grid-area: gauge; height: var(---cg-height); }
+					.analyse__controls { grid-area: controls; height: 40px; }
+					.analyse__tools { grid-area: tools; }
+					.analyse__side { grid-area: side; }
+					main.round { display: grid; grid-template-areas: 'app'; }
+					.round__app {
+						grid-area: app; display: grid; grid-template-columns: 100%;
+						grid-template-rows: auto 30px 20px auto auto 20px 30px auto auto auto auto 0;
+						grid-template-areas: 'pocket-top' 'user-top' 'mat-top' 'board'
+							'expi-bot' 'mat-bot' 'user-bot' 'pocket-bot' 'controls' 'moves' 'voice' 'kb-move';
+					}
+					.ruser-top { grid-area: user-top; }
+					.ruser-bottom { grid-area: user-bot; }
+					.rclock-top { grid-area: 2 / 1 / 4 / 2; justify-self: end; }
+					.rclock-bottom { grid-area: 6 / 1 / 8 / 2; justify-self: end; }
+					i5d { display: block; grid-area: moves; }
+					bo3 { display: flex; }
+					bo3 button { flex: 1; min-height: 32px; }
+					@media (min-width: 800px), (orientation: landscape) {
+						.analyse {
+							grid-template-columns: var(---col2-uniboard-width) 10px minmax(240px, 400px);
+							grid-template-areas: 'board gauge tools' 'under . controls' 'under . side';
+						}
+						.analyse .eval-gauge { display: block; }
+					}
+					@media (max-width: 799px) and (orientation: landscape) {
+						.analyse {
+							grid-template-columns:
+								minmax(55vmin, calc(100vh - var(---site-header-height) - var(---block-gap)))
+								10px minmax(200px, 240px);
+						}
+					}
+					@media (min-width: 1261px) {
+						.analyse { grid-template-areas: 'side . board gauge tools' 'side . under . controls'; }
+					}
+				</style><link rel="stylesheet" href="/styles.css"><style>
+					@font-face { font-family: 'Red Hat Text'; src: url('/fonts/RedHatText-Regular.ttf'); }
+					@font-face { font-family: 'Red Hat Display'; src: url('/fonts/RedHatDisplay-Regular.ttf'); }
+				</style></head><body>
+					<header id="top">Lichess</header>
+					<div id="main-wrap" class="is${mode}">
+						<main class="${
+							kind === 'round'
+								? 'round'
+								: `analyse${
+										kind === 'relay' ? ' is-relay' : ''
+								  }`
+						}">
+							${
+								kind === 'round'
+									? `<div class="round__app">${board}
+										<div class="ruser ruser-top">White</div>
+										<div class="rclock rclock-top"><div class="time">03:00</div></div>
+										<div class="ruser ruser-bottom">Black</div>
+										<div class="rclock rclock-bottom"><div class="time">02:59</div></div>
+										<i5d><bo3><button>Previous</button><button>Next</button></bo3></i5d>
+									</div>`
+									: `${board}${
+											kind === 'relay' || width >= 800
+												? '<div class="eval-gauge"></div>'
+												: ''
+									  }
+										<div class="analyse__controls">Move controls</div>
+										<div class="analyse__tools"></div><aside class="analyse__side"></aside>`
+							}
+						</main>
+					</div>
+				</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#native-3d-geometry-fixture')
+				.should(($frame) => {
+					expect(
+						$frame[0].contentDocument.querySelector('link')?.sheet
+							?.cssRules.length || 0,
+						'loaded built stylesheet'
+					).to.be.greaterThan(0);
+				})
+				.then(async ($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					await doc.fonts.ready;
+					// Chessground updateBounds rounds container width, preserving the wrap ratio.
+					const wrap = doc
+						.querySelector('.cg-wrap')
+						.getBoundingClientRect();
+					const boardWidth =
+						(Math.floor((wrap.width * win.devicePixelRatio) / 8) *
+							8) /
+						win.devicePixelRatio;
+					const boardHeight = boardWidth * (wrap.height / wrap.width);
+					const container = doc.querySelector('cg-container');
+					container.style.width = `${boardWidth}px`;
+					container.style.height = `${boardHeight}px`;
+					const main = doc.querySelector('main');
+					main.style.setProperty('---cg-width', `${boardWidth}px`);
+					main.style.setProperty('---cg-height', `${boardHeight}px`);
+				})
+				.should(($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					expect(win.innerWidth).to.equal(width);
+					expect(win.innerHeight).to.equal(height);
+					const outer = doc.querySelector('.main-board');
+					const outerRect = outer.getBoundingClientRect();
+					const board = doc
+						.querySelector('cg-board')
+						.getBoundingClientRect();
+					const piece = doc
+						.querySelector('piece')
+						.getBoundingClientRect();
+					const header = doc
+						.getElementById('top')
+						.getBoundingClientRect();
+					expect(
+						board.height / board.width,
+						'native board ratio'
+					).to.be.closeTo(mode === '3d' ? 464.5 / 512 : 1, 0.0001);
+					if (mode === '3d') {
+						expect(
+							outerRect.height / outerRect.width,
+							'native outer ratio'
+						).to.be.closeTo(476 / 512, 0.0001);
+						expect(outerRect.left).to.be.at.least(0);
+						expect(outerRect.right).to.be.at.most(width);
+					} else if (width < 800) {
+						expect(
+							outerRect.width,
+							'existing mobile 2D sizing'
+						).to.equal(width);
+						expect(win.getComputedStyle(outer).marginLeft).to.equal(
+							'-10px'
+						);
+					}
+					if (mode === '3d' && kind !== 'round' && width < 800) {
+						expect(
+							piece.top,
+							'3D piece clears sticky header'
+						).to.be.at.least(header.bottom);
+						expect(
+							piece.top,
+							'3D piece clears clipping main'
+						).to.be.at.least(
+							doc.querySelector('main').getBoundingClientRect()
+								.top - 0.1
+						);
+					} else {
+						expect(
+							parseFloat(win.getComputedStyle(outer).marginTop),
+							'unchanged native margin'
+						).to.be.closeTo(
+							mode === '3d' ? board.height * 0.02 : 0,
+							0.1
+						);
+					}
+					const gauge = doc.querySelector('.eval-gauge');
+					if (
+						gauge &&
+						win.getComputedStyle(gauge).display !== 'none'
+					) {
+						expect(
+							gauge.getBoundingClientRect().top,
+							'gauge aligns with board'
+						).to.be.closeTo(board.top, 0.1);
+					}
+					if (width === 1440)
+						expect(board.width, 'desktop board size').to.equal(696);
+					if (kind === 'round') {
+						for (const selector of ['.ruser-top', '.rclock-top']) {
+							expect(
+								doc
+									.querySelector(selector)
+									.getBoundingClientRect().bottom
+							).to.be.at.most(outerRect.top + 0.1);
+						}
+						for (const selector of [
+							'.ruser-bottom',
+							'.rclock-bottom',
+							'bo3',
+						]) {
+							expect(
+								doc
+									.querySelector(selector)
+									.getBoundingClientRect().top
+							).to.be.at.least(outerRect.bottom - 0.1);
+						}
+						for (const button of doc.querySelectorAll(
+							'bo3 button'
+						)) {
+							const rect = button.getBoundingClientRect();
+							expect(
+								button.contains(
+									doc.elementFromPoint(
+										rect.left + rect.width / 2,
+										rect.top + rect.height / 2
+									)
+								),
+								'unobstructed replay control'
+							).to.equal(true);
+						}
+					}
+				});
+		});
+	});
+});
+
 describe('Test color pickrs', () => {
 	beforeEach(cy.startup);
 
