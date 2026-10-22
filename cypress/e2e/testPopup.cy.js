@@ -138,6 +138,214 @@ describe('Test color pickrs', () => {
 	});
 });
 
+describe('Test Insights containment fixtures', () => {
+	beforeEach(cy.startup);
+
+	const mount = ({width, padding, id = 'insight'}) => {
+		cy.document().then((doc) => {
+			const mainWidth = width === 1440 ? 968 : width;
+			const frame = doc.createElement('iframe');
+			frame.id = 'insights-containment-fixture';
+			frame.style.cssText =
+				`width: ${width}px; height: 900px; border: 0; ` +
+				'max-width: none; flex-shrink: 0;';
+			// Model view.ts widthStyle(mainW()) and the existing scroll wrappers.
+			// Static canvas dimensions model native output, not Chart.js resizing.
+			const content = `
+				<header style="width: ${mainWidth}px">Chess Insights</header>
+				<div class="insight__main box" style="width: ${mainWidth}px">
+					<canvas class="chart" width="${mainWidth - 4}" height="600"
+						style="display: block; width: ${mainWidth - 4}px; height: 600px"></canvas>
+					<div class="hscroll" style="width: ${mainWidth}px">
+						<table><thead><tr><th>Variant</th><th>Accuracy</th><th>Number of moves</th></tr></thead>
+							<tbody><tr><td>${'UltraBullet analysis '.repeat(
+								24
+							)}</td><td>48.2%</td><td>10,472</td></tr>
+							<tr><td>Blitz</td><td>76.1%</td><td>87,181</td></tr></tbody></table>
+					</div>
+					<div class="game-sample box hscroll" style="width: ${mainWidth}px">
+						<div class="boards">${Array.from(
+							{length: 8},
+							(_, index) =>
+								`<a href="#game-${index}">Sample game ${
+									index + 1
+								}</a>`
+						).join('')}</div>
+					</div>
+				</div>`;
+			frame.srcdoc = `<!doctype html>
+				<html><head>
+					<style>
+						* { box-sizing: border-box; }
+						body { margin: 0; }
+						.ready { display: block; }
+						header { height: 60px; padding: 0 1vw; }
+						.insight__main { border: 1px solid; border-top: 0; }
+						.hscroll { overflow: auto; white-space: nowrap; }
+						table { border-collapse: collapse; }
+						th, td { padding: 8px; }
+						.boards { display: flex; width: max-content; }
+						.boards a { display: block; width: 200px; padding: 8px; }
+						@media (min-width: 800px) { .ready { display: flex; } }
+					</style>
+					<link rel="stylesheet" href="/styles.css">
+					<style>
+						#main-wrap main.fixture { padding: 0 ${padding}px !important; }
+					</style>
+				</head><body>
+					<div id="main-wrap"><main id="${id}" class="fixture">
+						<div class="ready">${
+							width === 1440
+								? `<aside style="width: 280px"></aside><span style="width: 26px"></span><div style="width: ${mainWidth}px">${content}</div>`
+								: content
+						}</div>
+					</main></div>
+				</body></html>`;
+			doc.body.appendChild(frame);
+		});
+		return cy.get('#insights-containment-fixture').should(($frame) => {
+			const frame = $frame[0];
+			const link = frame.contentDocument.querySelector('link');
+			expect(
+				link?.sheet?.cssRules.length,
+				'loaded built stylesheet'
+			).to.be.greaterThan(0);
+			expect(frame.contentWindow.innerWidth).to.equal(width);
+		});
+	};
+
+	const assertContained = (element, win) => {
+		const parent = element.parentElement;
+		const style = win.getComputedStyle(parent);
+		const left =
+			parent.getBoundingClientRect().left +
+			parent.clientLeft +
+			parseFloat(style.paddingLeft);
+		const right =
+			left +
+			parent.clientWidth -
+			parseFloat(style.paddingLeft) -
+			parseFloat(style.paddingRight);
+		const bounds = element.getBoundingClientRect();
+		expect(
+			bounds.left,
+			`${element.tagName}.${element.className} left bound`
+		).to.be.at.least(left - 1);
+		expect(
+			bounds.right,
+			`${element.tagName}.${element.className} right bound`
+		).to.be.at.most(right + 1);
+	};
+
+	const assertScrollable = (wrapper, win) => {
+		expect(win.getComputedStyle(wrapper).overflowX).to.equal('auto');
+		const maximum = wrapper.scrollWidth - wrapper.clientWidth;
+		expect(
+			maximum,
+			'intrinsic content needs horizontal scrolling'
+		).to.be.greaterThan(0);
+		const contents = wrapper.textContent;
+		wrapper.scrollLeft = maximum;
+		expect(
+			wrapper.scrollLeft,
+			'can reach horizontal scroll end'
+		).to.be.closeTo(maximum, 1);
+		const last = wrapper.querySelector(
+			'tr:last-child td:last-child, .boards a:last-child'
+		);
+		const right =
+			wrapper.getBoundingClientRect().left +
+			wrapper.clientLeft +
+			wrapper.clientWidth;
+		expect(
+			last.getBoundingClientRect().right,
+			'last data is reachable'
+		).to.be.at.most(right + 1);
+		expect(last.getBoundingClientRect().right).to.be.greaterThan(
+			wrapper.getBoundingClientRect().left
+		);
+		wrapper.scrollLeft = 0;
+		expect(
+			wrapper.scrollLeft,
+			'can restore horizontal scroll start'
+		).to.equal(0);
+		expect(wrapper.textContent, 'data survives scrolling').to.equal(
+			contents
+		);
+	};
+
+	[
+		{width: 390, padding: 8},
+		{width: 390, padding: 23},
+		{width: 1440, padding: 0},
+	].forEach(({width, padding}) => {
+		it(`Contains native inline widths at ${width}px with ${padding}px padding`, () => {
+			mount({width, padding}).then(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const main = doc.querySelector('#insight');
+				const panel = main.querySelector('.insight__main');
+				const header = main.querySelector('header');
+				const canvas = panel.querySelector('canvas');
+				const data = panel.textContent;
+				const canvasBefore = canvas.getBoundingClientRect().toJSON();
+				assertContained(header, win);
+				assertContained(panel, win);
+				Array.from(panel.children).forEach((child) =>
+					assertContained(child, win)
+				);
+				panel
+					.querySelectorAll('.hscroll')
+					.forEach((wrapper) => assertScrollable(wrapper, win));
+				expect(panel.textContent).to.equal(data);
+				expect(panel.textContent)
+					.to.include('48.2%')
+					.and.include('87,181');
+				expect(panel.querySelectorAll('.boards a')).to.have.length(8);
+				expect(canvas.getBoundingClientRect().height).to.equal(
+					canvas.height
+				);
+				if (width === 1440) {
+					// An identical subtree outside Insights is the unconstrained control.
+					main.id = 'outside-insight';
+					expect(
+						canvas.getBoundingClientRect().toJSON(),
+						'desktop canvas unchanged'
+					).to.deep.equal(canvasBefore);
+					main.id = 'insight';
+				}
+			});
+		});
+	});
+
+	it('Leaves inline widths outside Insights unchanged', () => {
+		mount({width: 390, padding: 8, id: 'outside-insight'}).then(
+			($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const panel = doc.querySelector('.insight__main');
+				const elements = [
+					doc.querySelector('header'),
+					panel,
+					...panel.children,
+				];
+				for (const element of elements) {
+					expect(
+						element.getBoundingClientRect().width,
+						element.className
+					).to.be.closeTo(parseFloat(element.style.width), 1);
+				}
+				expect(panel.getBoundingClientRect().right).to.be.greaterThan(
+					panel.parentElement.getBoundingClientRect().right
+				);
+				panel
+					.querySelectorAll('.hscroll')
+					.forEach((wrapper) => assertScrollable(wrapper, win));
+			}
+		);
+	});
+});
+
 describe('Test navigation containing-block fixtures', () => {
 	beforeEach(cy.startup);
 
@@ -790,6 +998,449 @@ describe('Test analysis control palette fixtures', () => {
 					}
 				}
 			});
+		});
+	});
+});
+
+describe('Test Insights control palette fixtures', () => {
+	beforeEach(cy.startup);
+
+	[390, 1440].forEach((width) => {
+		['light', 'dark'].forEach((theme) => {
+			it(`Themes Insights controls without resizing at ${width}px in ${theme}`, () => {
+				cy.document().then((doc) => {
+					const frame = doc.createElement('iframe');
+					frame.id = 'insights-control-palette';
+					frame.style.cssText =
+						`width: ${width}px; height: 900px; border: 0; ` +
+						'max-width: none; flex-shrink: 0;';
+					const controls = `
+						<div class="info box"><div class="top">Assios</div></div>
+						<div class="view-tabs"><div class="tab active">Insights</div><div class="tab">Filters</div></div>
+						<div class="panel-tabs"><a class="tab active">Presets</a><a class="tab">Filters</a></div>
+						<header><div class="axis-form">
+							${['metric', 'dimension']
+								.map(
+									(axis) => `
+								<div class="ms-parent ${axis}" style="width: var(---drop-menu-width)">
+									<button class="ms-choice selected"><span>${axis}</span><div></div></button>
+									<div class="ms-drop bottom" style="display: block">
+										<ul>
+											<li><label class="optgroup">Moves</label></li>
+											<li class="selected"><label><input type="radio" checked>Accuracy</label></li>
+											<li><label>Move time</label></li>
+											<li><label class="disabled">Unavailable</label></li>
+										</ul>
+									</div>
+								</div>`
+								)
+								.join('')}
+						</div></header>
+						<div class="insight__main box"><canvas class="chart" width="300" height="100"></canvas></div>
+						<div class="filters"><div class="items"><div class="categ box">
+							<div class="top">Game</div>
+							<div class="ms-parent">
+								<button class="ms-choice selected"><span>Blitz</span><div></div></button>
+								<div class="ms-drop" style="display: block">
+									<div class="ms-search"><input type="text" placeholder="Search"></div>
+									<ul><li class="selected"><label><input type="checkbox" checked>Blitz</label></li></ul>
+								</div>
+							</div>
+							<div class="ms-parent"><button class="ms-choice disabled"><span>Unavailable</span></button></div>
+						</div></div></div>`;
+					frame.srcdoc = `<!doctype html>
+						<html class="${theme}"><head><style>
+							:root {
+								--c-bg: #262421; --c-bg-box: var(--c-bg); --c-bg-opaque: #262421;
+								--c-bg-zebra: #33312e; --c-font: #bababa; --c-font-page: #949494;
+								--c-border: #404040; --c-shade: #4d4d4d; --c-primary: #3692e7;
+								--c-link: var(--c-primary); --c-accent: #d64f00; --c-over: white;
+								--c-metal-top: #3c3934; --c-metal-bottom: #33312e;
+								--c-body-gradient: hsl(37 12% 16%);
+							}
+							html.light {
+								--c-bg: #fff; --c-bg-opaque: #fff; --c-bg-zebra: #f7f6f5;
+								--c-font: #4d4d4d; --c-font-page: #5e5e5e; --c-border: #d9d9d9;
+								--c-shade: #d6d6d6; --c-primary: #1b78d1;
+								--c-metal-top: #f5f5f5; --c-metal-bottom: #ededed;
+								--c-body-gradient: hsl(37 12% 84%);
+							}
+							* { box-sizing: border-box; }
+							body { margin: 0; }
+							button, input { font: inherit; }
+							.ms-parent { display: inline-block; position: relative; vertical-align: middle; }
+							.ms-choice {
+								display: block; width: 100%; height: 26px; padding: 0;
+								border: 1px solid var(--c-border); line-height: 26px;
+								border-radius: 2px; background-color: var(--c-bg-box);
+							}
+							.ms-choice.disabled { background-color: var(--c-shade); }
+							.ms-choice > span { position: absolute; top: 0; left: 0; right: 20px; padding-left: 8px; }
+							.ms-drop {
+								width: 100%; position: absolute; z-index: 1000; margin-top: -1px;
+								background: var(--c-bg-opaque); border: 1px solid var(--c-border);
+							}
+							.ms-drop.bottom { top: 100%; }
+							.ms-drop ul { margin: 0; padding: 0; }
+							.ms-drop li { list-style: none; }
+							.ms-drop label { display: block; white-space: nowrap; }
+							.ms-drop .disabled { opacity: 0.35; }
+							.ms-search { padding: 4px; }
+							.ms-search input { width: 100%; border: 1px solid var(--c-border); }
+							/* Mirror native page rules on a control outside #insight to check scope and geometry. */
+							:is(#insight, #outside) .view-tabs,
+							:is(#insight, #outside) .panel-tabs { display: flex; border-bottom: 2px solid var(--c-border); }
+							:is(#insight, #outside) .tab {
+								flex: 1 1 auto; padding: 0.5em 0.2em; position: relative;
+								text-align: center; color: var(--c-font-page);
+							}
+							:is(#insight, #outside) .tab::after {
+								content: ''; position: absolute; bottom: -2px; height: 2px; width: 96%;
+								background: rgb(from var(--c-accent) r g b / calc(alpha * 0.6));
+							}
+							:is(#insight, #outside) .tab.active { color: var(--c-accent); }
+							:is(#insight, #outside) header { height: var(---header-height); background: var(--c-bg-zebra); }
+							:is(#insight, #outside) .axis-form { height: 100%; display: flex; justify-content: space-evenly; }
+							:is(#insight, #outside) .axis-form .ms-choice {
+								padding: calc(var(---header-height) / 2) 2px; border-width: 0 1px; border-radius: 0;
+							}
+							:is(#insight, #outside) .axis-form .ms-choice span { line-height: var(---header-height); }
+							:is(#insight, #outside) .axis-form .ms-drop { color: var(--c-font); }
+							:is(#insight, #outside) .axis-form input { display: none; }
+							:is(#insight, #outside) .axis-form .selected label { background: var(--c-accent); color: var(--c-over); }
+							:is(#insight, #outside) .ms-drop label:not(.optgroup) { padding: 4px 8px; text-indent: 1em; }
+							:is(#insight, #outside) .ms-drop label:not(.optgroup):hover { background: color-mix(in oklab, var(--c-accent) 20%, var(--c-bg)); }
+							:is(#insight, #outside) .top {
+								background: linear-gradient(to bottom, var(--c-metal-top), var(--c-metal-bottom));
+								border-bottom: 1px solid var(--c-border);
+								box-shadow: inset 0 1px 3px -2px hsl(0 0% 45%),
+									inset 0 -4px 6px -3px hsl(from var(--c-body-gradient) h s calc(l + 3) / 0.8);
+							}
+							:where(html.light) :is(#insight, #outside) .top {
+								box-shadow: inset 0 3px 3px -2px #fff6,
+									inset 0 -4px 6px -3px hsl(from var(--c-body-gradient) h s calc(l + 5) / 0.8);
+							}
+							:is(#insight, #outside) .filters .ms-parent { display: block; }
+							:is(#insight, #outside) .filters .ms-choice { padding: 15px 10px; border-width: 0 0 1px; }
+							:is(#insight, #outside) .filters .ms-choice.selected {
+								background: color-mix(in oklab, var(--c-primary) 20%, var(--c-bg)); border-left: 3px solid var(--c-link);
+							}
+							:is(#insight, #outside) .filters .ms-drop { top: 0; margin-inline-start: 50%; }
+						</style><link rel="stylesheet" href="/styles.css"></head><body>
+							${['insight', 'outside']
+								.map(
+									(id) => `
+								<main id="${id}" style="width: ${Math.min(width, 800)}px;
+									---header-height: ${width < 800 ? 30 : 60}px;
+									---drop-menu-width: ${width < 800 ? 154 : 200}px">
+									${controls}
+								</main>`
+								)
+								.join('')}
+						</body></html>`;
+					doc.body.appendChild(frame);
+				});
+				cy.get('#insights-control-palette').should(($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					expect(
+						doc.querySelector('link')?.sheet?.cssRules.length || 0,
+						'loaded built stylesheet'
+					).to.be.greaterThan(0);
+					expect(win.innerWidth).to.equal(width);
+					const style = (selector) =>
+						win.getComputedStyle(doc.querySelector(selector));
+					for (const selector of [
+						'header',
+						'.axis-form .ms-choice',
+						'.ms-drop',
+						'.ms-search input',
+					]) {
+						expect(
+							style(`#insight ${selector}`).backgroundColor,
+							selector
+						).to.equal('rgb(51, 53, 56)');
+					}
+					expect(
+						style('#insight .axis-form .ms-drop').color
+					).to.equal('rgb(170, 170, 170)');
+					expect(
+						style('#insight .axis-form .ms-drop').borderTopColor
+					).to.equal('rgb(64, 66, 70)');
+					expect(
+						style('#insight .axis-form .selected label')
+							.backgroundColor
+					).to.equal('rgb(159, 192, 162)');
+					expect(
+						style('#insight .axis-form .selected label').color
+					).to.equal('rgb(39, 42, 44)');
+					expect(
+						style('#insight .filters .ms-choice.selected')
+							.borderLeftColor
+					).to.equal('rgb(159, 192, 162)');
+					expect(style('#insight .top').backgroundImage).to.equal(
+						'linear-gradient(rgb(51, 53, 56), rgb(51, 53, 56))'
+					);
+					for (const selector of ['.info .top', '.filters .top']) {
+						expect(
+							style(`#outside ${selector}`).boxShadow,
+							`${selector} native metal shadow outside Insights`
+						).not.to.equal('none');
+						if (theme === 'light') {
+							expect(
+								style(`#insight ${selector}`).boxShadow,
+								`${selector} Light metal shadow`
+							).to.equal('none');
+						}
+					}
+					for (const selector of ['.view-tabs', '.panel-tabs']) {
+						expect(
+							style(`#insight ${selector} .active`).color
+						).to.equal('rgb(159, 192, 162)');
+						expect(
+							style(`#insight ${selector} .tab:not(.active)`)
+								.color
+						).to.equal('rgb(170, 170, 170)');
+					}
+					expect(
+						style('#outside .axis-form .ms-choice').backgroundColor
+					).to.equal(
+						theme === 'light'
+							? 'rgb(255, 255, 255)'
+							: 'rgb(38, 36, 33)'
+					);
+					expect(style('#outside .tab.active').color).to.equal(
+						'rgb(214, 79, 0)'
+					);
+					expect(
+						style('#outside .axis-form .selected label').color
+					).to.equal('rgb(255, 255, 255)');
+					const inside = doc.querySelector('#insight');
+					const outside = doc.querySelector('#outside');
+					const origin = inside.getBoundingClientRect();
+					const controlOrigin = outside.getBoundingClientRect();
+					const controls = outside.querySelectorAll('*');
+					inside.querySelectorAll('*').forEach((element, index) => {
+						const rect = element.getBoundingClientRect();
+						const control = controls[index].getBoundingClientRect();
+						for (const dimension of ['width', 'height']) {
+							expect(
+								rect[dimension],
+								`${element.className} ${dimension}`
+							).to.equal(control[dimension]);
+						}
+						expect(rect.x - origin.x).to.equal(
+							control.x - controlOrigin.x
+						);
+						if (rect.width || rect.height) {
+							expect(rect.y - origin.y).to.equal(
+								control.y - controlOrigin.y
+							);
+						}
+						for (const property of [
+							'fontFamily',
+							'fontSize',
+							'fontWeight',
+							'lineHeight',
+						]) {
+							expect(
+								win.getComputedStyle(element)[property],
+								property
+							).to.equal(
+								win.getComputedStyle(controls[index])[property]
+							);
+						}
+					});
+				});
+			});
+		});
+	});
+});
+
+describe('Test toolbar hover capability fixtures (Chrome CDP)', () => {
+	const protocol = (command, params) =>
+		Cypress.automation('remote:debugger:protocol', {command, params});
+
+	const findNode = (node, id) => {
+		const attributes = node.attributes || [];
+		for (let i = 0; i < attributes.length; i += 2) {
+			if (attributes[i] === 'id' && attributes[i + 1] === id) return node;
+		}
+		for (const child of [
+			...(node.children || []),
+			...(node.contentDocument ? [node.contentDocument] : []),
+		]) {
+			const found = findNode(child, id);
+			if (found) return found;
+		}
+	};
+
+	const hoverControl = (id) =>
+		cy
+			.then(() => protocol('DOM.getDocument', {depth: -1, pierce: true}))
+			.then(({root}) => {
+				const fixture = findNode(root, 'toolbar-hover-fixture');
+				const button = findNode(fixture.contentDocument, id);
+				return protocol('DOM.getBoxModel', {nodeId: button.nodeId});
+			})
+			.then(({model}) =>
+				// CDP's quad includes the scaled, nested Cypress AUT iframe.
+				protocol('Input.dispatchMouseEvent', {
+					type: 'mouseMoved',
+					x: (model.border[0] + model.border[4]) / 2,
+					y: (model.border[1] + model.border[5]) / 2,
+					button: 'none',
+					pointerType: 'mouse',
+				})
+			);
+
+	beforeEach(function () {
+		if (Cypress.browser.family !== 'chromium') this.skip();
+		cy.startup();
+	});
+
+	afterEach(() => {
+		if (Cypress.browser.family === 'chromium') {
+			cy.then(() =>
+				protocol('Emulation.setTouchEmulationEnabled', {enabled: false})
+			);
+		}
+	});
+
+	[
+		{width: 1440, canHover: true},
+		{width: 390, canHover: false},
+		{width: 390, canHover: true},
+		{width: 1440, canHover: false},
+	].forEach(({width, canHover}) => {
+		it(`Preserves toolbar states at ${width}px with hover ${
+			canHover ? 'available' : 'unavailable'
+		}`, () => {
+			cy.viewport(width, 900);
+			cy.then(() =>
+				protocol('Emulation.setTouchEmulationEnabled', {
+					enabled: !canHover,
+					maxTouchPoints: 1,
+				})
+			);
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'toolbar-hover-fixture';
+				frame.style.cssText =
+					'position: fixed; inset: 0; width: 100%; height: 100%; ' +
+					'border: 0; z-index: 2147483647;';
+				frame.srcdoc = `<!doctype html>
+					<html><head><style>
+						:root { --c-bg: #262421; --c-bg-page: #161512; }
+						.fbt, #native-background { background: transparent; }
+						.fbt { width: 80px; height: 48px; }
+						.fbt.disabled, .fbt:disabled { opacity: 0.4; }
+						@media (max-width: 799px) and (orientation: portrait) {
+							.analyse__controls .fbt, #native-background {
+								background: color-mix(in oklab, var(--c-bg) 50%, var(--c-bg-page));
+							}
+						}
+						@media (hover: hover) {
+							.fbt:hover:not(.disabled):not([disabled]) {
+								background: #369; color: #fff;
+							}
+						}
+						#toolbar { position: fixed; top: 20px; left: 20px; display: flex; gap: 8px; }
+					</style><link rel="stylesheet" href="/styles.css"></head>
+					<body>
+						<div id="toolbar" class="analyse__controls">
+							<button id="explorer" class="fbt" data-act="opening-explorer">
+								Explorer<svg class="spinner" width="12" height="12"><path d="M0 0L12 12"/></svg>
+							</button>
+							<button id="disabled-attribute" class="fbt" disabled>Disabled</button>
+							<button id="disabled-class" class="fbt disabled">Disabled</button>
+							<div id="native-background" hidden></div>
+						</div>
+						<div id="palette" hidden style="background: var(--primaryColor); color: var(--textColor); border-color: var(--backgroundColor)"></div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#toolbar-hover-fixture')
+				.should(($frame) => {
+					const doc = $frame[0].contentDocument;
+					expect(
+						doc.querySelector('link')?.sheet?.cssRules.length || 0,
+						'loaded built stylesheet'
+					).to.be.greaterThan(0);
+					expect($frame[0].contentWindow.innerWidth).to.equal(width);
+				})
+				.then(($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					const palette = win.getComputedStyle(
+						doc.getElementById('palette')
+					);
+					const nativeBackground = win.getComputedStyle(
+						doc.getElementById('native-background')
+					).backgroundColor;
+					const assertColors = (id, active = false) =>
+						cy.get('#toolbar-hover-fixture').should(() => {
+							expect(
+								win.matchMedia('(hover: hover)').matches
+							).to.equal(canHover);
+							expect(
+								win.matchMedia('(hover: none)').matches
+							).to.equal(!canHover);
+							const button = doc.getElementById(id);
+							expect(button.matches(':hover'), 'real CSS hover')
+								.to.be.true;
+							expect(
+								button.classList.contains('active')
+							).to.equal(active);
+							const disabled = id !== 'explorer';
+							const highlighted =
+								active || (canHover && !disabled);
+							const style = win.getComputedStyle(button);
+							expect(
+								style.backgroundColor,
+								`${id} background`
+							).to.equal(
+								highlighted
+									? palette.backgroundColor
+									: nativeBackground
+							);
+							expect(style.color, `${id} foreground`).to.equal(
+								highlighted
+									? palette.borderTopColor
+									: palette.color
+							);
+							if (disabled) expect(style.opacity).to.equal('0.4');
+							else if (!active) {
+								expect(
+									win.getComputedStyle(
+										button.querySelector('path')
+									).stroke,
+									'hovered inactive spinner stroke'
+								).to.equal(
+									canHover
+										? palette.borderTopColor
+										: palette.backgroundColor
+								);
+							}
+						});
+
+					hoverControl('explorer');
+					assertColors('explorer');
+					cy.then(() =>
+						doc.getElementById('explorer').classList.add('active')
+					);
+					assertColors('explorer', true);
+					cy.then(() =>
+						doc
+							.getElementById('explorer')
+							.classList.remove('active')
+					);
+					assertColors('explorer');
+					for (const id of ['disabled-attribute', 'disabled-class']) {
+						hoverControl(id);
+						assertColors(id);
+					}
+				});
 		});
 	});
 });
