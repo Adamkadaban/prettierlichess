@@ -288,7 +288,7 @@ input::placeholder,
 
 body {
 	/* Capture the native chart surface before the Insights palette overrides it. */
-	--prettier-insight-canvas-bg: var(--c-bg-box);
+	--prettier-insight-canvas-bg: var(--c-bg-opaque);
 	font-family: 'Red Hat Text', sans-serif !important;
 	background: var(--backgroundColor) !important;
 }
