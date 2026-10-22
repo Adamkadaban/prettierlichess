@@ -3173,6 +3173,8 @@ a.context-streamer:hover {
 }
 
 .analyse__controls {
+	--c-bg: var(--surfaceColor) !important;
+	--c-bg-page: var(--surfaceColor) !important;
 	margin-right: 16px !important;
 	margin-bottom: 0 !important;
 	margin-left: 16px !important;
