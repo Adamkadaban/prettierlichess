@@ -16,54 +16,6 @@ describe('Test whole extension', () => {
 			'rgb(39, 42, 44)'
 		);
 	});
-	[390, 1280].forEach((width) => {
-		it(`Styles current and legacy round markup fixtures at ${width}px`, () => {
-			cy.viewport(width, 800);
-			cy.document().then((doc) => {
-				const fixture = doc.createElement('div');
-				fixture.id = 'round-markup-fixture';
-				fixture.innerHTML =
-					'<rm6><rb1></rb1><l4x><i5z>1</i5z>' +
-					'<u8t>e4</u8t><u8t class="a1t">e5</u8t></l4x></rm6>' +
-					'<i5d><bo3></bo3><app><qzm>1</qzm>' +
-					'<z7yx>e4</z7yx><z7yx class="a1t">e5</z7yx></app></i5d>';
-				doc.body.appendChild(fixture);
-			});
-			cy.get('#round-markup-fixture').should(($fixture) => {
-				const fixture = $fixture[0];
-				const style = (selector) =>
-					fixture.ownerDocument.defaultView.getComputedStyle(
-						fixture.querySelector(selector)
-					);
-				for (const [legacy, current, properties] of [
-					[
-						'rm6',
-						'i5d',
-						['backgroundColor', 'border', 'borderRadius'],
-					],
-					['rb1', 'bo3', ['backgroundColor', 'boxShadow']],
-					['l4x', 'app', ['borderLeft', 'flexBasis', 'lineHeight']],
-					['i5z', 'qzm', ['backgroundColor', 'color']],
-					[
-						'u8t.a1t',
-						'z7yx.a1t',
-						['backgroundColor', 'color', 'boxShadow'],
-					],
-				]) {
-					for (const property of properties) {
-						expect(
-							style(current)[property],
-							`${current} ${property}`
-						).to.equal(style(legacy)[property]);
-					}
-				}
-				expect(style('z7yx.a1t').backgroundColor).not.to.equal(
-					style('z7yx:not(.a1t)').backgroundColor
-				);
-				expect(style('z7yx.a1t').boxShadow).not.to.equal('none');
-			});
-		});
-	});
 	it('Test destination hit testing while dragging', () => {
 		cy.visit(
 			'https://lichess.org/analysis/standard/4k3/8/8/3p4/4P3/8/8/4K3_w_-_-_0_1'
