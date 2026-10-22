@@ -5683,10 +5683,18 @@ body .glowing {
 		display: none !important;
 	}
 
-	#main-wrap .analyse {
+	#main-wrap .analyse:not(main.is-relay:not(.has-relay-tour)) {
 		grid-template-columns:
 			var(---col2-uniboard-width) calc(3 * var(---block-gap))
 			minmax(240px, 400px) !important;
+	}
+
+	@media (min-width: 800px), (orientation: portrait) {
+		#main-wrap main.analyse.is-relay:not(.has-relay-tour) {
+			grid-template-columns:
+				var(---col2-uniboard-width) calc(3 * var(---block-gap))
+				minmax(240px, 400px) !important;
+		}
 	}
 
 	.analyse__side {
@@ -5809,9 +5817,12 @@ body .glowing {
 	#main-wrap main {
 		width: 100vw !important;
 		max-width: 100% !important;
-		grid-template-columns: 100% !important;
 		padding: 0 8px !important;
 		overflow: hidden !important;
+	}
+
+	#main-wrap main:not(.analyse.is-relay:not(.has-relay-tour)) {
+		grid-template-columns: 100% !important;
 	}
 
 	.lobby__side {
@@ -5826,7 +5837,7 @@ body .glowing {
 		border-radius: 0 !important;
 	}
 
-	.main-board {
+	.main-board:not(main.analyse.is-relay:not(.has-relay-tour) *) {
 		width: 100vw !important;
 		height: 100vw !important;
 		margin-left: -10px !important;
@@ -5986,7 +5997,7 @@ body .glowing {
 
 	/* Analysis Mobile */
 
-	#main-wrap .analyse {
+	#main-wrap .analyse:not(main.is-relay:not(.has-relay-tour)) {
 		grid-template-columns: 100% !important;
 		grid-template-rows: auto !important;
 		grid-template-areas:
@@ -6036,15 +6047,42 @@ body .glowing {
 		border-radius: var(--borderRadius) !important;
 	}
 
-	.analyse__tools {
+	.analyse__tools:not(main.analyse.is-relay:not(.has-relay-tour) *) {
 		height: 50vh !important;
 	}
 
-	.analyse__tools,
+	.analyse__tools:not(main.analyse.is-relay:not(.has-relay-tour) *),
 	.analyse__side,
 	.analyse__underboard,
 	.relay-tour__text {
 		margin-bottom: 20px !important;
+	}
+
+	@media (orientation: portrait) {
+		#main-wrap main.analyse.is-relay:not(.has-relay-tour) {
+			grid-template-columns: 100% !important;
+			grid-template-rows: auto !important;
+			grid-template-areas:
+				'board'
+				'controls'
+				'tools'
+				'side'
+				'round-training'
+				'under'
+				'chat'
+				'uchat';
+		}
+
+		main.analyse.is-relay:not(.has-relay-tour) .main-board {
+			width: 100vw !important;
+			height: 100vw !important;
+			margin-left: -10px !important;
+		}
+
+		main.analyse.is-relay:not(.has-relay-tour) .analyse__tools {
+			height: 50vh !important;
+			margin-bottom: 20px !important;
+		}
 	}
 
 	.tview2 move,
