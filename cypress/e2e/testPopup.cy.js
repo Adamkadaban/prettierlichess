@@ -215,6 +215,252 @@ describe('Test navigation containing-block fixtures', () => {
 	});
 });
 
+describe('Test Insights canvas fixtures', () => {
+	beforeEach(cy.startup);
+
+	// Native contracts: lila/ui/insight/src/chart.ts and ui/common/css/theme/.
+	const nativeThemes = [
+		{theme: 'light', background: 'hsl(0 0% 100%)', font: [77, 77, 77]},
+		{theme: 'dark', background: 'hsl(37 7% 14%)', font: [204, 204, 204]},
+	];
+	const palettes = [
+		{
+			name: 'defaultDark',
+			surface: '#333538',
+			background: '#272a2c',
+			white: '#f2f5f3',
+		},
+		{
+			name: 'invertedLight',
+			surface: '#f5f5f5',
+			background: '#e0e0e0',
+			white: '#111111',
+		},
+	];
+	const applyPalette = (doc, palette) => {
+		for (const [name, value] of Object.entries({
+			surfaceColor: palette.surface,
+			backgroundColor: palette.background,
+			defaultWhite: palette.white,
+		})) {
+			doc.body.style.setProperty(`--${name}`, value);
+		}
+	};
+	const fixture = (native, palette) => {
+		cy.document().then((doc) => {
+			const frame = doc.createElement('iframe');
+			frame.id = 'insights-canvas-fixture';
+			frame.style.cssText = 'width: 900px; height: 700px; border: 0;';
+			frame.srcdoc = `<!doctype html>
+				<html class="${native.theme}"><head>
+					<style>
+						:root {
+							--c-bg: ${native.background};
+							--c-bg-box: var(--c-bg);
+						}
+						body { margin: 0; }
+						.box { width: 400px; }
+						canvas { display: block; }
+						#native-surface { background: var(--c-bg-box); }
+						/* Model the independent Insights controls palette bridge. */
+						#insight {
+							--c-bg: var(--surfaceColor) !important;
+							--c-bg-box: var(--surfaceColor) !important;
+						}
+					</style>
+					<link rel="stylesheet" href="/styles.css">
+				</head><body data-theme="${native.theme}">
+					<main id="insight"><div class="box">
+						<canvas class="chart" width="360" height="180"></canvas>
+						<canvas id="other-canvas" width="10" height="10"></canvas>
+					</div></main>
+					<div id="outside" class="box">
+						<canvas class="chart" width="360" height="180"></canvas>
+					</div>
+					<div id="native-surface"></div>
+				</body></html>`;
+			doc.body.appendChild(frame);
+		});
+		return cy
+			.get('#insights-canvas-fixture')
+			.should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const link = doc.querySelector('link');
+				expect(
+					link?.sheet?.cssRules.length,
+					'loaded built stylesheet'
+				).to.be.greaterThan(0);
+			})
+			.then(($frame) => {
+				const doc = $frame[0].contentDocument;
+				applyPalette(doc, palette);
+				const canvas = doc.querySelector('#insight canvas.chart');
+				const ctx = canvas.getContext('2d');
+				ctx.font = '12px Arial';
+				ctx.fillStyle = `rgb(${native.font.join(',')})`;
+				ctx.fillText('Accuracy · Number of moves', 20, 150);
+				return {doc, win: $frame[0].contentWindow, canvas, ctx};
+			});
+	};
+	const channels = (color) => color.match(/[\d.]+/g).map(Number);
+	const background = (win, node) => {
+		for (; node; node = node.parentElement) {
+			const rgba = channels(win.getComputedStyle(node).backgroundColor);
+			if (rgba.length === 3 || rgba[3] === 1) return rgba.slice(0, 3);
+			expect(
+				rgba[3],
+				'fixture backgrounds are opaque or transparent'
+			).to.equal(0);
+		}
+		throw new Error('No opaque canvas backdrop');
+	};
+	const luminance = (rgb) =>
+		rgb
+			.map((value) => {
+				const channel = value / 255;
+				return channel <= 0.04045
+					? channel / 12.92
+					: ((channel + 0.055) / 1.055) ** 2.4;
+			})
+			.reduce(
+				(sum, value, index) =>
+					sum + value * [0.2126, 0.7152, 0.0722][index],
+				0
+			);
+
+	describe('Native font contrast', () => {
+		nativeThemes.forEach((native) => {
+			palettes.forEach((palette) => {
+				it(`Keeps ${native.theme} glyphs readable on ${palette.name}`, () => {
+					fixture(native, palette).then(({win, canvas, ctx}) => {
+						const pixels = ctx.getImageData(
+							0,
+							0,
+							canvas.width,
+							canvas.height
+						).data;
+						let textPixels = 0;
+						for (let i = 0; i < pixels.length; i += 4) {
+							if (
+								pixels[i + 3] === 255 &&
+								native.font.every(
+									(value, channel) =>
+										pixels[i + channel] === value
+								)
+							)
+								textPixels++;
+						}
+						expect(
+							textPixels,
+							'opaque native-color glyph pixels'
+						).to.be.greaterThan(0);
+						const ink = luminance(native.font);
+						const surface = luminance(background(win, canvas));
+						expect(
+							(Math.max(ink, surface) + 0.05) /
+								(Math.min(ink, surface) + 0.05),
+							'native canvas text contrast'
+						).to.be.at.least(4.5);
+					});
+				});
+			});
+		});
+	});
+
+	describe('Native surface isolation', () => {
+		nativeThemes.forEach((native) => {
+			it(`Captures the ${native.theme} surface without changing canvas rendering`, () => {
+				fixture(native, palettes[0]).then(({doc, win, canvas, ctx}) => {
+					const sheet = doc.querySelector('link').sheet;
+					const rule = Array.from(sheet.cssRules).find(
+						(rule) => rule.selectorText === '#insight canvas.chart'
+					);
+					expect(rule, 'scoped canvas exception').to.exist;
+					const exception = rule.style.cssText;
+					const outside = doc.querySelector('#outside canvas');
+					const other = doc.querySelector('#other-canvas');
+					const snapshot = () => ({
+						bounds: canvas.getBoundingClientRect().toJSON(),
+						width: canvas.width,
+						height: canvas.height,
+						pixels: canvas.toDataURL(),
+						contextFont: ctx.font,
+						cssFont: win.getComputedStyle(canvas).font,
+						filter: win.getComputedStyle(canvas).filter,
+						outsideBackground:
+							win.getComputedStyle(outside).backgroundColor,
+						outsideRadius:
+							win.getComputedStyle(outside).borderRadius,
+						outsideBounds: outside.getBoundingClientRect().toJSON(),
+						outsideSurface: win.getComputedStyle(
+							outside.parentElement
+						).backgroundColor,
+						otherBackground:
+							win.getComputedStyle(other).backgroundColor,
+						otherRadius: win.getComputedStyle(other).borderRadius,
+						bodyBackground: win.getComputedStyle(doc.body)
+							.backgroundColor,
+					});
+					const nativeSurface = win.getComputedStyle(
+						doc.querySelector('#native-surface')
+					).backgroundColor;
+					[
+						...palettes,
+						{
+							name: 'transparent',
+							surface: 'transparent',
+							background: '#000000',
+							white: 'transparent',
+						},
+					].forEach((palette) => {
+						applyPalette(doc, palette);
+						rule.style.cssText = '';
+						const before = snapshot();
+						rule.style.cssText = exception;
+						expect(snapshot(), palette.name).to.deep.equal(before);
+						expect(
+							win.getComputedStyle(canvas).backgroundColor,
+							palette.name
+						).to.equal(nativeSurface);
+						expect(
+							win.getComputedStyle(canvas).borderRadius
+						).to.equal(
+							win
+								.getComputedStyle(doc.documentElement)
+								.getPropertyValue('--borderRadius')
+								.trim()
+						);
+						expect(
+							win.getComputedStyle(
+								doc.querySelector('#native-surface')
+							).backgroundColor
+						).to.equal(nativeSurface);
+						const insight = doc.querySelector('#insight');
+						expect(
+							win
+								.getComputedStyle(insight)
+								.getPropertyValue('--c-bg-box')
+								.trim()
+						).to.equal(palette.surface);
+						for (const ancestor of [
+							canvas.parentElement,
+							insight,
+							doc.body,
+						]) {
+							expect(
+								win.getComputedStyle(ancestor).overflowX
+							).to.equal('visible');
+							expect(
+								win.getComputedStyle(ancestor).overflowY
+							).to.equal('visible');
+						}
+					});
+				});
+			});
+		});
+	});
+});
+
 describe('Test broadcast stylesheet fixtures', () => {
 	beforeEach(cy.startup);
 
