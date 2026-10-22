@@ -5892,12 +5892,19 @@ body .glowing {
 	}
 
 	.main-board:not(
+			.is3d *,
 			main.analyse.is-relay:not(.has-relay-tour) *,
 			main.round *
 		) {
 		width: 100vw !important;
 		height: 100vw !important;
 		margin-left: -10px !important;
+	}
+
+	@media (orientation: landscape) {
+		.is3d main.round .main-board {
+			margin-top: calc(var(---cg-height) * 9.1 / 100) !important;
+		}
 	}
 
 	.round__underboard {
@@ -6046,6 +6053,12 @@ body .glowing {
 
 	/* Analysis Mobile */
 
+	.is3d main.analyse .main-board,
+	.is3d main.analyse .eval-gauge {
+		/* Native 3D pieces overhang the board by 9.1%; clear the sticky header. */
+		margin-top: calc(var(---cg-height) * 9.1 / 100) !important;
+	}
+
 	#main-wrap .analyse:not(main.is-relay:not(.has-relay-tour)) {
 		grid-template-columns: 100% !important;
 		grid-template-rows: auto !important;
@@ -6122,8 +6135,8 @@ body .glowing {
 				'uchat';
 		}
 
-		main.analyse.is-relay:not(.has-relay-tour) .main-board,
-		main.round .main-board {
+		main.analyse.is-relay:not(.has-relay-tour) .main-board:not(.is3d *),
+		main.round .main-board:not(.is3d *) {
 			width: 100vw !important;
 			height: 100vw !important;
 			margin-left: -10px !important;
