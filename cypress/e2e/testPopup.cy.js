@@ -630,6 +630,85 @@ describe('Test broadcast landscape layout fixtures', () => {
 	});
 });
 
+describe('Test analysis control palette fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 390, theme: 'light', background: '#fff', page: '#ededed'},
+		{width: 390, theme: 'dark', background: '#262421', page: '#161512'},
+		{width: 800, theme: 'light', background: '#fff', page: '#ededed'},
+	].forEach(({width, theme, background, page}) => {
+		it(`Preserves the control palette at ${width}px in ${theme}`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'analysis-control-palette';
+				frame.style.cssText =
+					`width: ${width}px; height: 900px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html>
+					<html class="${theme}" style="--surfaceColor: #2b3a40 !important">
+					<head><style>
+						:root { --c-bg: ${background}; --c-bg-page: ${page}; }
+						.fbt { background: transparent; }
+						@media (max-width: 799px) and (orientation: portrait) {
+							.analyse__controls .fbt {
+								background: color-mix(in oklab, var(--c-bg) 50%, var(--c-bg-page));
+							}
+						}
+					</style><link rel="stylesheet" href="/styles.css"></head>
+					<body><main class="analyse">
+						<div class="analyse__controls analyse-controls">
+							<div class="jumps"><button class="fbt move">Next</button></div>
+							<button class="fbt tool">Explorer</button>
+							<button class="fbt active">Evaluation</button>
+						</div>
+					</main></body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#analysis-control-palette').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length || 0,
+					'loaded built stylesheet'
+				).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+				const context = doc.createElement('canvas').getContext('2d');
+				const paint = (color) => {
+					context.clearRect(0, 0, 1, 1);
+					context.fillStyle = '#000';
+					context.fillStyle = color;
+					context.fillRect(0, 0, 1, 1);
+					return Array.from(context.getImageData(0, 0, 1, 1).data);
+				};
+				const root = win.getComputedStyle(doc.documentElement);
+				for (const [selector, color] of [
+					[
+						'.move, .tool',
+						width < 800
+							? root.getPropertyValue('--surfaceColor')
+							: 'transparent',
+					],
+					['.active', root.getPropertyValue('--primaryColor')],
+				]) {
+					const expected = paint(color);
+					for (const button of doc.querySelectorAll(selector)) {
+						const actual = paint(
+							win.getComputedStyle(button).backgroundColor
+						);
+						actual.forEach((value, index) =>
+							expect(
+								Math.abs(value - expected[index]),
+								`${selector} channel ${index}`
+							).to.be.at.most(1)
+						);
+					}
+				}
+			});
+		});
+	});
+});
+
 describe('Test navigation', () => {
 	beforeEach(cy.startup);
 
