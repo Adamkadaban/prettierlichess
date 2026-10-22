@@ -291,7 +291,9 @@ describe('Test broadcast stylesheet fixtures', () => {
 				]
 					.map((area) => `"${area}"`)
 					.join(' ');
-				expect(gameStyle.gridTemplateAreas).to.equal(gameAreas);
+				expect(gameStyle.gridTemplateAreas).to.equal(
+					width > height ? '"board"' : gameAreas
+				);
 				expect(studyStyle.gridTemplateAreas).to.equal(gameAreas);
 				expect(studyStyle.overflow).to.equal('hidden');
 				expect(overviewStyle.gridTemplateAreas).to.equal(
@@ -401,6 +403,228 @@ describe('Test broadcast control spacing fixtures', () => {
 						selector
 					).to.deep.equal(['16px', '0px', '16px']);
 				}
+			});
+		});
+	});
+});
+
+describe('Test broadcast landscape layout fixtures', () => {
+	beforeEach(cy.startup);
+
+	const relayAreas = [
+		'board gauge side',
+		'board gauge tools',
+		'board . controls',
+		'under under under',
+		'relay-admin . .',
+	]
+		.map((area) => `"${area}"`)
+		.join(' ');
+	const stackedAreas = [
+		'board',
+		'controls',
+		'tools',
+		'side',
+		'round-training',
+		'under',
+		'chat',
+		'uchat',
+	]
+		.map((area) => `"${area}"`)
+		.join(' ');
+
+	[
+		{kind: 'game', width: 740, height: 390},
+		{kind: 'game', width: 390, height: 900},
+		{kind: 'game', width: 800, height: 390},
+		{kind: 'analysis', width: 740, height: 390},
+		{kind: 'study', width: 740, height: 390},
+		{kind: 'overview', width: 740, height: 390},
+	].forEach(({kind, width, height}) => {
+		it(`Scopes landscape layout for ${kind} at ${width}x${height}`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'broadcast-landscape-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: ${height}px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				const classes = {
+					game: 'analyse has-players is-relay',
+					overview: 'analyse has-players is-relay has-relay-tour',
+					study: 'analyse has-players',
+					analysis: 'analyse',
+				};
+				const content =
+					kind === 'overview'
+						? `<div class="relay-tour">Round overview</div>
+							<aside class="relay-tour__side">Game list</aside>`
+						: `<div class="analyse__board main-board">
+								${
+									kind === 'game'
+										? '<div class="relay-board-player relay-board-player-bot">Player</div>'
+										: ''
+								}
+							</div>
+							<aside class="${
+								kind === 'game'
+									? 'relay-tour__side'
+									: 'analyse__side'
+							}">Game list</aside>
+							<div class="analyse__tools">Moves</div>
+							<div class="analyse__controls analyse-controls">Move controls</div>`;
+				frame.srcdoc = `<!doctype html>
+					<html><head>
+						<style>
+							* { box-sizing: border-box; }
+							body {
+								margin: 0;
+								---display-columns: 1;
+								---site-header-height: 40px;
+								---block-gap: 10px;
+								---analyse-gauge-col: var(---block-gap);
+								---analyse-gauge-offset: calc(var(---analyse-gauge-col) - 4px);
+								---col2-uniboard-width: min(
+									calc(100vw - var(---block-gap) - 240px - 20px),
+									calc(100vh - var(---site-header-height) - 1rem)
+								);
+								---cg-height: 100vw;
+								---cg-width: var(---cg-height);
+								--fixture-player-height: 57px;
+							}
+							main.analyse {
+								display: grid;
+								grid-template-areas: 'board' 'controls' 'tools' 'side';
+							}
+							main.is-relay:not(.has-relay-tour) { margin-top: var(--fixture-player-height); }
+							.main-board {
+								grid-area: board;
+								position: relative;
+								display: block;
+								height: 0;
+								padding-bottom: 100%;
+								width: 100%;
+							}
+							.relay-board-player-bot {
+								position: absolute;
+								top: var(---cg-height);
+								width: var(---cg-width);
+								height: var(--fixture-player-height);
+							}
+							.relay-tour { grid-area: relay-tour; min-height: 4rem; }
+							.relay-tour__side, .analyse__side { grid-area: side; min-height: 4rem; }
+							.analyse__tools { grid-area: tools; height: auto; }
+							.analyse__controls { grid-area: controls; }
+							@media (max-width: 799px) and (orientation: portrait) {
+								.analyse.is-relay .analyse__controls { margin-top: var(--fixture-player-height); }
+							}
+							@media (min-width: 800px), (orientation: landscape) {
+								body {
+									---display-columns: 2;
+									---cg-height: var(---col2-uniboard-width);
+								}
+								main.analyse {
+									grid-template-columns:
+										var(---col2-uniboard-width) var(---analyse-gauge-col)
+										minmax(calc(240px - var(---analyse-gauge-offset)), calc(400px - var(---analyse-gauge-offset)));
+								}
+								main.is-relay:not(.has-relay-tour) {
+									grid-template-rows: repeat(2, calc(var(---cg-height) / 2)) var(--fixture-player-height);
+									grid-template-areas: ${relayAreas};
+								}
+								main.is-relay .analyse__controls { height: var(--fixture-player-height); }
+								main.is-relay.has-relay-tour { grid-template-areas: 'relay-tour . side'; }
+							}
+							@media (max-width: 799px) and (orientation: landscape) {
+								body {
+									---cg-height: calc(100vh - var(---site-header-height) - var(---block-gap));
+								}
+								main.analyse {
+									grid-template-columns:
+										minmax(55vmin, calc(100vh - var(---site-header-height) - var(---block-gap)))
+										var(---analyse-gauge-col)
+										minmax(calc(200px - var(---analyse-gauge-offset)), calc(240px - var(---analyse-gauge-offset)));
+								}
+							}
+						</style>
+						<link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<div id="main-wrap"><main class="${classes[kind]}">${content}</main></div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#broadcast-landscape-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const ruleCount =
+					doc.querySelector('link')?.sheet?.cssRules.length || 0;
+				expect(ruleCount, 'loaded built stylesheet').to.be.greaterThan(
+					0
+				);
+				expect(win.innerWidth).to.equal(width);
+				expect(win.innerHeight).to.equal(height);
+				const main = doc.querySelector('main');
+				const mainStyle = win.getComputedStyle(main);
+				if (kind === 'overview') {
+					expect(mainStyle.gridTemplateAreas).to.equal(
+						'"relay-tour" "side" "relay-admin"'
+					);
+					const tour = doc
+						.querySelector('.relay-tour')
+						.getBoundingClientRect();
+					const side = doc
+						.querySelector('.relay-tour__side')
+						.getBoundingClientRect();
+					expect(tour.left).to.be.at.least(0);
+					expect(tour.right).to.be.at.most(width);
+					expect(side.top).to.be.at.least(tour.bottom);
+					return;
+				}
+
+				const board = doc.querySelector('.main-board');
+				const boardRect = board.getBoundingClientRect();
+				const tools = doc.querySelector('.analyse__tools');
+				const toolsStyle = win.getComputedStyle(tools);
+				const controls = doc.querySelector('.analyse__controls');
+				const controlsStyle = win.getComputedStyle(controls);
+				if (kind === 'game') {
+					expect(mainStyle.marginTop).to.equal('57px');
+					expect(mainStyle.overflow).to.equal('visible');
+				}
+				if (kind !== 'game' || height >= width) {
+					expect(mainStyle.gridTemplateAreas).to.equal(stackedAreas);
+					expect(boardRect.width).to.equal(width);
+					expect(boardRect.height).to.equal(width);
+					expect(win.getComputedStyle(board).marginLeft).to.equal(
+						'-10px'
+					);
+					expect(toolsStyle.height).to.equal(`${height / 2}px`);
+					expect(toolsStyle.marginBottom).to.equal('20px');
+					expect(controlsStyle.marginTop).to.equal(
+						kind === 'game' ? '57px' : '0px'
+					);
+					return;
+				}
+
+				expect(mainStyle.gridTemplateAreas).to.equal(relayAreas);
+				const columns = mainStyle.gridTemplateColumns
+					.split(' ')
+					.map(parseFloat);
+				expect(columns).to.have.length(3);
+				expect(columns[1]).to.equal(width < 800 ? 10 : 30);
+				expect(boardRect.width).to.be.at.most(height);
+				expect(boardRect.height).to.be.closeTo(boardRect.width, 1);
+				expect(win.getComputedStyle(board).marginLeft).to.equal('0px');
+				expect(toolsStyle.marginBottom).to.equal('0px');
+				expect(controlsStyle.marginTop).to.equal('0px');
+				const controlsRect = controls.getBoundingClientRect();
+				const playerRect = doc
+					.querySelector('.relay-board-player-bot')
+					.getBoundingClientRect();
+				expect(controlsRect.left).to.be.at.least(playerRect.right);
+				expect(tools.getBoundingClientRect().bottom).to.be.at.most(
+					controlsRect.top
+				);
+				expect(main.scrollWidth).to.be.at.most(main.clientWidth);
 			});
 		});
 	});
