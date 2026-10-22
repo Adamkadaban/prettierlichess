@@ -159,7 +159,7 @@ body,
 .mini-game:hover,
 .ruser a,
 .user-link,
-rm6 u8t.a1t,
+:is(rm6, i5d) :is(u8t, z7yx).a1t,
 .fbt,
 .tv-single .tv-history h2,
 .site-buttons .link,
@@ -214,6 +214,8 @@ textarea::placeholder,
 .tview2 eval,
 .tview2 line move,
 .tview2 move index,
+.analyse__fork move,
+.action-menu__tools > a,
 #analyse-cm a,
 .chat__members,
 .rclock .tour-rank,
@@ -224,7 +226,7 @@ input::placeholder,
 .form-help,
 .password-complexity-label,
 .study__share .ply-wrap,
-rm6 .message::before,
+:is(rm6, i5d) .message::before,
 .tview2-column line comment,
 .copyables .name,
 .pagination span,
@@ -275,6 +277,7 @@ rm6 .message::before,
 .relay-tour__round-select .time,
 .relay-tour__round-select .status,
 .relay-tour__side__empty::before,
+.relay-board-player .team,
 .study__player .team,
 .tpp a,
 .tpp__games td:first-child {
@@ -749,9 +752,24 @@ coords coord {
 	color: var(--coordLight) !important;
 }
 
+html[data-prettierlichess-native-board] coords {
+	--coordDark: var(---cg-ccb, #fff) !important;
+	--coordLight: var(---cg-ccw, #fff) !important;
+}
+
+html[data-prettierlichess-native-board] .is3d .cg-wrap coords {
+	--coordDark: #fff !important;
+	--coordLight: #fff !important;
+}
+
 cg-resize::before,
 cg-resize::after {
 	background-color: var(--coordDark) !important;
+}
+
+html[data-prettierlichess-native-board] cg-resize::before,
+html[data-prettierlichess-native-board] cg-resize::after {
+	background-color: currentColor !important;
 }
 
 cg-resize {
@@ -984,7 +1002,7 @@ square.selected {
 #topnav {
 	display: flex !important;
 	position: absolute !important;
-	width: 100vw !important;
+	width: 100% !important;
 	align-items: center !important;
 	justify-content: center !important;
 	max-width: 1800px !important;
@@ -1929,14 +1947,20 @@ a.button.button-metal:hover {
 
 .lobby__support a,
 .ublog-post-card {
-	transition: all 0.2s ease-in-out !important;
 	backdrop-filter: blur(16px) !important;
+
+	&:not(.lobby__blog *) {
+		transition: all 0.2s ease-in-out !important;
+	}
 }
 
 .ublog-post-card:hover,
 .lobby__support a:hover {
-	transform: scale(0.98) !important;
 	background: var(--surfaceColorHover) !important;
+
+	&:not(.lobby__blog *) {
+		transform: scale(0.98) !important;
+	}
 }
 
 .ublog-post-card__over-image {
@@ -2267,6 +2291,10 @@ button.rematch-decline::before {
 .analyse-controls .jumps .fbt.active {
 	background: var(--primaryColor) !important;
 	color: var(--backgroundColor) !important;
+}
+
+.tview2 {
+	--c-base: var(--textColor) !important;
 }
 
 .tview2 eval,
@@ -2855,8 +2883,8 @@ main.round {
 }
 
 .round .pocket piece::after,
-rb1 .fbt.active,
-rm6 kwdb:hover {
+:is(rb1, bo3) .fbt.active,
+:is(rm6, i5d) kwdb:hover {
 	color: var(--backgroundColor) !important;
 	background: var(--primaryColor) !important;
 	text-shadow: none !important;
@@ -2872,7 +2900,7 @@ rm6 kwdb:hover {
 .context-streamer,
 .round__app__table,
 .rclock .time,
-rm6 .buttons,
+:is(rm6, i5d) .buttons,
 .rcontrols .rematch-decline {
 	box-shadow: none !important;
 }
@@ -2906,53 +2934,53 @@ rm6 .buttons,
 	border-left: 2px solid var(--surfaceColorHover) !important;
 }
 
-rm6 {
+:is(rm6, i5d) {
 	margin-bottom: 0 !important;
 	background: none !important;
 }
 
-rm6 .board-menu {
+:is(rm6, i5d) .board-menu {
 	background: var(--surfaceColorHover) !important;
 	border-top: 2px solid var(--primaryColor) !important;
 	backdrop-filter: blur(16px) !important;
 }
 
-rm6 rb1 {
+:is(rm6, i5d) :is(rb1, bo3) {
 	background: none !important;
 	box-shadow: none !important;
 }
 
-rm6 l4x,
-rm6 .buttons {
+:is(rm6, i5d) :is(l4x, app),
+:is(rm6, i5d) .buttons {
 	background: none !important;
 	border-left: 2px solid var(--surfaceColorHover) !important;
 	border-right: 2px solid var(--surfaceColorHover) !important;
 }
 
-rm6 l4x {
+:is(rm6, i5d) :is(l4x, app) {
 	flex: 0 0 30svh !important;
 	line-height: 40px !important;
 }
 
-rm6 .buttons {
+:is(rm6, i5d) .buttons {
 	height: 40px !important;
 	border-bottom: 2px solid var(--surfaceColorHover) !important;
 	z-index: 1 !important;
 }
 
-rm6 i5z,
-rm6 u8t:hover,
-rm6 u8t.a1t,
-rm6 kwdb.a1t {
+:is(rm6, i5d) :is(i5z, qzm),
+:is(rm6, i5d) :is(u8t, z7yx):hover,
+:is(rm6, i5d) :is(u8t, z7yx).a1t,
+:is(rm6, i5d) kwdb.a1t {
 	background: var(--surfaceColorHover) !important;
 	color: var(--textColor) !important;
 }
 
-rm6 u8t.a1t {
+:is(rm6, i5d) :is(u8t, z7yx).a1t {
 	box-shadow: inset 0 0 0 1px var(--defaultWhite) !important;
 }
 
-rm6 .result {
+:is(rm6, i5d) .result {
 	border-top: 2px solid var(--surfaceColorHover) !important;
 }
 
@@ -3095,6 +3123,10 @@ a.context-streamer:hover {
 	flex: 1 1 auto !important;
 }
 
+.analyse__controls [data-mode='ceval']::after {
+	color: inherit !important;
+}
+
 .analyse__moves {
 	border-top: 2px solid var(--surfaceColorHover) !important;
 }
@@ -3145,7 +3177,21 @@ a.context-streamer:hover {
 }
 
 .analyse__controls {
-	margin: 0 16px !important;
+	--c-bg: var(--surfaceColor) !important;
+	--c-bg-page: var(--surfaceColor) !important;
+	margin-right: 16px !important;
+	margin-bottom: 0 !important;
+	margin-left: 16px !important;
+}
+
+.analyse__controls:not(main.is-relay:not(.has-relay-tour) *) {
+	margin-top: 0 !important;
+}
+
+@media (min-width: 800px), (orientation: landscape) {
+	.analyse__controls {
+		margin-top: 0 !important;
+	}
 }
 
 .pv_box .pv[data-uci]:hover,
@@ -3218,6 +3264,21 @@ html .eval-gauge tick.zero {
 	background: var(--backgroundColor) !important;
 }
 
+.analysis-settings-view {
+	--c-bg-mid: var(--backgroundColor) !important;
+	--c-bg-input: var(--backgroundColor) !important;
+	--c-bg-zebra: var(--surfaceColor) !important;
+	--c-bg-zebra2: var(--surfaceColor) !important;
+	--c-border: var(--surfaceColorHover) !important;
+	--c-font: var(--textColor) !important;
+	--c-font-dim: var(--textColor) !important;
+	--c-good: var(--primaryColor) !important;
+}
+
+.analysis-settings-view .form-check__label::after {
+	border-color: var(--backgroundColor) !important;
+}
+
 .analyse .mchat,
 #ceval-settings {
 	background: var(--surfaceColor) !important;
@@ -3226,6 +3287,11 @@ html .eval-gauge tick.zero {
 	border-radius: var(--borderRadius) !important;
 	border-top: none !important;
 	min-height: 300px !important;
+}
+
+#ceval-settings option {
+	background: var(--backgroundColor) !important;
+	color: var(--textColor) !important;
 }
 
 .analyse__side {
@@ -5259,6 +5325,7 @@ body #main-wrap group.radio input:checked + label,
 .relay-tour__header,
 .relay-tour__side__header button,
 .relay-tour__side__header,
+.relay-board-player,
 .study__glyphs button,
 .study__invite .info,
 .study__buttons .mode,
@@ -5276,6 +5343,7 @@ body #main-wrap group.radio input:checked + label,
 }
 
 .relay-tour__mselect .mselect__list a,
+.relay-board-player a.name,
 th[aria-sort]:not(.no-sort),
 th[role='columnheader']:not(.no-sort):after,
 .study__player .info a.name {
@@ -5289,8 +5357,8 @@ th[role='columnheader']:not(.no-sort):after,
 .relay-tour__side__header button:hover,
 .mselect__item:hover,
 .relay-tour__mselect .mselect__list a:hover,
-.relay-tour__round-select tr:hover *,
-.relay-tour__round-select tr:hover .round-state::before {
+.relay-tour__round-select a:hover *,
+.relay-tour__round-select a:hover .round-state::before {
 	background: var(--primaryColor) !important;
 	color: var(--backgroundColor) !important;
 	box-shadow: none !important;
@@ -5367,6 +5435,8 @@ th[aria-sort]:not(.no-sort),
 .relay-game:hover::before,
 .relay-tour__round-select .finished::before,
 .relay-tour__header h1,
+.relay-board-player a.name:hover,
+.relay-board-player a.team:hover,
 .study__player .info a.name:hover,
 .tpp a:hover {
 	color: var(--primaryColor) !important;
@@ -5405,6 +5475,7 @@ th[aria-sort]:not(.no-sort),
 .relay-tour__note,
 .relay-tour__side__empty,
 .relay-tour__side__preload,
+.relay-board-player,
 .study__message,
 .study__server-eval,
 .analyse__underboard .study__multiboard,
@@ -5426,7 +5497,11 @@ th[aria-sort]:not(.no-sort),
 	box-shadow: none !important;
 }
 
-.relay-tour__round-select tr.current-round,
+.relay-tour__round-select a.current-round {
+	background: var(--surfaceColorHover) !important;
+	border-left-color: var(--primaryColor) !important;
+}
+
 .toggle-box,
 .toggle-box legend {
 	background: var(--surfaceColorHover) !important;
@@ -5617,10 +5692,18 @@ body .glowing {
 		display: none !important;
 	}
 
-	#main-wrap .analyse {
+	#main-wrap .analyse:not(main.is-relay:not(.has-relay-tour)) {
 		grid-template-columns:
 			var(---col2-uniboard-width) calc(3 * var(---block-gap))
 			minmax(240px, 400px) !important;
+	}
+
+	@media (min-width: 800px), (orientation: portrait) {
+		#main-wrap main.analyse.is-relay:not(.has-relay-tour) {
+			grid-template-columns:
+				var(---col2-uniboard-width) calc(3 * var(---block-gap))
+				minmax(240px, 400px) !important;
+		}
 	}
 
 	.analyse__side {
@@ -5743,9 +5826,12 @@ body .glowing {
 	#main-wrap main {
 		width: 100vw !important;
 		max-width: 100% !important;
-		grid-template-columns: 100% !important;
 		padding: 0 8px !important;
 		overflow: hidden !important;
+	}
+
+	#main-wrap main:not(.analyse.is-relay:not(.has-relay-tour)) {
+		grid-template-columns: 100% !important;
 	}
 
 	.lobby__side {
@@ -5760,7 +5846,10 @@ body .glowing {
 		border-radius: 0 !important;
 	}
 
-	.main-board {
+	.main-board:not(
+			main.analyse.is-relay:not(.has-relay-tour) *,
+			main.round *
+		) {
 		width: 100vw !important;
 		height: 100vw !important;
 		margin-left: -10px !important;
@@ -5770,11 +5859,7 @@ body .glowing {
 		margin-top: 10px !important;
 	}
 
-	.round .round__app {
-		grid-template-rows: auto auto 50px 20px auto auto 20px 30px auto !important;
-	}
-
-	rm6 {
+	:is(rm6, i5d) {
 		border: 2px solid var(--surfaceColorHover) !important;
 		border-radius: var(--borderRadius) !important;
 	}
@@ -5794,10 +5879,6 @@ body .glowing {
 
 	.ruser-bottom {
 		border: 0 !important;
-	}
-
-	.rclock-top {
-		margin-top: 8px !important;
 	}
 
 	.rclock .time {
@@ -5847,13 +5928,13 @@ body .glowing {
 		background: none !important;
 	}
 
-	rm6 l4x {
+	:is(rm6, i5d) :is(l4x, app) {
 		box-shadow: none !important;
 	}
 
-	rm6 i5z,
-	rm6 u8t:hover,
-	rm6 u8t.a1t {
+	:is(rm6, i5d) :is(i5z, qzm),
+	:is(rm6, i5d) :is(u8t, z7yx):hover,
+	:is(rm6, i5d) :is(u8t, z7yx).a1t {
 		background: var(--surfaceColor) !important;
 	}
 
@@ -5920,10 +6001,9 @@ body .glowing {
 
 	/* Analysis Mobile */
 
-	#main-wrap .analyse {
+	#main-wrap .analyse:not(main.is-relay:not(.has-relay-tour)) {
 		grid-template-columns: 100% !important;
 		grid-template-rows: auto !important;
-		margin: 0 !important;
 		grid-template-areas:
 			'board         '
 			'controls      '
@@ -5934,8 +6014,26 @@ body .glowing {
 			'chat          '
 			'uchat         ';
 	}
-	.analyse.has-players {
+
+	#main-wrap .analyse.is-relay.has-relay-tour {
+		grid-template-areas:
+			'relay-tour'
+			'side'
+			'relay-admin' !important;
+	}
+
+	#main-wrap .analyse:not(.is-relay),
+	#main-wrap .analyse.has-relay-tour {
+		margin: 0 !important;
+	}
+
+	.analyse.has-players:not(.is-relay),
+	.analyse.has-players.has-relay-tour {
 		margin-top: 30px !important;
+	}
+
+	#main-wrap main.is-relay:not(.has-relay-tour) {
+		overflow: visible !important;
 	}
 
 	.analyse__acpl,
@@ -5953,15 +6051,43 @@ body .glowing {
 		border-radius: var(--borderRadius) !important;
 	}
 
-	.analyse__tools {
+	.analyse__tools:not(main.analyse.is-relay:not(.has-relay-tour) *) {
 		height: 50vh !important;
 	}
 
-	.analyse__tools,
+	.analyse__tools:not(main.analyse.is-relay:not(.has-relay-tour) *),
 	.analyse__side,
 	.analyse__underboard,
 	.relay-tour__text {
 		margin-bottom: 20px !important;
+	}
+
+	@media (orientation: portrait) {
+		#main-wrap main.analyse.is-relay:not(.has-relay-tour) {
+			grid-template-columns: 100% !important;
+			grid-template-rows: auto !important;
+			grid-template-areas:
+				'board'
+				'controls'
+				'tools'
+				'side'
+				'round-training'
+				'under'
+				'chat'
+				'uchat';
+		}
+
+		main.analyse.is-relay:not(.has-relay-tour) .main-board,
+		main.round .main-board {
+			width: 100vw !important;
+			height: 100vw !important;
+			margin-left: -10px !important;
+		}
+
+		main.analyse.is-relay:not(.has-relay-tour) .analyse__tools {
+			height: 50vh !important;
+			margin-bottom: 20px !important;
+		}
 	}
 
 	.tview2 move,
