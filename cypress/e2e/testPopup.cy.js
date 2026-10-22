@@ -794,6 +794,77 @@ describe('Test analysis control palette fixtures', () => {
 	});
 });
 
+describe('Test native round row sizing', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 390, boardHeight: 384},
+		{width: 799, boardHeight: 560},
+		{width: 800, boardHeight: 400},
+	].forEach(({width, boardHeight}) => {
+		it(`Preserves the native board row at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'round-row-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 1000px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html>
+					<html><head><style>
+						body { margin: 0; }
+						.round__app {
+							display: grid;
+							grid-template-columns: 100%;
+							grid-template-rows: auto 30px 20px auto auto 20px 30px auto auto auto auto 0;
+							grid-template-areas: 'pocket-top' 'user-top' 'mat-top' 'board'
+								'expi-bot' 'mat-bot' 'user-bot' 'pocket-bot' 'controls' 'moves' 'voice' 'kb-move';
+						}
+						.round__app__board { grid-area: board; height: ${boardHeight}px; }
+						.ruser-bottom { grid-area: user-bot; }
+						i5d { grid-area: moves; min-height: 40px; }
+						@media (min-width: 800px) {
+							.round__app {
+								grid-template-columns: 50% 50%;
+								grid-template-rows: auto;
+								grid-template-areas: 'board moves';
+							}
+							.ruser-bottom { display: none; }
+						}
+					</style><link rel="stylesheet" href="/styles.css"></head>
+					<body><main class="round"><div class="round__app">
+						<div class="round__app__board"></div>
+						<div class="ruser-bottom">Player</div>
+						<i5d><button>Previous</button><button>Next</button></i5d>
+					</div></main></body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#round-row-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length || 0
+				).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+				const app = doc.querySelector('.round__app');
+				const rows = win
+					.getComputedStyle(app)
+					.gridTemplateRows.split(' ')
+					.map(parseFloat);
+				expect(rows[width < 800 ? 3 : 0]).to.equal(boardHeight);
+				const board = doc
+					.querySelector('.round__app__board')
+					.getBoundingClientRect();
+				const moves = doc.querySelector('i5d').getBoundingClientRect();
+				if (width < 800) {
+					expect(moves.top).to.be.at.least(board.bottom);
+				} else {
+					expect(moves.left).to.be.at.least(board.right);
+				}
+			});
+		});
+	});
+});
+
 describe('Test navigation', () => {
 	beforeEach(cy.startup);
 
