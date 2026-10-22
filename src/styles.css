@@ -2162,8 +2162,10 @@ main.page-small {
 	stroke: var(--primaryColor) !important;
 }
 
-.fbt:hover .spinner path {
-	stroke: var(--backgroundColor) !important;
+@media (hover: hover) {
+	.fbt:hover .spinner path {
+		stroke: var(--backgroundColor) !important;
+	}
 }
 
 #challenge-app .challenge:hover > i,
@@ -2422,7 +2424,13 @@ button.rematch-decline::before {
 	border-radius: 0 0 var(--borderRadius) var(--borderRadius) !important;
 }
 
-.fbt:hover:not(.disabled):not([disabled]),
+@media (hover: hover) {
+	.fbt:hover:not(.disabled):not([disabled]) {
+		background: var(--primaryColor) !important;
+		color: var(--backgroundColor) !important;
+	}
+}
+
 .puzzle__session a.result-true,
 .puzzle__feedback.after .continue,
 .puzzle__vote .vote:hover,
