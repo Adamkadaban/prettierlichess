@@ -339,6 +339,13 @@ main {
 	width: 100% !important;
 }
 
+/* Native Insights widths omit the extension's padding and borders. */
+#insight header,
+#insight .insight__main,
+#insight .insight__main > * {
+	max-width: 100% !important;
+}
+
 .user-link.online .line,
 .is-green::before,
 good,
@@ -2164,8 +2171,10 @@ main.page-small {
 	stroke: var(--primaryColor) !important;
 }
 
-.fbt:hover .spinner path {
-	stroke: var(--backgroundColor) !important;
+@media (hover: hover) {
+	.fbt:hover .spinner path {
+		stroke: var(--backgroundColor) !important;
+	}
 }
 
 #challenge-app .challenge:hover > i,
@@ -2424,7 +2433,13 @@ button.rematch-decline::before {
 	border-radius: 0 0 var(--borderRadius) var(--borderRadius) !important;
 }
 
-.fbt:hover:not(.disabled):not([disabled]),
+@media (hover: hover) {
+	.fbt:hover:not(.disabled):not([disabled]) {
+		background: var(--primaryColor) !important;
+		color: var(--backgroundColor) !important;
+	}
+}
+
 .puzzle__session a.result-true,
 .puzzle__feedback.after .continue,
 .puzzle__vote .vote:hover,
@@ -4392,6 +4407,32 @@ hr {
 .filters .items .box .ms-parent .ms-drop li,
 .filters .items .box .ms-parent .ms-drop .ms-search input {
 	background-color: var(--surfaceColor) !important;
+}
+
+#insight {
+	--c-bg: var(--surfaceColor) !important;
+	--c-bg-box: var(--surfaceColor) !important;
+	--c-bg-opaque: var(--surfaceColor) !important;
+	--c-bg-zebra: var(--surfaceColor) !important;
+	--c-metal-top: var(--surfaceColor) !important;
+	--c-metal-bottom: var(--surfaceColor) !important;
+	--c-border: var(--surfaceColorHover) !important;
+	--c-shade: var(--surfaceColorHover) !important;
+	--c-font: var(--textColor) !important;
+	--c-font-page: var(--textColor) !important;
+	--c-primary: var(--primaryColor) !important;
+	--c-accent: var(--primaryColor) !important;
+	--c-link: var(--primaryColor) !important;
+	--c-over: var(--backgroundColor) !important;
+}
+
+#insight .box .top {
+	box-shadow: none !important;
+}
+
+#insight .ms-drop ul > li label:not(.optgroup):hover {
+	background: var(--surfaceColorHover) !important;
+	color: var(--defaultWhite) !important;
 }
 
 .tour__side {
