@@ -18,6 +18,20 @@ const NAMES = [
 	'alternateArrowColor',
 ];
 
+const luminance = (rgb) =>
+	rgb
+		.map((value) => {
+			const channel = value / 255;
+			return channel <= 0.04045
+				? channel / 12.92
+				: ((channel + 0.055) / 1.055) ** 2.4;
+		})
+		.reduce(
+			(sum, value, index) =>
+				sum + value * [0.2126, 0.7152, 0.0722][index],
+			0
+		);
+
 describe('Test native board coordinates', () => {
 	it('Follows scoped native colors and restores custom colors', () => {
 		cy.startup();
@@ -850,6 +864,101 @@ describe('Test Insights containment fixtures', () => {
 	});
 });
 
+describe('Test quick pairing caption readability', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 320},
+		{width: 390},
+		{width: 1440},
+		{width: 390, ink: '#203040', surface: '#e2e8ee'},
+	].forEach(({width, ink, surface}) => {
+		it(`Keeps ${
+			ink ? 'custom' : 'default'
+		} captions readable at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'pairing-caption-fixture';
+				frame.style.cssText = `width:${width}px;height:300px;border:0;max-width:none;flex-shrink:0`;
+				frame.srcdoc = `<!doctype html><html><head><style>
+					* { box-sizing: border-box; }
+					html { font-size: clamp(12px, calc(12px + 2 * (100vw - 300px) / 900), 14px); }
+					body { margin: 0; padding: 16px; }
+					.lpools {
+						display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+						font-size: clamp(14px, calc(14px + 11 * (100vw - 300px) / 900), 25px);
+						font-weight: 300;
+					}
+					.lpools > div {
+						display: flex; flex-direction: column; align-items: center;
+						justify-content: center; padding: 6px; min-height: 64px;
+					}
+					.lpools .perf { font-weight: 300; }
+				</style><link rel="stylesheet" href="/styles.css"></head><body>
+					<div class="lobby__app"><div class="lobby__app__content lpools">
+						<div><span class="clock">1+0</span><span class="perf">Bullet</span></div>
+						<div><span class="clock">30+20</span><span class="perf">Classical</span></div>
+						<div class="custom">Custom</div>
+					</div></div>
+				</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#pairing-caption-fixture')
+				.should(($frame) => {
+					expect(
+						$frame[0].contentDocument.querySelector('link')?.sheet
+							?.cssRules.length
+					).to.be.greaterThan(0);
+				})
+				.then(($frame) => {
+					if (!ink) return;
+					const root = $frame[0].contentDocument.documentElement;
+					root.style.setProperty('--defaultWhite', ink, 'important');
+					root.style.setProperty(
+						'--surfaceColorHover',
+						surface,
+						'important'
+					);
+				});
+			cy.get('#pairing-caption-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				for (const label of doc.querySelectorAll('.perf, .custom')) {
+					const tile = label.closest('.lpools > div');
+					const style = win.getComputedStyle(label);
+					const colors = [
+						style.color,
+						win.getComputedStyle(tile).backgroundColor,
+					].map((color) =>
+						luminance(
+							color
+								.match(/[\d.]+/g)
+								.map(Number)
+								.slice(0, 3)
+						)
+					);
+					expect(
+						(Math.max(...colors) + 0.05) /
+							(Math.min(...colors) + 0.05),
+						`${label.textContent} contrast`
+					).to.be.at.least(4.5);
+					expect(parseFloat(style.fontSize)).to.be.at.least(14);
+					expect(Number(style.fontWeight)).to.be.at.least(400);
+					const text = doc.createRange();
+					text.selectNodeContents(label);
+					const bounds = text.getBoundingClientRect();
+					const available = tile.getBoundingClientRect();
+					expect(bounds.left).to.be.at.least(available.left);
+					expect(bounds.right).to.be.at.most(available.right);
+					expect(bounds.top).to.be.at.least(available.top);
+					expect(bounds.bottom).to.be.at.most(available.bottom);
+					if (ink) expect(style.color).to.equal('rgb(32, 48, 64)');
+				}
+			});
+		});
+	});
+});
+
 describe('Test navigation containing-block fixtures', () => {
 	beforeEach(cy.startup);
 
@@ -1204,20 +1313,6 @@ describe('Test Insights canvas fixtures', () => {
 		}
 		throw new Error('No opaque canvas backdrop');
 	};
-	const luminance = (rgb) =>
-		rgb
-			.map((value) => {
-				const channel = value / 255;
-				return channel <= 0.04045
-					? channel / 12.92
-					: ((channel + 0.055) / 1.055) ** 2.4;
-			})
-			.reduce(
-				(sum, value, index) =>
-					sum + value * [0.2126, 0.7152, 0.0722][index],
-				0
-			);
-
 	describe('Native font contrast', () => {
 		nativeThemes.forEach((native) => {
 			palettes.forEach((palette) => {
