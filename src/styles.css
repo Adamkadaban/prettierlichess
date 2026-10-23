@@ -1002,9 +1002,7 @@ square.selected {
 }
 
 .site-title-nav__donate {
-	display: block !important;
 	position: relative !important;
-	margin-top: 0 !important;
 	color: var(--secondaryColor) !important;
 }
 

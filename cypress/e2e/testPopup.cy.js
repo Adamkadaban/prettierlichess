@@ -763,6 +763,148 @@ describe('Test navigation containing-block fixtures', () => {
 	});
 });
 
+describe('Test donation badge header fixtures', () => {
+	beforeEach(cy.startup);
+
+	[1440, 714, 713, 390].forEach((width) => {
+		it(`Preserves native donation alignment and visibility at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'donation-header-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 900px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				// Native layout contracts: ui/lib/css/header/{header,title,buttons}.
+				frame.srcdoc = `<!doctype html>
+					<html><head>
+						<style>
+							* { box-sizing: border-box; }
+							html { ---site-header-height: 60px; font-size: 14px; }
+							body { margin: 0; line-height: 1.5; }
+							#top {
+								height: var(---site-header-height); display: flex;
+								justify-content: space-between; position: relative;
+								max-width: 1800px; margin: 0 auto;
+							}
+							.site-title-nav { display: flex; justify-content: flex-start; }
+							.site-title {
+								display: flex; align-items: center; white-space: nowrap;
+								padding: 0 1rem; margin-inline-start: 0.5rem;
+								font-size: 30px; transform: translateY(-3px);
+							}
+							.site-name { display: none; }
+							.site-icon { display: block; }
+							@media (min-width: 1120px) {
+								.site-name { display: block; }
+								.site-icon { display: none; }
+							}
+							@media (max-width: 1019px) {
+								.site-title { margin-inline-start: calc(0.5rem + var(---site-header-height)); }
+							}
+							@media (max-width: 499px) {
+								.site-title { display: none; }
+							}
+							.site-title-nav__donate {
+								display: flex; align-items: center; justify-content: center;
+								white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+								max-width: 30vw; text-transform: uppercase;
+								padding: 0 1.1rem 0 1.3rem; margin: 6px 0 5px 0;
+							}
+							.site-title-nav__donate::before {
+								content: '\\e06c'; font-family: lichess; font-size: 1.2em;
+								vertical-align: middle; text-transform: none;
+								position: relative; right: 5px; top: -1px;
+							}
+							.site-buttons { display: flex; align-items: center; position: relative; }
+							.site-buttons .link {
+								display: block; height: var(---site-header-height);
+								line-height: var(---site-header-height); padding: 0 20px;
+							}
+							@media (max-width: 650px) {
+								.site-title-nav__donate { display: none; }
+							}
+						</style>
+						<link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<header id="top">
+							<div class="site-title-nav">
+								<a class="site-title" href="/"><span class="site-name">lichess<span>.org</span></span><i class="site-icon">&#xe07a;</i></a>
+								<a class="site-title-nav__donate" href="/patron">Donate</a>
+							</div>
+							<div class="site-buttons"><a class="link" href="#signin">Sign in</a></div>
+						</header>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#donation-header-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const link = doc.querySelector('link[rel="stylesheet"]');
+				expect(link, 'built stylesheet link').to.exist;
+				expect(link.sheet, 'loaded built stylesheet').to.exist;
+				expect(link.sheet.cssRules.length).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+
+				const rect = (selector) =>
+					doc.querySelector(selector).getBoundingClientRect();
+				const header = rect('#top');
+				const logo = rect('.site-title');
+				const buttons = rect('.site-buttons');
+				expect(header.height).to.equal(60);
+				if (width >= 500) {
+					expect(logo.top, 'native logo translation').to.be.closeTo(
+						header.top - 3,
+						0.1
+					);
+					expect(logo.height).to.be.closeTo(header.height, 0.1);
+				}
+				expect(buttons.top, 'native header controls').to.be.closeTo(
+					header.top,
+					0.1
+				);
+				expect(buttons.right).to.be.closeTo(header.right, 0.1);
+				expect(buttons.height).to.be.closeTo(header.height, 0.1);
+
+				const donate = doc.querySelector('.site-title-nav__donate');
+				const style = win.getComputedStyle(donate);
+				expect(style.visibility).to.equal(
+					width <= 713 ? 'hidden' : 'visible'
+				);
+				if (width <= 650) {
+					expect(
+						style.display,
+						'native narrow-screen collapse'
+					).to.equal('none');
+					expect(donate.getClientRects()).to.have.length(0);
+					return;
+				}
+
+				const bounds = donate.getBoundingClientRect();
+				expect(bounds.top, 'native top margin').to.be.closeTo(
+					header.top + 6,
+					0.1
+				);
+				expect(bounds.bottom, 'native bottom margin').to.be.closeTo(
+					header.bottom - 5,
+					0.1
+				);
+				expect(
+					bounds.left,
+					'badge follows logo without moving it'
+				).to.be.closeTo(logo.right, 0.1);
+				const range = doc.createRange();
+				range.selectNodeContents(donate);
+				const text = range.getBoundingClientRect();
+				expect(text.height).to.be.greaterThan(0);
+				expect(
+					(text.top + text.bottom) / 2,
+					'text is vertically centered'
+				).to.be.closeTo((bounds.top + bounds.bottom) / 2, 2);
+			});
+		});
+	});
+});
+
 describe('Test Insights canvas fixtures', () => {
 	beforeEach(cy.startup);
 
