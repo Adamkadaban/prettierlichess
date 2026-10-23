@@ -393,6 +393,11 @@ bad,
 	box-shadow: 0 0 0 1px var(--primaryColor) inset !important;
 }
 
+.button:focus-visible {
+	outline: 3px solid var(--primaryColor) !important;
+	outline-offset: 3px !important;
+}
+
 .button.button-empty,
 .daily-feed__update__day a {
 	background: none !important;
