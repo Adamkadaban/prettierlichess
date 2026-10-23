@@ -1109,6 +1109,15 @@ nav section a:target-within {
 	box-shadow: none !important;
 }
 
+.site-buttons .dasher.shown .toggle {
+	background: none !important;
+	color: var(--primaryColor) !important;
+}
+
+.site-buttons .dasher.shown #user_tag::after {
+	color: var(--primaryColor) !important;
+}
+
 #dasher_app {
 	border-radius: var(--borderRadius) !important;
 	overflow: hidden !important;
