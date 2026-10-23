@@ -2282,6 +2282,116 @@ describe('Test themed button label readability', () => {
 	});
 });
 
+describe('Test button keyboard focus fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{name: 'default dark', palette: ''},
+		{
+			name: 'custom light',
+			palette:
+				'--primaryColor: #225577 !important; ' +
+				'--backgroundColor: #f5f6f7 !important; ' +
+				'--surfaceColor: #e4e8ed !important;',
+		},
+	].forEach(({name, palette}) => {
+		it(`Shows keyboard focus without ordinary shadows in ${name}`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'button-focus-fixture';
+				frame.style.cssText = 'width: 640px; height: 300px; border: 0;';
+				frame.srcdoc = `<!doctype html>
+					<html style="${palette}"><head><style>
+						.button {
+							display: inline-block;
+							border: 0;
+							box-shadow: 0 2px 3px #0006;
+						}
+						.button:focus-visible {
+							outline: 3px solid #888;
+							box-shadow: 0 0 12px #888;
+						}
+						.button:disabled { opacity: 0.5; pointer-events: none; }
+						main { padding: 24px; }
+					</style><link rel="stylesheet" href="/styles.css"></head>
+					<body><main>
+						<input id="focus-start" aria-label="Start keyboard navigation">
+						<a id="register" class="button" href="#register">Register</a>
+						<button id="action" class="button">Continue</button>
+						<button id="disabled" class="button" disabled>Unavailable</button>
+						<input id="focus-end" aria-label="End keyboard navigation">
+					</main></body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#button-focus-fixture')
+				.should(($frame) => {
+					expect(
+						$frame[0].contentDocument.querySelector('link')?.sheet
+							?.cssRules.length || 0,
+						'loaded built stylesheet'
+					).to.be.greaterThan(0);
+				})
+				.then(($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					const controls = ['register', 'action'].map((id) =>
+						doc.getElementById(id)
+					);
+					const assertUnfocused = () => {
+						for (const button of doc.querySelectorAll('.button')) {
+							const style = win.getComputedStyle(button);
+							expect(style.outlineStyle, button.id).to.equal(
+								'none'
+							);
+							expect(style.boxShadow, button.id).to.equal('none');
+						}
+						expect(
+							win.getComputedStyle(doc.getElementById('disabled'))
+								.opacity
+						).to.equal('0.5');
+					};
+					cy.get('#button-focus-fixture')
+						.should(assertUnfocused)
+						.then(() => {
+							const color = win.getComputedStyle(
+								controls[0]
+							).backgroundColor;
+							const bounds = controls.map((button) =>
+								button.getBoundingClientRect()
+							);
+							cy.wrap(doc.getElementById('focus-start')).focus();
+							controls.forEach((button, index) => {
+								cy.press(Cypress.Keyboard.Keys.TAB);
+								cy.wrap(button).should(() => {
+									expect(button.matches(':focus-visible')).to
+										.be.true;
+									const style = win.getComputedStyle(button);
+									expect(style.outlineStyle).to.equal(
+										'solid'
+									);
+									expect(style.outlineWidth).to.equal('3px');
+									expect(style.outlineColor).to.equal(color);
+									expect(style.outlineOffset).to.equal('3px');
+									expect(style.boxShadow).to.equal('none');
+									const rect = button.getBoundingClientRect();
+									expect(rect.width).to.equal(
+										bounds[index].width
+									);
+									expect(rect.height).to.equal(
+										bounds[index].height
+									);
+								});
+							});
+							cy.press(Cypress.Keyboard.Keys.TAB);
+							cy.get('#button-focus-fixture').should(
+								assertUnfocused
+							);
+						});
+				});
+		});
+	});
+});
+
 describe('Test analysis control palette fixtures', () => {
 	beforeEach(cy.startup);
 
