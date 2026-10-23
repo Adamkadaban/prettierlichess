@@ -480,6 +480,12 @@ describe('Test native 3D mobile geometry fixtures', () => {
 							bottom.top,
 							'lower strip stays off squares'
 						).to.be.at.least(board.bottom);
+						if (mode === '3d') {
+							expect(
+								top.bottom,
+								'upper strip clears 3D piece bounds'
+							).to.be.at.most(piece.top + 0.1);
+						}
 						for (const player of doc.querySelectorAll(
 							'.study__player'
 						)) {

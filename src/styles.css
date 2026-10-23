@@ -6031,6 +6031,10 @@ body .glowing {
 		padding-top: calc(1.6rem + 4px) !important;
 	}
 
+	.is3d main.analyse.has-players:not(.is-relay) .study__player-top {
+		top: calc(-1.6rem - var(---cg-height) * 9.1 / 100) !important;
+	}
+
 	.study__chapters {
 		max-height: 50vh !important;
 	}
