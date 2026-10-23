@@ -1641,7 +1641,7 @@ g[stroke='#888'] {
 	background: var(--surfaceColorHover) !important;
 }
 
-.entry {
+.timeline .entry {
 	padding: 0 10px !important;
 }
 
@@ -4062,10 +4062,6 @@ button.analyse {
 
 /* Profile */
 
-.activity .entry {
-	padding: 1em !important;
-}
-
 .activity .line a {
 	opacity: 0.75 !important;
 }
@@ -4089,16 +4085,14 @@ button.analyse {
 	color: var(--secondaryColor) !important;
 }
 
-.activity .entry > i {
-	border: none !important;
+.activity .entry > icon {
+	border-color: var(--surfaceColor) !important;
 	background: var(--secondaryColor) !important;
 	color: var(--backgroundColor) !important;
-	margin-left: -80px !important;
-	margin-top: -12px !important;
 }
 
 .activity .entries {
-	border-left: 2px solid var(--secondaryColor) !important;
+	border-inline-start-color: var(--secondaryColor) !important;
 }
 
 .activity win strong,
@@ -6043,17 +6037,8 @@ body .glowing {
 		margin-bottom: 20px !important;
 	}
 
-	#us_profile .profile-side,
-	.activity .entries {
+	#us_profile .profile-side {
 		border: 0 !important;
-	}
-
-	.activity .entry {
-		padding-left: 0 !important;
-	}
-
-	.activity .entry > i {
-		display: none !important;
 	}
 
 	/* Analysis Mobile */
