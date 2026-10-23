@@ -6018,6 +6018,10 @@ body .glowing {
 
 	/* Studies Mobile */
 
+	#main-wrap main.analyse.has-players:not(.is-relay) {
+		padding-top: calc(1.6rem + 4px) !important;
+	}
+
 	.study__chapters {
 		max-height: 50vh !important;
 	}
