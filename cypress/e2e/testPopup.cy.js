@@ -2227,6 +2227,132 @@ describe('Test broadcast landscape layout fixtures', () => {
 	});
 });
 
+describe('Test current and legacy horizontal tabs', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 320},
+		{width: 390},
+		{width: 1440},
+		{width: 320, nowPlaying: true},
+		{width: 390, nowPlaying: true},
+	].forEach(({width, nowPlaying = false}) => {
+		const markup = nowPlaying ? 'four button' : 'button and span';
+		it(`Themes ${markup} tabs without clipping at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'horizontal-tabs-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 300px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html><html><head><style>
+					* { box-sizing: border-box; }
+					html {
+						font-size: clamp(
+							12px,
+							calc(12px + 2 * ((100vw - 300px) / 900)),
+							14px
+						);
+					}
+					body { margin: 0; padding: 10px; }
+					button { font: inherit; background: none; border: 0; }
+					.tabs-horiz {
+						display: flex; flex-wrap: nowrap; align-items: flex-end;
+						justify-content: center; max-width: 400px; margin-bottom: 20px;
+					}
+					.tabs-horiz :is(span, button) {
+						flex: 1 1 auto; min-width: 15%; white-space: nowrap;
+						overflow: hidden; text-align: center; font-family: sans-serif;
+						padding: .5em .2em; border-bottom: 2px solid transparent;
+						letter-spacing: -.5px;
+					}
+					.tabs-horiz :is(span, button).active {
+						color: #d64f00; border-color: #d64f00;
+					}
+					.tabs-horiz .unread {
+						margin-inline-start: .3em; padding: 1px 5px 1px 4px;
+						font-weight: bold; font-size: 12px;
+					}
+					.tabs-horiz span::after { content: ''; background: #d64f00; }
+					@media (max-width: 399px) { .tabs-horiz { font-size: .9em; } }
+				</style><link rel="stylesheet" href="/styles.css"></head><body>
+					<div class="lobby__app">
+					${(nowPlaying ? ['button'] : ['button', 'span'])
+						.map(
+							(tag) => `<div class="tabs-horiz">
+								<${tag} class="${nowPlaying ? '' : 'active'}">Quick pairing</${tag}>
+								<${tag}>Lobby</${tag}>
+								<${tag}>Correspondence</${tag}>
+								${
+									nowPlaying
+										? '<button role="tab" class="active">2 games in play' +
+										  '<icon class="unread">2</icon></button>'
+										: ''
+								}
+							</div>`
+						)
+						.join('')}
+					</div>
+				</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#horizontal-tabs-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length || 0
+				).to.be.greaterThan(0);
+				const accent = 'rgb(159, 192, 162)';
+				const rootSize = parseFloat(
+					win.getComputedStyle(doc.documentElement).fontSize
+				);
+				const rows = doc.querySelectorAll('.tabs-horiz');
+				expect(rows).to.have.length(nowPlaying ? 1 : 2);
+				for (const tabs of rows) {
+					expect(tabs.children).to.have.length(nowPlaying ? 4 : 3);
+					const firstRow =
+						tabs.firstElementChild.getBoundingClientRect().top;
+					for (const tab of tabs.children) {
+						const style = win.getComputedStyle(tab);
+						const active = tab.classList.contains('active');
+						expect(style.color).to.equal(
+							active ? accent : 'rgb(170, 170, 170)'
+						);
+						expect(style.borderBottomColor).to.equal(
+							active ? accent : 'rgba(0, 0, 0, 0)'
+						);
+						expect(style.paddingTop).to.equal('10px');
+						expect(parseFloat(style.fontSize)).to.be.closeTo(
+							rootSize * (width <= 713 ? 1.2 : 1),
+							0.01
+						);
+						const range = doc.createRange();
+						range.selectNodeContents(tab);
+						const text = range.getBoundingClientRect();
+						const box = tab.getBoundingClientRect();
+						if (!nowPlaying) {
+							expect(box.top).to.equal(firstRow);
+						}
+						expect(text.left).to.be.at.least(box.left);
+						expect(text.right).to.be.at.most(box.right);
+						expect(text.top).to.be.at.least(box.top);
+						expect(text.bottom).to.be.at.most(box.bottom);
+						expect(box.right).to.be.at.most(width);
+						expect(tab.scrollWidth).to.be.at.most(tab.clientWidth);
+						if (tab.tagName === 'SPAN') {
+							expect(
+								win.getComputedStyle(tab, '::after')
+									.backgroundColor
+							).to.equal(accent);
+						}
+					}
+				}
+				expect(doc.documentElement.scrollWidth).to.be.at.most(width);
+			});
+		});
+	});
+});
+
 describe('Test themed button label readability', () => {
 	beforeEach(cy.startup);
 
