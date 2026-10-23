@@ -68,10 +68,11 @@ describe('Test homepage support-card palette', () => {
 					const projectHover = (rules) => {
 						for (const rule of rules) {
 							if (rule.selectorText?.includes(':hover')) {
-								rule.selectorText = rule.selectorText.replaceAll(
-									':hover',
-									'.fixture-hover'
-								);
+								rule.selectorText =
+									rule.selectorText.replaceAll(
+										':hover',
+										'.fixture-hover'
+									);
 							}
 							if (rule.cssRules) projectHover(rule.cssRules);
 						}
