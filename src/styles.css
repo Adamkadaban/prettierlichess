@@ -287,6 +287,8 @@ input::placeholder,
 /* General */
 
 body {
+	/* Capture the native chart surface before the Insights palette overrides it. */
+	--prettier-insight-canvas-bg: var(--c-bg-opaque);
 	font-family: 'Red Hat Text', sans-serif !important;
 	background: var(--backgroundColor) !important;
 }
@@ -337,6 +339,13 @@ main {
 	width: 100% !important;
 }
 
+/* Native Insights widths omit the extension's padding and borders. */
+#insight header,
+#insight .insight__main,
+#insight .insight__main > * {
+	max-width: 100% !important;
+}
+
 .user-link.online .line,
 .is-green::before,
 good,
@@ -373,6 +382,7 @@ bad,
 	outline: none !important;
 	font-size: 1em !important;
 	padding: 10px 14px !important;
+	text-shadow: none !important;
 	text-transform: lowercase !important;
 	transition: all 0.2s ease-in-out !important;
 }
@@ -689,6 +699,10 @@ select,
 	overflow: visible !important;
 }
 
+.is3d .main-board cg-board::after {
+	display: none !important;
+}
+
 .ranks {
 	font-size: 12px !important;
 	right: -15px !important;
@@ -757,7 +771,8 @@ html[data-prettierlichess-native-board] coords {
 	--coordLight: var(---cg-ccw, #fff) !important;
 }
 
-html[data-prettierlichess-native-board] .is3d .cg-wrap coords {
+html[data-prettierlichess-native-board] .is3d .cg-wrap coords,
+.is3d .main-board coords {
 	--coordDark: #fff !important;
 	--coordLight: #fff !important;
 }
@@ -768,7 +783,9 @@ cg-resize::after {
 }
 
 html[data-prettierlichess-native-board] cg-resize::before,
-html[data-prettierlichess-native-board] cg-resize::after {
+html[data-prettierlichess-native-board] cg-resize::after,
+.is3d .main-board cg-resize::before,
+.is3d .main-board cg-resize::after {
 	background-color: currentColor !important;
 }
 
@@ -993,9 +1010,7 @@ square.selected {
 }
 
 .site-title-nav__donate {
-	display: block !important;
 	position: relative !important;
-	margin-top: 0 !important;
 	color: var(--secondaryColor) !important;
 }
 
@@ -1099,6 +1114,15 @@ nav section a:target-within {
 	background: var(--surfaceColor) !important;
 	border-radius: var(--borderRadius) !important;
 	box-shadow: none !important;
+}
+
+.site-buttons .dasher.shown .toggle {
+	background: none !important;
+	color: var(--primaryColor) !important;
+}
+
+.site-buttons .dasher.shown #user_tag::after {
+	color: var(--primaryColor) !important;
 }
 
 #dasher_app {
@@ -1632,7 +1656,7 @@ g[stroke='#888'] {
 	background: var(--surfaceColorHover) !important;
 }
 
-.entry {
+.timeline .entry {
 	padding: 0 10px !important;
 }
 
@@ -2162,8 +2186,10 @@ main.page-small {
 	stroke: var(--primaryColor) !important;
 }
 
-.fbt:hover .spinner path {
-	stroke: var(--backgroundColor) !important;
+@media (hover: hover) {
+	.fbt:hover .spinner path {
+		stroke: var(--backgroundColor) !important;
+	}
 }
 
 #challenge-app .challenge:hover > i,
@@ -2422,7 +2448,13 @@ button.rematch-decline::before {
 	border-radius: 0 0 var(--borderRadius) var(--borderRadius) !important;
 }
 
-.fbt:hover:not(.disabled):not([disabled]),
+@media (hover: hover) {
+	.fbt:hover:not(.disabled):not([disabled]) {
+		background: var(--primaryColor) !important;
+		color: var(--backgroundColor) !important;
+	}
+}
+
 .puzzle__session a.result-true,
 .puzzle__feedback.after .continue,
 .puzzle__vote .vote:hover,
@@ -3401,8 +3433,13 @@ html .eval-gauge tick.zero {
 }
 
 .explorer-box .config .choices {
+	flex-wrap: wrap !important;
 	border: 1px solid var(--backgroundColor) !important;
 	border-radius: var(--borderRadius) !important;
+}
+
+.explorer__config .choices button[aria-pressed] {
+	padding-inline: 5px !important;
 }
 
 .explorer-box .config .choices span {
@@ -4040,10 +4077,6 @@ button.analyse {
 
 /* Profile */
 
-.activity .entry {
-	padding: 1em !important;
-}
-
 .activity .line a {
 	opacity: 0.75 !important;
 }
@@ -4067,16 +4100,14 @@ button.analyse {
 	color: var(--secondaryColor) !important;
 }
 
-.activity .entry > i {
-	border: none !important;
+.activity .entry > icon {
+	border-color: var(--surfaceColor) !important;
 	background: var(--secondaryColor) !important;
 	color: var(--backgroundColor) !important;
-	margin-left: -80px !important;
-	margin-top: -12px !important;
 }
 
 .activity .entries {
-	border-left: 2px solid var(--secondaryColor) !important;
+	border-inline-start-color: var(--secondaryColor) !important;
 }
 
 .activity win strong,
@@ -4359,6 +4390,13 @@ hr {
 	justify-content: space-between !important;
 }
 
+/* Insights */
+
+#insight canvas.chart {
+	background-color: var(--prettier-insight-canvas-bg) !important;
+	border-radius: var(--borderRadius) !important;
+}
+
 /* Tournaments / Simuls*/
 
 .tour__side,
@@ -4383,6 +4421,32 @@ hr {
 .filters .items .box .ms-parent .ms-drop li,
 .filters .items .box .ms-parent .ms-drop .ms-search input {
 	background-color: var(--surfaceColor) !important;
+}
+
+#insight {
+	--c-bg: var(--surfaceColor) !important;
+	--c-bg-box: var(--surfaceColor) !important;
+	--c-bg-opaque: var(--surfaceColor) !important;
+	--c-bg-zebra: var(--surfaceColor) !important;
+	--c-metal-top: var(--surfaceColor) !important;
+	--c-metal-bottom: var(--surfaceColor) !important;
+	--c-border: var(--surfaceColorHover) !important;
+	--c-shade: var(--surfaceColorHover) !important;
+	--c-font: var(--textColor) !important;
+	--c-font-page: var(--textColor) !important;
+	--c-primary: var(--primaryColor) !important;
+	--c-accent: var(--primaryColor) !important;
+	--c-link: var(--primaryColor) !important;
+	--c-over: var(--backgroundColor) !important;
+}
+
+#insight .box .top {
+	box-shadow: none !important;
+}
+
+#insight .ms-drop ul > li label:not(.optgroup):hover {
+	background: var(--surfaceColorHover) !important;
+	color: var(--defaultWhite) !important;
 }
 
 .tour__side {
@@ -5842,12 +5906,19 @@ body .glowing {
 	}
 
 	.main-board:not(
+			.is3d *,
 			main.analyse.is-relay:not(.has-relay-tour) *,
 			main.round *
 		) {
 		width: 100vw !important;
 		height: 100vw !important;
 		margin-left: -10px !important;
+	}
+
+	@media (orientation: landscape) {
+		.is3d main.round .main-board {
+			margin-top: calc(var(---cg-height) * 9.1 / 100) !important;
+		}
 	}
 
 	.round__underboard {
@@ -5981,20 +6052,17 @@ body .glowing {
 		margin-bottom: 20px !important;
 	}
 
-	#us_profile .profile-side,
-	.activity .entries {
+	#us_profile .profile-side {
 		border: 0 !important;
 	}
 
-	.activity .entry {
-		padding-left: 0 !important;
-	}
-
-	.activity .entry > i {
-		display: none !important;
-	}
-
 	/* Analysis Mobile */
+
+	.is3d main.analyse .main-board,
+	.is3d main.analyse .eval-gauge {
+		/* Native 3D pieces overhang the board by 9.1%; clear the sticky header. */
+		margin-top: calc(var(---cg-height) * 9.1 / 100) !important;
+	}
 
 	#main-wrap .analyse:not(main.is-relay:not(.has-relay-tour)) {
 		grid-template-columns: 100% !important;
@@ -6072,8 +6140,8 @@ body .glowing {
 				'uchat';
 		}
 
-		main.analyse.is-relay:not(.has-relay-tour) .main-board,
-		main.round .main-board {
+		main.analyse.is-relay:not(.has-relay-tour) .main-board:not(.is3d *),
+		main.round .main-board:not(.is3d *) {
 			width: 100vw !important;
 			height: 100vw !important;
 			margin-left: -10px !important;
