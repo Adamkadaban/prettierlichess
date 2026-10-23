@@ -5880,12 +5880,8 @@ body .glowing {
 		overflow: hidden !important;
 	}
 
-	#main-wrap main:not(.analyse.is-relay:not(.has-relay-tour)) {
+	#main-wrap main:not(.lobby, .analyse.is-relay:not(.has-relay-tour)) {
 		grid-template-columns: 100% !important;
-	}
-
-	.lobby__side {
-		display: block !important;
 	}
 
 	.lobby__tv cg-container cg-board {
@@ -6207,6 +6203,10 @@ body .glowing {
 }
 
 @media (max-width: 713px) {
+	.lobby__side {
+		display: block !important;
+	}
+
 	::-webkit-scrollbar {
 		display: none !important;
 	}

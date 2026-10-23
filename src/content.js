@@ -211,7 +211,17 @@ main.lobby {
 }
 .lobby__app {
 	height: calc(100% - 40px) !important;
+	min-height: min(400px, calc(100svh - var(---site-header-height) - var(---site-header-margin) - var(---sticky-gap) - 40px));
 	margin-top: 20px !important;
+}
+.lobby__tv {
+	width: 100%;
+	/* Reserve space for both player rows. */
+	max-width: calc(100svh - var(---site-header-height) - var(---site-header-margin) - var(---sticky-gap) - 4rem);
+	justify-self: center;
+}
+.lobby__tv > .lobby__support-link {
+	display: none !important;
 }
 `;
 

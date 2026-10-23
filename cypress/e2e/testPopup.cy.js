@@ -18,6 +18,154 @@ const NAMES = [
 	'alternateArrowColor',
 ];
 
+describe('Test homepage viewport fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 1920, height: 900},
+		{width: 1920, height: 720},
+		{width: 740, height: 390},
+		{width: 390, height: 844},
+		{width: 1920, height: 900, layout: 'lichess'},
+	].forEach(({width, height, layout = 'default'}) => {
+		it(`Keeps ${layout} homepage panels readable at ${width}x${height}`, () => {
+			const build =
+				Cypress.browser.name === 'firefox'
+					? 'dist-firefox'
+					: 'dist-chrome';
+			cy.readFile(`${build}/content.js`).then((content) => {
+				cy.document().then((doc) => {
+					const frame = doc.createElement('iframe');
+					frame.id = 'homepage-viewport-fixture';
+					frame.style.cssText =
+						`width: ${width}px; height: ${height}px; border: 0; ` +
+						'max-width: none; flex-shrink: 0;';
+					frame.srcdoc = `<!doctype html><html><head><style>
+						* { box-sizing: border-box; }
+						html { font-size: 14px; }
+						body { margin: 0; --c-bg-opaque: #262421; ---site-header-height: 60px; ---site-header-margin: 0px; ---sticky-gap: 4px; }
+						@media (max-height: 499px) and (orientation: landscape) { body { ---site-header-height: 40px; ---sticky-gap: 0px; } }
+						main.lobby {
+							display: grid; gap: 15px; margin: calc(var(---site-header-height) + var(---site-header-margin) + var(---sticky-gap)) auto 0;
+							width: min(1600px, calc(100% - 32px)) !important;
+							grid-template-columns: repeat(4, minmax(0, 1fr));
+							grid-template-areas: 'side app app table' 'tv blog blog puzzle' 'support feed feed tours';
+						}
+						.lobby__tv { grid-area: tv; }
+						.lobby__app { grid-area: app; min-height: 300px; display: flex; flex-direction: column; }
+						@media (min-width: 500px) { .lobby__app { min-height: 400px; } }
+						.lobby__side { grid-area: side; }
+						.lobby__table { grid-area: table; }
+						.lobby__blog { grid-area: blog; }
+						.lobby__support { grid-area: support; }
+						.lobby__puzzle { grid-area: puzzle; }
+						.lobby__feed { grid-area: feed; }
+						.lobby__tournaments-simuls { grid-area: tours; }
+						.lobby__support-link { display: flex; height: 70px; margin-bottom: 15px; }
+						.mini-game { display: block; }
+						.mini-game__player { height: 22px; }
+						.mini-game .cg-wrap { width: 100%; aspect-ratio: 1; }
+						.lobby__app .tabs-horiz { height: 36px; flex-shrink: 0; }
+						.lpools { display: grid; flex: 1; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); }
+						.lpools .clock { display: block; line-height: 1.6em; letter-spacing: .1em; }
+						@media (max-width: 713px) { .lobby__tv > .lobby__support-link { display: none; } }
+					</style><link rel="stylesheet" href="/styles.css"></head><body>
+						<div id="main-wrap"><main class="lobby">
+							<div class="lobby__app"><div class="tabs-horiz">Quick pairing</div>
+								<div class="lobby__app__content lpools">${Array.from(
+									{length: 12},
+									() =>
+										'<div><span class="clock">3+2</span><span class="perf">Blitz</span></div>'
+								).join('')}</div></div>
+							<div class="lobby__tv"><a class="lobby__support-link">Donate</a>
+								<a class="mini-game"><div class="mini-game__player">White 0:30</div>
+									<div class="cg-wrap"></div><div class="mini-game__player">Black 0:30</div></a></div>
+							<div class="lobby__side">Streams</div><div class="lobby__table">Create a game</div>
+							<div class="lobby__blog">News</div><div class="lobby__support"><a class="lobby__support-link">Donate</a></div>
+							<div class="lobby__puzzle"></div><div class="lobby__feed"></div><div class="lobby__tournaments-simuls"></div>
+						</main></div>
+					</body></html>`;
+					doc.body.appendChild(frame);
+				});
+				cy.get('#homepage-viewport-fixture')
+					.should(($frame) => {
+						expect(
+							$frame[0].contentDocument.querySelector('link')
+								?.sheet?.cssRules.length || 0
+						).to.be.greaterThan(0);
+					})
+					.then(($frame) => {
+						const win = $frame[0].contentWindow;
+						win.chrome = {
+							storage: {
+								sync: {
+									get: (keys, callback) =>
+										callback({layoutPreference: layout}),
+								},
+								onChanged: {addListener() {}},
+							},
+							runtime: {onMessage: {addListener() {}}},
+						};
+						const script = win.document.createElement('script');
+						script.textContent = content;
+						win.document.body.appendChild(script);
+					});
+			});
+			cy.get('#homepage-viewport-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const tv = doc.querySelector('.lobby__tv');
+				const pairing = doc.querySelector('.lobby__app');
+				const board = doc
+					.querySelector('.cg-wrap')
+					.getBoundingClientRect();
+				const banner = tv.querySelector('.lobby__support-link');
+				expect(board.width).to.be.closeTo(board.height, 1);
+				expect(board.width).to.be.greaterThan(250);
+				expect(
+					doc
+						.querySelector('.lobby__support a')
+						.getBoundingClientRect().height,
+					'dedicated support panel is retained'
+				).to.be.greaterThan(0);
+				if (layout === 'lichess') {
+					expect(win.getComputedStyle(banner).display).to.equal(
+						'flex'
+					);
+					expect(win.getComputedStyle(tv).maxWidth).to.equal('none');
+				} else {
+					expect(win.getComputedStyle(banner).display).to.equal(
+						'none'
+					);
+					expect(tv.getBoundingClientRect().bottom).to.be.at.most(
+						height
+					);
+					if (width > 713) {
+						expect(
+							pairing.getBoundingClientRect().bottom
+						).to.be.at.most(height);
+						for (const cell of doc.querySelectorAll(
+							'.lpools > div'
+						)) {
+							expect(
+								cell.getBoundingClientRect().height
+							).to.be.at.least(44);
+						}
+					} else {
+						expect(
+							pairing.getBoundingClientRect().top
+						).to.be.at.least(tv.getBoundingClientRect().bottom);
+						expect(board.width).to.be.closeTo(
+							tv.getBoundingClientRect().width,
+							1
+						);
+					}
+				}
+			});
+		});
+	});
+});
+
 describe('Test native board coordinates', () => {
 	it('Follows scoped native colors and restores custom colors', () => {
 		cy.startup();
