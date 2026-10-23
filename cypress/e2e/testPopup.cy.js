@@ -2063,6 +2063,61 @@ describe('Test broadcast landscape layout fixtures', () => {
 	});
 });
 
+describe('Test themed button label readability', () => {
+	beforeEach(cy.startup);
+
+	['light', 'dark'].forEach((scheme) => {
+		it(`Removes native ${scheme} shadows from themed button labels`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'button-label-fixture';
+				frame.srcdoc = `<!doctype html><html><head><style>
+					body { font-size: 14px; }
+					.button {
+						display: inline-block; font: 500 14px sans-serif;
+						text-shadow: .5px .5px 0 ${
+							scheme === 'light'
+								? 'rgba(0, 0, 0, .7)'
+								: 'rgba(0, 0, 0, .8)'
+						};
+					}
+					.button.disabled { opacity: .5; }
+				</style><link rel="stylesheet" href="/styles.css"></head><body>
+					<a class="button button-green text">Create a new tournament</a>
+					<button class="button">Register</button>
+					<button class="button disabled" disabled>Unavailable</button>
+				</body></html>`;
+				frame.style.cssText = 'width: 600px; height: 250px; border: 0;';
+				doc.body.appendChild(frame);
+			});
+			cy.get('#button-label-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length || 0
+				).to.be.greaterThan(0);
+				for (const button of doc.querySelectorAll('.button')) {
+					expect(
+						win.getComputedStyle(button).textShadow,
+						'no native shadow is composited onto the extension text'
+					).to.equal('none');
+					const range = doc.createRange();
+					range.selectNodeContents(button);
+					const text = range.getBoundingClientRect();
+					const box = button.getBoundingClientRect();
+					expect(text.left).to.be.at.least(box.left);
+					expect(text.right).to.be.at.most(box.right);
+					expect(text.top).to.be.at.least(box.top);
+					expect(text.bottom).to.be.at.most(box.bottom);
+				}
+				const disabled = doc.querySelector('button:disabled');
+				expect(disabled.disabled).to.equal(true);
+				expect(win.getComputedStyle(disabled).opacity).to.equal('0.5');
+			});
+		});
+	});
+});
+
 describe('Test analysis control palette fixtures', () => {
 	beforeEach(cy.startup);
 
