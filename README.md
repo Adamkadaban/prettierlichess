@@ -30,6 +30,10 @@ The extension is not published in the Apple Store, but it is possible to get it 
 To install the extension, go to the official website for [Firefox](https://addons.mozilla.org/en-US/firefox/addon/prettier-lichess) or [Chrome](https://chrome.google.com/webstore/detail/prettier-lichess/epgnobcgnmchnhgkgpedebbmhbblfcob). Set Lichess to dark background to have the best compatibility with prettierlichess. \
 With the pop-up you can then customise the colours and choose themes. Have fun!
 
+Custom square colours apply to 2D boards. In 3D mode, Lichess's selected board
+artwork is preserved so the surface and frame match. Last-move and other
+highlight colours still apply.
+
 ### Importing colours
 
 Import a JSON object containing colour names and `#RRGGBB` or `#RRGGBBAA`

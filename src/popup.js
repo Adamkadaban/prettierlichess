@@ -84,7 +84,7 @@ function setLayoutOption(option) {
  * Hide all selectors for board colors
  */
 function hideBoardColorSelectors() {
-	hideBoardColors.textContent = 'Use Custom Board Colors';
+	hideBoardColors.textContent = 'Use Custom 2D Board Colors';
 	boardColorSelector.forEach((colorSelector) => {
 		colorSelector.style.display = 'none';
 	});

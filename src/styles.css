@@ -699,6 +699,10 @@ select,
 	overflow: visible !important;
 }
 
+.is3d .main-board cg-board::after {
+	display: none !important;
+}
+
 .ranks {
 	font-size: 12px !important;
 	right: -15px !important;
@@ -767,7 +771,8 @@ html[data-prettierlichess-native-board] coords {
 	--coordLight: var(---cg-ccw, #fff) !important;
 }
 
-html[data-prettierlichess-native-board] .is3d .cg-wrap coords {
+html[data-prettierlichess-native-board] .is3d .cg-wrap coords,
+.is3d .main-board coords {
 	--coordDark: #fff !important;
 	--coordLight: #fff !important;
 }
@@ -778,7 +783,9 @@ cg-resize::after {
 }
 
 html[data-prettierlichess-native-board] cg-resize::before,
-html[data-prettierlichess-native-board] cg-resize::after {
+html[data-prettierlichess-native-board] cg-resize::after,
+.is3d .main-board cg-resize::before,
+.is3d .main-board cg-resize::after {
 	background-color: currentColor !important;
 }
 

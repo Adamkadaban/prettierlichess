@@ -32,9 +32,9 @@ describe('Test native board coordinates', () => {
 					const page = win.document;
 					page.body.className = 'coords-in';
 					page.body.innerHTML =
-						'<div class="is2d"><div class="cg-wrap orientation-white">' +
+						'<div class="is2d"><div class="main-board"><div class="cg-wrap orientation-white">' +
 						'<coords class="files" style="---cg-ccb: #123456; ---cg-ccw: #abcdef">' +
-						'<coord></coord><coord></coord></coords><cg-resize></cg-resize></div></div>';
+						'<coord></coord><coord></coord></coords><cg-resize></cg-resize></div></div></div>';
 					const style = page.createElement('style');
 					style.textContent = styles;
 					page.head.appendChild(style);
@@ -94,12 +94,76 @@ describe('Test native board coordinates', () => {
 						{defaultBoardSwitch: {newValue: false}},
 						'sync'
 					);
+					expect(
+						win.getComputedStyle(resize, '::before').backgroundColor
+					).to.equal(win.getComputedStyle(resize).color);
+					expect(colors()).to.deep.equal([
+						'rgb(255, 255, 255)',
+						'rgb(255, 255, 255)',
+					]);
+					page.querySelector('.is3d').className = 'is2d';
 					expect(colors()).to.deep.equal([
 						'rgb(17, 34, 51)',
 						'rgb(221, 238, 255)',
 					]);
 					frame.remove();
 				});
+			});
+		});
+	});
+});
+
+describe('Test native 3D board artwork', () => {
+	it('Preserves the 3D face while keeping 2D mini-board colors', () => {
+		cy.startup();
+		const build =
+			Cypress.browser.name === 'firefox' ? 'dist-firefox' : 'dist-chrome';
+		cy.readFile(`${build}/styles.css`).then((styles) => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				doc.body.appendChild(frame);
+				const win = frame.contentWindow;
+				const page = win.document;
+				page.body.innerHTML =
+					'<div class="is3d"><div class="main-board"><cg-container><cg-board>' +
+					'<square class="last-move"></square></cg-board></cg-container></div>' +
+					'<div class="is2d mini-board"><cg-container><cg-board></cg-board></cg-container></div></div>';
+				const style = page.createElement('style');
+				style.textContent =
+					'.main-board cg-board::before { content: ""; background-image: linear-gradient(#aaa, #333); }' +
+					styles;
+				page.head.appendChild(style);
+				const board = page.querySelector('.main-board cg-board');
+				const mini = page.querySelector('.mini-board cg-board');
+				const art = win.getComputedStyle(
+					board,
+					'::before'
+				).backgroundImage;
+				expect(art).to.contain('linear-gradient');
+				expect(win.getComputedStyle(board, '::after').display).to.equal(
+					'none'
+				);
+				expect(
+					win.getComputedStyle(mini, '::after').display
+				).not.to.equal('none');
+				expect(
+					win.getComputedStyle(mini, '::after').backgroundImage
+				).to.contain('repeating-conic-gradient');
+				expect(
+					win.getComputedStyle(board.querySelector('square'))
+						.backgroundColor
+				).not.to.equal('rgba(0, 0, 0, 0)');
+				page.querySelector('.is3d').className = 'is2d';
+				expect(
+					win.getComputedStyle(board, '::after').display
+				).not.to.equal('none');
+				expect(
+					win.getComputedStyle(board, '::after').backgroundImage
+				).to.contain('repeating-conic-gradient');
+				expect(
+					win.getComputedStyle(board, '::before').backgroundImage
+				).to.equal(art);
+				frame.remove();
 			});
 		});
 	});
