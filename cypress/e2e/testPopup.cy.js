@@ -896,9 +896,9 @@ describe('Test quick pairing caption readability', () => {
 					.lpools .perf { font-weight: 300; }
 				</style><link rel="stylesheet" href="/styles.css"></head><body>
 					<div class="lobby__app"><div class="lobby__app__content lpools">
-						<div><span class="clock">1+0</span><span class="perf">Bullet</span></div>
-						<div><span class="clock">30+20</span><span class="perf">Classical</span></div>
-						<div class="custom">Custom</div>
+						<div class="lpool" role="button" tabindex="0" data-id="1+0"><div class="clock">1+0</div><div class="perf">Bullet</div></div>
+						<div class="lpool" role="button" tabindex="0" data-id="30+20"><div class="clock">30+20</div><div class="perf">Classical</div></div>
+						<div class="lpool" role="button" tabindex="0" data-id="custom">Custom</div>
 					</div></div>
 				</body></html>`;
 				doc.body.appendChild(frame);
@@ -923,7 +923,11 @@ describe('Test quick pairing caption readability', () => {
 			cy.get('#pairing-caption-fixture').should(($frame) => {
 				const doc = $frame[0].contentDocument;
 				const win = $frame[0].contentWindow;
-				for (const label of doc.querySelectorAll('.perf, .custom')) {
+				const labels = doc.querySelectorAll(
+					".perf, [data-id='custom']"
+				);
+				expect(labels).to.have.length(3);
+				for (const label of labels) {
 					const tile = label.closest('.lpools > div');
 					const style = win.getComputedStyle(label);
 					const colors = [
@@ -944,6 +948,12 @@ describe('Test quick pairing caption readability', () => {
 					).to.be.at.least(4.5);
 					expect(parseFloat(style.fontSize)).to.be.at.least(14);
 					expect(Number(style.fontWeight)).to.be.at.least(400);
+					if (label.dataset.id === 'custom') {
+						expect(style.fontSize).to.equal(
+							win.getComputedStyle(doc.querySelector('.lpools'))
+								.fontSize
+						);
+					}
 					const text = doc.createRange();
 					text.selectNodeContents(label);
 					const bounds = text.getBoundingClientRect();

@@ -1537,8 +1537,13 @@ g[stroke='#888'] {
 
 .lpools .perf,
 .lpools .custom {
-	color: var(--defaultWhite) !important;
 	font-size: max(14px, 0.75em) !important;
+}
+
+.lpools .perf,
+.lpools .custom,
+.lpools [data-id='custom'] {
+	color: var(--defaultWhite) !important;
 	font-weight: 400 !important;
 }
 
