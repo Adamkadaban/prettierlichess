@@ -199,6 +199,8 @@ describe('Test native 3D mobile geometry fixtures', () => {
 		},
 		{kind: 'relay', mode: '2d', width: 390, height: 844},
 		{kind: 'analysis', mode: '2d', width: 1440, height: 900},
+		{kind: 'study', mode: '2d', width: 390, height: 844},
+		{kind: 'study', mode: '3d', width: 390, height: 844},
 		{kind: 'puzzle', mode: '2d', width: 740, height: 900, gutter: 10},
 		{
 			kind: 'study',
@@ -233,7 +235,13 @@ describe('Test native 3D mobile geometry fixtures', () => {
 						: kind === 'puzzle'
 						? 'puzzle__board'
 						: 'analyse__board'
-				}"><div class="cg-wrap orientation-${orientation}"><cg-container><cg-board>
+				}">${
+					kind === 'study'
+						? `<div class="study__player study__player-top"><div class="left"><span class="info"><span class="name">${
+								orientation === 'white' ? 'Black' : 'White'
+						  }</span></span></div></div>`
+						: ''
+				}<div class="cg-wrap orientation-${orientation}"><cg-container><cg-board>
 					<piece class="black king"></piece>
 				</cg-board>${
 					gutter
@@ -249,7 +257,13 @@ describe('Test native 3D mobile geometry fixtures', () => {
 								)
 								.join('')
 						: ''
-				}</cg-container></div></div>`;
+				}</cg-container></div>${
+					kind === 'study'
+						? `<div class="study__player study__player-bot"><div class="left"><span class="info"><span class="name">${
+								orientation === 'white' ? 'White' : 'Black'
+						  }</span></span></div></div>`
+						: ''
+				}</div>`;
 				frame.srcdoc = `<!doctype html><html><head><style>
 					*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 					${gutter ? 'html { overflow-y: hidden; }' : ''}
@@ -292,6 +306,16 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					.analyse__controls { grid-area: controls; height: 40px; }
 					.analyse__tools { grid-area: tools; }
 					.analyse__side { grid-area: side; }
+					.study__player {
+						position: absolute; right: 0; display: flex; align-items: center;
+						width: var(---cg-width, 100%); height: 1.6rem; white-space: nowrap;
+					}
+					.study__player-top { top: -1.6rem; }
+					.is3d .study__player-top { top: calc(-1.6rem - var(---cg-width) / 20); }
+					.study__player-bot { top: var(---cg-height, 100%); }
+					@media (max-width: 799px) and (orientation: portrait) {
+						.analyse.has-players .analyse__controls { margin-top: 1.6rem; }
+					}
 					main.round { display: grid; grid-template-areas: 'app'; }
 					.round__app {
 						grid-area: app; display: grid; grid-template-columns: 100%;
@@ -433,6 +457,62 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					const available = doc
 						.getElementById('main-wrap')
 						.getBoundingClientRect();
+					if (kind === 'study') {
+						const main = doc
+							.querySelector('main')
+							.getBoundingClientRect();
+						const top = doc
+							.querySelector('.study__player-top')
+							.getBoundingClientRect();
+						const bottom = doc
+							.querySelector('.study__player-bot')
+							.getBoundingClientRect();
+						expect(
+							top.top,
+							'upper player strip clears clipping main'
+						).to.be.at.least(main.top - 0.1);
+						expect(top.top).to.be.at.least(header.bottom);
+						expect(
+							top.bottom,
+							'upper strip stays off squares'
+						).to.be.at.most(board.top);
+						expect(
+							bottom.top,
+							'lower strip stays off squares'
+						).to.be.at.least(board.bottom);
+						if (mode === '3d') {
+							expect(
+								top.bottom,
+								'upper strip clears 3D piece bounds'
+							).to.be.at.most(piece.top + 0.1);
+						}
+						for (const player of doc.querySelectorAll(
+							'.study__player'
+						)) {
+							const rect = player.getBoundingClientRect();
+							expect(
+								rect.left,
+								'player strip clears left clipping edge'
+							).to.be.at.least(
+								Math.max(main.left, available.left)
+							);
+							expect(
+								rect.right,
+								'player strip clears right clipping edge'
+							).to.be.at.most(
+								Math.min(main.right, available.right)
+							);
+							expect(
+								player.contains(
+									doc.elementFromPoint(
+										rect.left + rect.width / 2,
+										rect.top + rect.height / 2
+									)
+								),
+								'player strip is visible and unobstructed'
+							).to.equal(true);
+						}
+					}
 					expect(
 						board.height / board.width,
 						'native board ratio'
