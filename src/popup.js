@@ -675,6 +675,7 @@ function setupCustomPieces() {
 	const status = document.querySelector('#pieceStatus');
 	const preview = document.querySelector('#piecePreview');
 	const previewLabel = document.querySelector('#piecePreviewLabel');
+	const eyesAttribution = document.querySelector('#eyesAttribution');
 	let state = pieceSets.empty();
 	let busy = true;
 	let ready = false;
@@ -692,11 +693,15 @@ function setupCustomPieces() {
 		select.querySelector('[value="uploaded"]').disabled = !state.uploaded;
 		remove.disabled = busy || !ready || !state.uploaded;
 		previewLabel.hidden = !state.uploaded || state.selection !== 'native';
+		eyesAttribution.hidden = state.selection !== 'eyes';
 		preview.replaceChildren();
-		if (state.uploaded) {
+		const images = pieceSets.images(state, (path) =>
+			chrome.runtime.getURL(path)
+		);
+		if (images) {
 			for (const name of pieceSets.names) {
 				const image = document.createElement('img');
-				image.src = state.uploaded[name];
+				image.src = images[name];
 				image.alt = name;
 				preview.appendChild(image);
 			}
@@ -775,7 +780,7 @@ function setupCustomPieces() {
 			{...state, selection: select.value},
 			select.value === 'native'
 				? 'Lichess pieces restored.'
-				: 'Uploaded pieces enabled on 2D boards.'
+				: `${select.selectedOptions[0].textContent} enabled on 2D boards.`
 		);
 	});
 

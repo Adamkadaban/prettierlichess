@@ -8,7 +8,10 @@
 		if (style) style.remove();
 		style = null;
 		try {
-			const css = await pieceSets.styles(state || pieceSets.empty());
+			const css = await pieceSets.styles(
+				state || pieceSets.empty(),
+				(path) => chrome.runtime.getURL(path)
+			);
 			if (current !== revision || !css) return;
 			style = document.createElement('style');
 			style.id = 'prettierlichess-pieces';

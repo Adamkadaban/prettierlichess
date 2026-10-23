@@ -98,7 +98,7 @@ const pieceSets = (() => {
 		if (
 			!state ||
 			state.version !== 1 ||
-			!['native', 'uploaded'].includes(state.selection) ||
+			!['native', 'uploaded', 'eyes'].includes(state.selection) ||
 			(state.selection === 'uploaded' && !state.uploaded)
 		) {
 			return false;
@@ -132,20 +132,31 @@ const pieceSets = (() => {
 		return true;
 	}
 
-	async function styles(state) {
+	function images(state, getURL) {
+		if (state.selection !== 'eyes') return state.uploaded;
+		return Object.fromEntries(
+			names.map((name) => [
+				name,
+				getURL(`pieces/eyes/${name.toLowerCase()}.svg`),
+			])
+		);
+	}
+
+	async function styles(state, getURL) {
 		if (!(await valid(state))) {
 			throw new Error(
 				'Saved pieces are invalid. Lichess pieces are used; upload a complete set again.'
 			);
 		}
-		if (state.selection !== 'uploaded') return '';
+		if (state.selection === 'native') return '';
+		const urls = images(state, getURL);
 		return names
 			.map((name) => {
 				const color = name[0] === 'w' ? 'white' : 'black';
 				return `.is2d piece.${color}.${
 					roles[name[1]]
 				}:not(.is3d piece) {
-	background-image: url("${state.uploaded[name]}") !important;
+	background-image: url("${urls[name]}") !important;
 }`;
 			})
 			.join('\n');
@@ -210,5 +221,5 @@ const pieceSets = (() => {
 		return {...empty(), uploaded};
 	}
 
-	return {key, names, empty, valid, styles, importFiles};
+	return {key, names, empty, valid, images, styles, importFiles};
 })();
