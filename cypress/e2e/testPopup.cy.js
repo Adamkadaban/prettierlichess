@@ -24,6 +24,9 @@ describe('Test homepage viewport fixtures', () => {
 	[
 		{width: 1920, height: 900},
 		{width: 1920, height: 720},
+		{width: 1440, height: 900},
+		{width: 1261, height: 720},
+		{width: 1260, height: 720},
 		{width: 740, height: 390},
 		{width: 390, height: 844},
 		{width: 1920, height: 900, layout: 'lichess'},
@@ -141,6 +144,19 @@ describe('Test homepage viewport fixtures', () => {
 						height
 					);
 					if (width > 713) {
+						const tvRect = tv.getBoundingClientRect();
+						const pairingRect = pairing.getBoundingClientRect();
+						const gap = parseFloat(
+							win.getComputedStyle(
+								doc.querySelector('main.lobby')
+							).columnGap
+						);
+						expect(
+							width > 1260
+								? tvRect.left - pairingRect.right
+								: pairingRect.left - tvRect.right,
+							'panels use the available width without an empty grid slot'
+						).to.be.closeTo(gap, 1);
 						expect(
 							pairing.getBoundingClientRect().bottom
 						).to.be.at.most(height);

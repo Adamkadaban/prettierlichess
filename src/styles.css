@@ -5728,7 +5728,10 @@ body .glowing {
 
 @media (max-width: 1260px) {
 	main.lobby {
-		grid-template-columns: 50% repeat(2, 1fr) !important;
+		grid-template-columns: min(50%, var(--lobby-tv-max-width, 50%)) repeat(
+				2,
+				1fr
+			) !important;
 		grid-template-rows: repeat(2, fit-content(0)) !important;
 		grid-template-areas:
 			'tv   app     app'

@@ -200,13 +200,16 @@ const STREAMER_STYLES = `
 
 const LAYOUT_CHANGE = `
 main.lobby {
+	--lobby-column-gap: 15px;
+	--lobby-tv-max-width: calc(100svh - var(---site-header-height) - var(---site-header-margin) - var(---sticky-gap) - 4rem);
+	column-gap: var(--lobby-column-gap);
 	grid-template-areas:
-		'app tv tv side'
-		'table blog blog support'
-		'tours puzzle puzzle feed'
-		'simuls simuls simuls simuls'
-		'about about about about';
-	grid-template-columns: minmax(400px, 1fr) 1fr 1fr minmax(400px, 1fr);
+		'app tv side'
+		'table blog support'
+		'tours puzzle feed'
+		'simuls simuls simuls'
+		'about about about';
+	grid-template-columns: minmax(400px, 1fr) min(calc(100% - 800px - 2 * var(--lobby-column-gap)), var(--lobby-tv-max-width)) 400px;
 	grid-template-rows: fit-content(0) min-content fit-content(0) repeat(3, fit-content(0));
 }
 .lobby__app {
@@ -217,7 +220,7 @@ main.lobby {
 .lobby__tv {
 	width: 100%;
 	/* Reserve space for both player rows. */
-	max-width: calc(100svh - var(---site-header-height) - var(---site-header-margin) - var(---sticky-gap) - 4rem);
+	max-width: var(--lobby-tv-max-width);
 	justify-self: center;
 }
 .lobby__tv > .lobby__support-link {
