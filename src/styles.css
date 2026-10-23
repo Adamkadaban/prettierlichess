@@ -382,6 +382,7 @@ bad,
 	outline: none !important;
 	font-size: 1em !important;
 	padding: 10px 14px !important;
+	text-shadow: none !important;
 	text-transform: lowercase !important;
 	transition: all 0.2s ease-in-out !important;
 }
