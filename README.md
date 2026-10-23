@@ -89,6 +89,23 @@ when opening a file picker. The implementation uses standard WebExtension
 storage APIs; Chromium is the validation target, not a claim of Firefox or
 Safari testing.
 
+### Optional bundled artwork
+
+**Board Colors → Custom pieces (2D) → Eyes (bundled)** selects a small,
+local set by Maurizio Monge. It is never enabled by default and does not
+overwrite your uploaded set. Select **Uploaded pieces** to return to your
+upload, or **Lichess pieces** to restore the native choice. No images are
+downloaded at runtime. The same 2D-only, live-update behavior applies.
+Adding, replacing or deleting a saved upload leaves Eyes selected. Deleting an
+active uploaded set restores Lichess pieces instead. The Eyes credit is shown
+only alongside the Eyes preview, never alongside an arbitrary upload.
+
+The author's [Chess Art repository](https://github.com/maurimo/chess-art)
+explicitly licenses these artworks under MIT. The packaged
+[source and attribution notes](src/pieces/eyes/README.md) record the pinned
+revision and retained legacy metadata; the full
+[MIT license](src/pieces/eyes/LICENSE) is included with the assets.
+
 ## Development workflow
 
 ### Setup
