@@ -1531,9 +1531,20 @@ g[stroke='#888'] {
 	font-size: 100% !important;
 }
 
-.lpools .perf,
 .custom {
 	font-size: 75% !important;
+}
+
+.lpools .perf,
+.lpools .custom {
+	font-size: max(14px, 0.75em) !important;
+}
+
+.lpools .perf,
+.lpools .custom,
+.lpools [data-id='custom'] {
+	color: var(--defaultWhite) !important;
+	font-weight: 400 !important;
 }
 
 .hooks__list tr.join:hover td,
