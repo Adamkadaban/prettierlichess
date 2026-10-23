@@ -180,9 +180,9 @@ describe('Test native board coordinates', () => {
 					const page = win.document;
 					page.body.className = 'coords-in';
 					page.body.innerHTML =
-						'<div class="is2d"><div class="cg-wrap orientation-white">' +
+						'<div class="is2d"><div class="main-board"><div class="cg-wrap orientation-white">' +
 						'<coords class="files" style="---cg-ccb: #123456; ---cg-ccw: #abcdef">' +
-						'<coord></coord><coord></coord></coords><cg-resize></cg-resize></div></div>';
+						'<coord></coord><coord></coord></coords><cg-resize></cg-resize></div></div></div>';
 					const style = page.createElement('style');
 					style.textContent = styles;
 					page.head.appendChild(style);
@@ -242,12 +242,76 @@ describe('Test native board coordinates', () => {
 						{defaultBoardSwitch: {newValue: false}},
 						'sync'
 					);
+					expect(
+						win.getComputedStyle(resize, '::before').backgroundColor
+					).to.equal(win.getComputedStyle(resize).color);
+					expect(colors()).to.deep.equal([
+						'rgb(255, 255, 255)',
+						'rgb(255, 255, 255)',
+					]);
+					page.querySelector('.is3d').className = 'is2d';
 					expect(colors()).to.deep.equal([
 						'rgb(17, 34, 51)',
 						'rgb(221, 238, 255)',
 					]);
 					frame.remove();
 				});
+			});
+		});
+	});
+});
+
+describe('Test native 3D board artwork', () => {
+	it('Preserves the 3D face while keeping 2D mini-board colors', () => {
+		cy.startup();
+		const build =
+			Cypress.browser.name === 'firefox' ? 'dist-firefox' : 'dist-chrome';
+		cy.readFile(`${build}/styles.css`).then((styles) => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				doc.body.appendChild(frame);
+				const win = frame.contentWindow;
+				const page = win.document;
+				page.body.innerHTML =
+					'<div class="is3d"><div class="main-board"><cg-container><cg-board>' +
+					'<square class="last-move"></square></cg-board></cg-container></div>' +
+					'<div class="is2d mini-board"><cg-container><cg-board></cg-board></cg-container></div></div>';
+				const style = page.createElement('style');
+				style.textContent =
+					'.main-board cg-board::before { content: ""; background-image: linear-gradient(#aaa, #333); }' +
+					styles;
+				page.head.appendChild(style);
+				const board = page.querySelector('.main-board cg-board');
+				const mini = page.querySelector('.mini-board cg-board');
+				const art = win.getComputedStyle(
+					board,
+					'::before'
+				).backgroundImage;
+				expect(art).to.contain('linear-gradient');
+				expect(win.getComputedStyle(board, '::after').display).to.equal(
+					'none'
+				);
+				expect(
+					win.getComputedStyle(mini, '::after').display
+				).not.to.equal('none');
+				expect(
+					win.getComputedStyle(mini, '::after').backgroundImage
+				).to.contain('repeating-conic-gradient');
+				expect(
+					win.getComputedStyle(board.querySelector('square'))
+						.backgroundColor
+				).not.to.equal('rgba(0, 0, 0, 0)');
+				page.querySelector('.is3d').className = 'is2d';
+				expect(
+					win.getComputedStyle(board, '::after').display
+				).not.to.equal('none');
+				expect(
+					win.getComputedStyle(board, '::after').backgroundImage
+				).to.contain('repeating-conic-gradient');
+				expect(
+					win.getComputedStyle(board, '::before').backgroundImage
+				).to.equal(art);
+				frame.remove();
 			});
 		});
 	});
@@ -593,6 +657,106 @@ describe('Test native 3D mobile geometry fixtures', () => {
 	});
 });
 
+describe('Test account menu open-state fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 1440, account: true},
+		{width: 390, account: true},
+		{width: 1440, account: false},
+	].forEach(({width, account}) => {
+		it(`Keeps the ${
+			account ? 'account' : 'preferences'
+		} toggle stable at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'account-menu-fixture';
+				frame.style.cssText = `width: ${width}px; height: 400px; border: 0; max-width: none;`;
+				frame.srcdoc = `<!doctype html><html><head><style>
+					* { box-sizing: border-box; }
+					body { margin: 0; }
+					#top { height: 60px; display: flex; justify-content: flex-end; }
+					.site-buttons { display: flex; align-items: center; position: relative; }
+					.dasher { display: flex; align-items: center; }
+					.toggle { height: 60px; line-height: 60px; padding: 0 .7rem; border: 0; background: transparent; }
+					#user_tag { max-width: 36vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+					#user_tag::after { content: 'O'; font-size: 2rem; margin-left: .5rem; color: #aaa; }
+					.dropdown { display: none; position: absolute; top: 60px; right: 0; width: 225px; height: 100px; background: #444; }
+					.shown .toggle { background: #444; color: #fff; }
+					.shown .dropdown { display: block; }
+				</style><link rel="stylesheet" href="/styles.css"></head><body>
+					<header id="top"><span class="accent" style="color: var(--primaryColor)"></span>
+						<div class="site-buttons">
+							<div class="notify shown"><button class="toggle link">Notifications</button></div>
+							<div class="dasher"><button ${
+								account
+									? 'id="user_tag"'
+									: 'aria-label="Preferences"'
+							} class="toggle link">${
+								account ? 'ExamplePlayer' : 'Settings'
+							}</button>
+								<div id="dasher_app" class="dropdown">Menu</div></div>
+						</div>
+					</header>
+				</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#account-menu-fixture')
+				.should(($frame) => {
+					expect(
+						$frame[0].contentDocument.querySelector('link')?.sheet
+							?.cssRules.length || 0
+					).to.be.greaterThan(0);
+				})
+				.then(($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					const dasher = doc.querySelector('.dasher');
+					const button = dasher.querySelector('.toggle');
+					const bounds = () => {
+						const r = button.getBoundingClientRect();
+						return [r.x, r.y, r.width, r.height];
+					};
+					const closed = bounds();
+					const notification = win.getComputedStyle(
+						doc.querySelector('.notify .toggle')
+					).backgroundColor;
+					dasher.classList.add('shown');
+					const accent = win.getComputedStyle(
+						doc.querySelector('.accent')
+					).color;
+					expect(
+						win.getComputedStyle(button).backgroundColor
+					).to.equal('rgba(0, 0, 0, 0)');
+					expect(win.getComputedStyle(button).color).to.equal(accent);
+					if (account)
+						expect(
+							win.getComputedStyle(button, '::after').color
+						).to.equal(accent);
+					expect(
+						bounds(),
+						'open state does not move or resize the control'
+					).to.deep.equal(closed);
+					expect(
+						win.getComputedStyle(doc.querySelector('.dropdown'))
+							.display
+					).to.equal('block');
+					expect(
+						win.getComputedStyle(
+							doc.querySelector('.notify .toggle')
+						).backgroundColor
+					).to.equal(notification);
+					dasher.classList.remove('shown');
+					expect(bounds()).to.deep.equal(closed);
+					expect(
+						win.getComputedStyle(doc.querySelector('.dropdown'))
+							.display
+					).to.equal('none');
+				});
+		});
+	});
+});
+
 describe('Test color pickrs', () => {
 	beforeEach(cy.startup);
 
@@ -906,6 +1070,148 @@ describe('Test navigation containing-block fixtures', () => {
 					);
 					expect(bounds.bottom).to.be.closeTo(800, 1);
 				}
+			});
+		});
+	});
+});
+
+describe('Test donation badge header fixtures', () => {
+	beforeEach(cy.startup);
+
+	[1440, 714, 713, 390].forEach((width) => {
+		it(`Preserves native donation alignment and visibility at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'donation-header-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 900px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				// Native layout contracts: ui/lib/css/header/{header,title,buttons}.
+				frame.srcdoc = `<!doctype html>
+					<html><head>
+						<style>
+							* { box-sizing: border-box; }
+							html { ---site-header-height: 60px; font-size: 14px; }
+							body { margin: 0; line-height: 1.5; }
+							#top {
+								height: var(---site-header-height); display: flex;
+								justify-content: space-between; position: relative;
+								max-width: 1800px; margin: 0 auto;
+							}
+							.site-title-nav { display: flex; justify-content: flex-start; }
+							.site-title {
+								display: flex; align-items: center; white-space: nowrap;
+								padding: 0 1rem; margin-inline-start: 0.5rem;
+								font-size: 30px; transform: translateY(-3px);
+							}
+							.site-name { display: none; }
+							.site-icon { display: block; }
+							@media (min-width: 1120px) {
+								.site-name { display: block; }
+								.site-icon { display: none; }
+							}
+							@media (max-width: 1019px) {
+								.site-title { margin-inline-start: calc(0.5rem + var(---site-header-height)); }
+							}
+							@media (max-width: 499px) {
+								.site-title { display: none; }
+							}
+							.site-title-nav__donate {
+								display: flex; align-items: center; justify-content: center;
+								white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+								max-width: 30vw; text-transform: uppercase;
+								padding: 0 1.1rem 0 1.3rem; margin: 6px 0 5px 0;
+							}
+							.site-title-nav__donate::before {
+								content: '\\e06c'; font-family: lichess; font-size: 1.2em;
+								vertical-align: middle; text-transform: none;
+								position: relative; right: 5px; top: -1px;
+							}
+							.site-buttons { display: flex; align-items: center; position: relative; }
+							.site-buttons .link {
+								display: block; height: var(---site-header-height);
+								line-height: var(---site-header-height); padding: 0 20px;
+							}
+							@media (max-width: 650px) {
+								.site-title-nav__donate { display: none; }
+							}
+						</style>
+						<link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<header id="top">
+							<div class="site-title-nav">
+								<a class="site-title" href="/"><span class="site-name">lichess<span>.org</span></span><i class="site-icon">&#xe07a;</i></a>
+								<a class="site-title-nav__donate" href="/patron">Donate</a>
+							</div>
+							<div class="site-buttons"><a class="link" href="#signin">Sign in</a></div>
+						</header>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#donation-header-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const link = doc.querySelector('link[rel="stylesheet"]');
+				expect(link, 'built stylesheet link').to.exist;
+				expect(link.sheet, 'loaded built stylesheet').to.exist;
+				expect(link.sheet.cssRules.length).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+
+				const rect = (selector) =>
+					doc.querySelector(selector).getBoundingClientRect();
+				const header = rect('#top');
+				const logo = rect('.site-title');
+				const buttons = rect('.site-buttons');
+				expect(header.height).to.equal(60);
+				if (width >= 500) {
+					expect(logo.top, 'native logo translation').to.be.closeTo(
+						header.top - 3,
+						0.1
+					);
+					expect(logo.height).to.be.closeTo(header.height, 0.1);
+				}
+				expect(buttons.top, 'native header controls').to.be.closeTo(
+					header.top,
+					0.1
+				);
+				expect(buttons.right).to.be.closeTo(header.right, 0.1);
+				expect(buttons.height).to.be.closeTo(header.height, 0.1);
+
+				const donate = doc.querySelector('.site-title-nav__donate');
+				const style = win.getComputedStyle(donate);
+				expect(style.visibility).to.equal(
+					width <= 713 ? 'hidden' : 'visible'
+				);
+				if (width <= 650) {
+					expect(
+						style.display,
+						'native narrow-screen collapse'
+					).to.equal('none');
+					expect(donate.getClientRects()).to.have.length(0);
+					return;
+				}
+
+				const bounds = donate.getBoundingClientRect();
+				expect(bounds.top, 'native top margin').to.be.closeTo(
+					header.top + 6,
+					0.1
+				);
+				expect(bounds.bottom, 'native bottom margin').to.be.closeTo(
+					header.bottom - 5,
+					0.1
+				);
+				expect(
+					bounds.left,
+					'badge follows logo without moving it'
+				).to.be.closeTo(logo.right, 0.1);
+				const range = doc.createRange();
+				range.selectNodeContents(donate);
+				const text = range.getBoundingClientRect();
+				expect(text.height).to.be.greaterThan(0);
+				expect(
+					(text.top + text.bottom) / 2,
+					'text is vertically centered'
+				).to.be.closeTo((bounds.top + bounds.bottom) / 2, 2);
 			});
 		});
 	});
@@ -2069,6 +2375,61 @@ describe('Test broadcast landscape layout fixtures', () => {
 	});
 });
 
+describe('Test themed button label readability', () => {
+	beforeEach(cy.startup);
+
+	['light', 'dark'].forEach((scheme) => {
+		it(`Removes native ${scheme} shadows from themed button labels`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'button-label-fixture';
+				frame.srcdoc = `<!doctype html><html><head><style>
+					body { font-size: 14px; }
+					.button {
+						display: inline-block; font: 500 14px sans-serif;
+						text-shadow: .5px .5px 0 ${
+							scheme === 'light'
+								? 'rgba(0, 0, 0, .7)'
+								: 'rgba(0, 0, 0, .8)'
+						};
+					}
+					.button.disabled { opacity: .5; }
+				</style><link rel="stylesheet" href="/styles.css"></head><body>
+					<a class="button button-green text">Create a new tournament</a>
+					<button class="button">Register</button>
+					<button class="button disabled" disabled>Unavailable</button>
+				</body></html>`;
+				frame.style.cssText = 'width: 600px; height: 250px; border: 0;';
+				doc.body.appendChild(frame);
+			});
+			cy.get('#button-label-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length || 0
+				).to.be.greaterThan(0);
+				for (const button of doc.querySelectorAll('.button')) {
+					expect(
+						win.getComputedStyle(button).textShadow,
+						'no native shadow is composited onto the extension text'
+					).to.equal('none');
+					const range = doc.createRange();
+					range.selectNodeContents(button);
+					const text = range.getBoundingClientRect();
+					const box = button.getBoundingClientRect();
+					expect(text.left).to.be.at.least(box.left);
+					expect(text.right).to.be.at.most(box.right);
+					expect(text.top).to.be.at.least(box.top);
+					expect(text.bottom).to.be.at.most(box.bottom);
+				}
+				const disabled = doc.querySelector('button:disabled');
+				expect(disabled.disabled).to.equal(true);
+				expect(win.getComputedStyle(disabled).opacity).to.equal('0.5');
+			});
+		});
+	});
+});
+
 describe('Test analysis control palette fixtures', () => {
 	beforeEach(cy.startup);
 
@@ -2899,6 +3260,125 @@ describe('Test round markup fixtures', () => {
 	});
 });
 
+describe('Test profile activity timeline fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 390, direction: 'ltr'},
+		{width: 500, direction: 'ltr'},
+		{width: 740, direction: 'ltr'},
+		{width: 1280, direction: 'ltr'},
+		{width: 1280, direction: 'rtl'},
+	].forEach(({width, direction}) => {
+		it(`Preserves native profile activity alignment at ${width}px ${direction}`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'profile-activity-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 800px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html><html dir="${direction}"><head>
+					<style>
+						*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+						html { font-size: clamp(12px, calc(12px + 2 * ((100vw - 300px) / 900)), 14px); }
+						body { overflow-x: hidden; }
+						.activity section { font-size: 1.2em; margin-inline-start: 2rem; padding-top: 1rem; }
+						.activity section h2 { font-size: 1.2em; margin-bottom: 10px; }
+						.activity .entries { display: flex; flex-flow: column; }
+						.activity .entry {
+							display: flex; flex-flow: row wrap; align-items: center;
+							min-height: 64px; position: relative; padding: 6px 0;
+						}
+						.activity .entry:not(:first-child) { margin-top: -4px; }
+						.activity .entry > div { max-width: 100%; }
+						.activity .entry > icon {
+							position: absolute; top: 7px; font-size: 24px; float: inline-start;
+							width: 50px; height: 50px; margin-inline-start: -72px;
+							line-height: 39px; text-align: center; background-color: #d59120;
+							border: 3px solid #262421; border-radius: 50%; color: #fff;
+						}
+						.activity score { margin-left: auto; font-size: .7em; display: flex; gap: 8px; }
+						.activity score > * { display: flex; gap: 4px; align-items: center; }
+						@media (max-width: 799px) { .activity section { margin-inline-end: 2em; } }
+						@media (min-width: 500px) {
+							.activity .entries { margin: 0 50px; border-inline-start: 3px solid #d59120; }
+							.activity .entry { padding-inline-start: 45px; }
+						}
+						.timeline .entry { padding: 8px 0; }
+					</style><link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<div class="activity"><section>
+							<h2><time>Today</time></h2><div class="entries">
+								<div class="entry"><icon data-icon="Z"></icon><div>Played 3 Blitz games</div>
+									<score><win><strong>2</strong> wins</win><loss><strong>1</strong> loss</loss></score></div>
+								<div class="entry"><icon data-icon="Y"></icon><div>Played 1 Rapid game</div>
+									<score><win><strong>1</strong> win</win></score></div>
+							</div>
+						</section></div>
+						<div class="timeline"><div class="entry">Homepage activity</div></div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#profile-activity-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length || 0,
+					'loaded built stylesheet'
+				).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+				const entries = doc.querySelector('.activity .entries');
+				const spine = win.getComputedStyle(entries);
+				const spineWidth = parseFloat(spine.borderInlineStartWidth);
+				const hasSpine = width >= 500;
+				expect(spineWidth > 0, 'responsive spine').to.equal(hasSpine);
+				expect(spine.borderInlineEndWidth).to.equal('0px');
+				for (const entry of entries.children) {
+					const row = entry.getBoundingClientRect();
+					const text = entry
+						.querySelector('div')
+						.getBoundingClientRect();
+					const icon = entry.querySelector('icon');
+					const style = win.getComputedStyle(icon);
+					const bounds = icon.getBoundingClientRect();
+					expect(bounds.width, 'rendered icon').to.be.greaterThan(0);
+					expect(bounds.top).to.be.at.least(row.top);
+					expect(bounds.bottom).to.be.at.most(row.bottom);
+					expect(text.left).to.be.at.least(row.left);
+					expect(text.right).to.be.at.most(row.right);
+					expect(
+						direction === 'rtl'
+							? bounds.left - text.right
+							: text.left - bounds.right,
+						'icon separated from activity text'
+					).to.be.greaterThan(0);
+					expect(style.backgroundColor).to.equal(
+						spine.borderInlineStartColor
+					);
+					if (hasSpine) {
+						const rect = entries.getBoundingClientRect();
+						const center =
+							direction === 'rtl'
+								? rect.right - spineWidth / 2
+								: rect.left + spineWidth / 2;
+						expect(
+							bounds.left + bounds.width / 2,
+							'icon centered on the spine'
+						).to.be.closeTo(center, 1);
+					}
+				}
+				const homepage = win.getComputedStyle(
+					doc.querySelector('.timeline .entry')
+				);
+				expect(homepage.paddingTop).to.equal('0px');
+				expect(homepage.paddingBottom).to.equal('0px');
+				expect(homepage.paddingLeft).to.equal('10px');
+				expect(homepage.paddingRight).to.equal('10px');
+			});
+		});
+	});
+});
+
 describe('Test Explorer spacing stylesheet providers', () => {
 	beforeEach(cy.startup);
 
@@ -3583,4 +4063,593 @@ describe('Test import/export', () => {
 			cy.get('#fileSelector').should('have.value', '');
 		});
 	});
+});
+
+describe('Test optional custom pieces', () => {
+	const names = [
+		'wK',
+		'wQ',
+		'wR',
+		'wB',
+		'wN',
+		'wP',
+		'bK',
+		'bQ',
+		'bR',
+		'bB',
+		'bN',
+		'bP',
+	];
+	let files;
+	let nativeImage;
+
+	function stored(win) {
+		return JSON.parse(win.localStorage.getItem('local:pieceSet'));
+	}
+
+	function upload(selected = files) {
+		cy.get('#pieceFiles').should('be.enabled').selectFile(selected);
+	}
+
+	function mountPieces() {
+		cy.document().then((doc) => {
+			nativeImage = `data:image/png;base64,${files[11].contents.toString(
+				'base64'
+			)}`;
+			const fixture = doc.createElement('div');
+			fixture.id = 'piece-fixture';
+			fixture.innerHTML =
+				'<div id="main-wrap" class="is2d"><cg-board><piece class="white king" data-name="wK"></piece></cg-board><div class="mini-board orientation-black"><cg-board><piece class="black knight" data-name="bN"></piece></cg-board></div><div id="promotion-choice"><piece class="white queen" data-name="wQ"></piece></div><div class="is3d"><piece class="white king"></piece></div></div><div class="is3d"><cg-board><piece class="black knight"></piece></cg-board></div>';
+			doc.body.appendChild(fixture);
+			const native = doc.createElement('style');
+			native.textContent = `#piece-fixture piece { background-image: url("${nativeImage}"); }`;
+			doc.head.appendChild(native);
+			const script = doc.createElement('script');
+			script.src = 'pieceContent.js';
+			return new Cypress.Promise((resolve, reject) => {
+				script.onload = resolve;
+				script.onerror = reject;
+				doc.head.appendChild(script);
+			});
+		});
+	}
+
+	beforeEach(() => {
+		cy.visit('http://localhost:8000/popup.html?pieces');
+		cy.location('search').should('eq', '?pieces');
+		cy.window().then((win) => {
+			win.localStorage.clear();
+			const canvas = win.document.createElement('canvas');
+			canvas.width = canvas.height = 32;
+			const context = canvas.getContext('2d');
+			files = names.map((name, index) => {
+				context.clearRect(0, 0, 32, 32);
+				context.fillStyle = `hsl(${index * 30}, 80%, 50%)`;
+				context.fillRect(8, 8, 16, 16);
+				context.fillStyle = '#000';
+				context.font = '8px sans-serif';
+				context.fillText(name, 10, 20);
+				return {
+					contents: Cypress.Buffer.from(
+						canvas.toDataURL('image/png').split(',')[1],
+						'base64'
+					),
+					fileName: `${name}.png`,
+					mimeType: 'image/png',
+				};
+			});
+		});
+		cy.reload();
+		cy.get('#pieceFiles').should('be.enabled');
+	});
+
+	it('Imports atomically, opts in, persists and restores native pieces without changing other settings', () => {
+		cy.window().then((win) => {
+			win.localStorage.setItem('primaryColor', '#123456');
+			win.localStorage.setItem('layoutPreference', 'lichess');
+			win.localStorage.setItem('local:savedProfiles', 'keep me');
+		});
+		cy.get('#pieceSetSelect').should('have.value', 'native');
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
+		cy.get('#pieceSetSelect').should('have.value', 'native');
+		cy.get('#piecePreview img').should('have.length', 12);
+		cy.get('#piecePreviewLabel')
+			.should('be.visible')
+			.and('have.text', 'Saved upload (not active)');
+		cy.get('#piecePreview img')
+			.first()
+			.should(($image) => {
+				expect($image[0].naturalWidth).to.eq(32);
+			})
+			.then(($image) => {
+				const canvas = $image[0].ownerDocument.createElement('canvas');
+				canvas.width = canvas.height = 32;
+				const context = canvas.getContext('2d');
+				context.drawImage($image[0], 0, 0);
+				expect(context.getImageData(0, 0, 1, 1).data[3]).to.eq(0);
+				expect(context.getImageData(10, 10, 1, 1).data[3]).to.eq(255);
+			});
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
+		cy.reload();
+		cy.get('#pieceSetSelect').should('have.value', 'uploaded');
+		cy.get('#pieceSetSelect').select('native');
+		cy.get('#piecePreviewLabel').should('be.visible');
+		cy.window().should((win) => {
+			expect(stored(win).selection).to.eq('native');
+			expect(Object.keys(stored(win).uploaded)).to.have.length(12);
+			expect(win.localStorage.getItem('primaryColor')).to.eq('#123456');
+			expect(win.localStorage.getItem('layoutPreference')).to.eq(
+				'lichess'
+			);
+			expect(win.localStorage.getItem('local:savedProfiles')).to.eq(
+				'keep me'
+			);
+		});
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.get('#deletePieces').click();
+		cy.window().should((win) => expect(stored(win).uploaded).to.eq(null));
+		cy.get('#pieceSetSelect').should('have.value', 'native');
+		cy.get('#piecePreview img').should('not.exist');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
+	});
+
+	it('Rejects incomplete, duplicate, disguised, oversized and damaged PNGs without replacing the active set', () => {
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.window().then((win) => {
+			const previous = stored(win);
+			const tooWide = Cypress.Buffer.from(files[0].contents);
+			tooWide.writeUInt32BE(1024, 16);
+			const animated = Cypress.Buffer.concat([
+				files[0].contents.subarray(0, 33),
+				Cypress.Buffer.from([
+					0, 0, 0, 8, 97, 99, 84, 76, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+					0,
+				]),
+				files[0].contents.subarray(33),
+			]);
+			const invalid = [
+				{
+					name: 'missing bP.png',
+					selected: files.slice(0, 11),
+					message: 'Choose all 12 PNG files',
+				},
+				{
+					name: 'duplicate wQ.png',
+					selected: [files[1], ...files.slice(1)],
+					message: 'Use each documented filename exactly once',
+				},
+				{
+					name: 'SVG disguised as PNG',
+					selected: [
+						{...files[0], contents: Cypress.Buffer.from('<svg/>')},
+						...files.slice(1),
+					],
+					message: 'Only PNG images are supported',
+				},
+				{
+					name: 'file exceeds 128 KiB',
+					selected: [
+						{
+							...files[0],
+							contents: Cypress.Buffer.alloc(128 * 1024 + 1),
+						},
+						...files.slice(1),
+					],
+					message: 'no larger than 128 KiB',
+				},
+				{
+					name: 'truncated PNG header',
+					selected: [
+						{
+							...files[0],
+							contents: files[0].contents.subarray(0, 24),
+						},
+						...files.slice(1),
+					],
+					message: 'Incomplete PNG data',
+				},
+				{
+					name: '1024-pixel PNG width',
+					selected: [
+						{...files[0], contents: tooWide},
+						...files.slice(1),
+					],
+					message: 'Each PNG must be square',
+				},
+				{
+					name: 'animated PNG',
+					selected: [
+						{...files[0], contents: animated},
+						...files.slice(1),
+					],
+					message: 'Animated PNGs are not supported',
+				},
+			];
+			for (const {name, selected, message} of invalid) {
+				cy.log(name);
+				upload(selected);
+				cy.get('#pieceStatus')
+					.should('be.visible')
+					.and(($status) => {
+						expect($status.attr('data-error'), name).to.eq('true');
+						expect($status.text(), name).to.include(message);
+					});
+				cy.window().should((current) =>
+					expect(stored(current), name).to.deep.eq(previous)
+				);
+				cy.get('#pieceSetSelect')
+					.should('be.enabled')
+					.and('have.value', 'uploaded');
+				cy.get('#pieceStatus').should(
+					'have.attr',
+					'data-error',
+					'true'
+				);
+			}
+			cy.log('file read failure');
+			cy.then(() => {
+				cy.stub(
+					win.FileReader.prototype,
+					'readAsArrayBuffer'
+				).callsFake(function () {
+					this.onerror();
+				});
+			});
+			upload();
+			cy.get('#pieceStatus')
+				.should('be.visible')
+				.and('have.attr', 'data-error', 'true')
+				.and('contain.text', 'Could not read');
+			cy.window().should((current) =>
+				expect(stored(current)).to.deep.eq(previous)
+			);
+		});
+	});
+
+	it('Shows storage failures and keeps the previous set', () => {
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.window().then((win) => {
+			win.pieceStorageError = true;
+		});
+		cy.get('#pieceSetSelect').select('native');
+		cy.get('#pieceStatus').should('contain.text', 'Could not save');
+		cy.get('#pieceSetSelect').should('have.value', 'uploaded');
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Could not save');
+		cy.window().should((win) =>
+			expect(stored(win).selection).to.eq('uploaded')
+		);
+	});
+
+	it('Updates rendered pieces live, includes promotions and mini boards, and leaves 3D native', () => {
+		mountPieces();
+		cy.get('#prettierlichess-pieces').should('not.exist');
+		upload();
+		cy.get('#pieceStatus').should('contain.text', 'Upload saved');
+		cy.get('#prettierlichess-pieces').should('not.exist');
+		cy.get('#pieceSetSelect').select('uploaded');
+		cy.get('#prettierlichess-pieces').should('exist');
+		cy.window().then((win) => {
+			cy.get('#piece-fixture piece[data-name]').each(($piece) => {
+				expect($piece.css('background-image')).to.eq(
+					`url("${stored(win).uploaded[$piece.attr('data-name')]}")`
+				);
+			});
+		});
+		cy.get('#piece-fixture .is3d piece').each(($piece) => {
+			expect($piece.css('background-image')).to.eq(
+				`url("${nativeImage}")`
+			);
+		});
+		cy.get('#main-wrap').invoke('attr', 'class', 'is3d');
+		cy.get('#piece-fixture piece').each(($piece) => {
+			expect($piece.css('background-image')).to.eq(
+				`url("${nativeImage}")`
+			);
+		});
+		cy.get('#main-wrap').invoke('attr', 'class', 'is2d');
+		cy.get('#pieceSetSelect').select('native');
+		cy.get('#prettierlichess-pieces').should('not.exist');
+		cy.get('#piece-fixture piece').each(($piece) => {
+			expect($piece.css('background-image')).to.eq(
+				`url("${nativeImage}")`
+			);
+		});
+	});
+
+	it('Rejects incomplete, corrupt and undecodable restored images before overriding native pieces', () => {
+		cy.then(() => {
+			const corrupt = Cypress.Buffer.from(files[0].contents);
+			corrupt[corrupt.length - 17] ^= 1;
+			for (const bytes of [
+				files[0].contents.subarray(0, 24),
+				files[0].contents.subarray(0, files[0].contents.length - 12),
+				corrupt,
+			]) {
+				cy.window().then((win) => {
+					win.localStorage.setItem(
+						'local:pieceSet',
+						JSON.stringify({
+							version: 1,
+							selection: 'uploaded',
+							uploaded: Object.fromEntries(
+								names.map((name) => [
+									name,
+									`data:image/png;base64,${bytes.toString(
+										'base64'
+									)}`,
+								])
+							),
+						})
+					);
+				});
+				cy.reload();
+				mountPieces();
+				cy.get('#pieceStatus').should(
+					'contain.text',
+					'Saved pieces are invalid'
+				);
+				cy.get('#pieceSetSelect').should('have.value', 'native');
+				cy.get('#prettierlichess-pieces').should('not.exist');
+				cy.get('#piece-fixture piece').each(($piece) => {
+					expect($piece.css('background-image')).to.eq(
+						`url("${nativeImage}")`
+					);
+				});
+			}
+		});
+		cy.window().then((win) => {
+			cy.stub(win.HTMLImageElement.prototype, 'decode')
+				.rejects(new Error('Image decode failed'))
+				.as('decodeFailure');
+			win.chrome.storage.local.set(
+				{
+					pieceSet: {
+						version: 1,
+						selection: 'uploaded',
+						uploaded: Object.fromEntries(
+							files.map((file, index) => [
+								names[index],
+								`data:image/png;base64,${file.contents.toString(
+									'base64'
+								)}`,
+							])
+						),
+					},
+				},
+				() => {}
+			);
+		});
+		cy.get('@decodeFailure').should('have.been.called');
+		cy.get('#pieceSetSelect')
+			.should('be.enabled')
+			.and('have.value', 'native');
+		cy.get('#pieceStatus').should(
+			'contain.text',
+			'Saved pieces are invalid'
+		);
+		cy.get('#prettierlichess-pieces').should('not.exist');
+	});
+
+	it('Keeps the latest selection when older image decoding finishes later', () => {
+		let release;
+		let holding = true;
+		mountPieces();
+		cy.window().then((win) => {
+			const pending = new Cypress.Promise((resolve) => {
+				release = resolve;
+			});
+			cy.stub(win.HTMLImageElement.prototype, 'decode')
+				.callsFake(() =>
+					holding ? pending : Cypress.Promise.resolve()
+				)
+				.as('decodeGate');
+			win.chrome.storage.local.set(
+				{
+					pieceSet: {
+						version: 1,
+						selection: 'uploaded',
+						uploaded: Object.fromEntries(
+							files.map((file, index) => [
+								names[index],
+								`data:image/png;base64,${file.contents.toString(
+									'base64'
+								)}`,
+							])
+						),
+					},
+				},
+				() => {}
+			);
+		});
+		cy.get('@decodeGate').should('have.been.called');
+		cy.window().then((win) => {
+			win.chrome.storage.local.set(
+				{
+					pieceSet: {version: 1, selection: 'native', uploaded: null},
+				},
+				() => {}
+			);
+		});
+		cy.get('#pieceSetSelect')
+			.should('be.enabled')
+			.and('have.value', 'native');
+		cy.then(() => {
+			holding = false;
+			release();
+		});
+		cy.get('@decodeGate').should('have.callCount', 24);
+		cy.get('#pieceSetSelect').should('have.value', 'native');
+		cy.get('#prettierlichess-pieces').should('not.exist');
+		cy.get('#piece-fixture piece').each(($piece) => {
+			expect($piece.css('background-image')).to.eq(
+				`url("${nativeImage}")`
+			);
+		});
+	});
+
+	it('Keeps Eyes selected while adding, replacing and deleting an inactive upload', () => {
+		cy.get('#eyesAttribution').should('not.be.visible');
+		cy.get('#pieceSetSelect').select('eyes');
+		cy.get('#eyesAttribution').should('be.visible');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
+		cy.get('#piecePreview img')
+			.should('have.length', 12)
+			.each(($image) => {
+				expect($image.attr('src')).to.include('/pieces/eyes/');
+			});
+		cy.get('#piecePreview img')
+			.first()
+			.should(($image) => {
+				expect($image[0].naturalWidth).to.be.greaterThan(0);
+			});
+		cy.window().should((win) => expect(stored(win).uploaded).to.eq(null));
+		upload();
+		cy.get('#pieceFiles').should('be.enabled');
+		cy.get('#pieceSetSelect').should('have.value', 'eyes');
+		cy.window().then((win) => {
+			const previous = stored(win).uploaded;
+			expect(Object.keys(previous)).to.have.length(12);
+			upload(
+				files.map((file, index) => ({
+					...file,
+					contents: files[(index + 1) % files.length].contents,
+				}))
+			);
+			cy.get('#pieceFiles').should('be.enabled');
+			cy.window().should((current) => {
+				expect(stored(current).selection).to.eq('eyes');
+				expect(stored(current).uploaded).not.to.deep.eq(previous);
+			});
+			cy.reload();
+			cy.get('#pieceSetSelect').should('have.value', 'eyes');
+		});
+		cy.get('#eyesAttribution').should('be.visible');
+		cy.get('#piecePreviewLabel').should('not.be.visible');
+		cy.get('#pieceStatus').should(
+			'not.contain.text',
+			'Lichess pieces restored'
+		);
+		cy.get('#piecePreview img').each(($image) => {
+			expect($image.attr('src')).to.include('/pieces/eyes/');
+		});
+		cy.window().then((win) => {
+			const replacement = stored(win).uploaded;
+			cy.get('#pieceSetSelect').select('native');
+			cy.get('#eyesAttribution').should('not.be.visible');
+			cy.get('#piecePreviewLabel').should('be.visible');
+			cy.get('#pieceSetSelect').select('uploaded');
+			cy.get('#eyesAttribution').should('not.be.visible');
+			cy.get('#piecePreviewLabel').should('not.be.visible');
+			cy.window().should((current) =>
+				expect(stored(current).uploaded).to.deep.eq(replacement)
+			);
+		});
+		cy.get('#pieceSetSelect').select('eyes');
+		cy.get('#deletePieces').click();
+		cy.get('#pieceFiles').should('be.enabled');
+		cy.window().should((win) => {
+			expect(stored(win).selection).to.eq('eyes');
+			expect(stored(win).uploaded).to.eq(null);
+		});
+		cy.get('#pieceSetSelect').should('have.value', 'eyes');
+		cy.get('#deletePieces').should('be.disabled');
+		cy.get('#piecePreview img')
+			.should('have.length', 12)
+			.each(($image) => {
+				expect($image.attr('src')).to.include('/pieces/eyes/');
+			});
+		cy.get('#piecePreviewLabel').should('not.be.visible');
+		cy.get('#eyesAttribution').should('be.visible');
+		cy.get('#pieceStatus').should(
+			'not.contain.text',
+			'Lichess pieces restored'
+		);
+	});
+
+	for (const outcome of ['success', 'failure']) {
+		it(`Ignores superseded import ${outcome} after a storage update and newer selection`, () => {
+			let release;
+			let expected;
+			let status;
+			let input;
+			cy.window().then((win) => {
+				const read = win.FileReader.prototype.readAsArrayBuffer;
+				cy.stub(
+					win.FileReader.prototype,
+					'readAsArrayBuffer'
+				).callsFake(function (file) {
+					if (!release) {
+						release = () =>
+							outcome === 'success'
+								? read.call(this, file)
+								: this.onerror();
+					} else {
+						read.call(this, file);
+					}
+				});
+				cy.spy(win.HTMLCanvasElement.prototype, 'toDataURL').as(
+					'importEncode'
+				);
+				expected = {
+					version: 1,
+					selection: 'uploaded',
+					uploaded: Object.fromEntries(
+						names.map((name, index) => [
+							name,
+							`data:image/png;base64,${files[
+								(index + 1) % files.length
+							].contents.toString('base64')}`,
+						])
+					),
+				};
+			});
+			upload();
+			cy.get('#pieceSetSelect').should('be.disabled');
+			cy.window().then((win) => {
+				win.chrome.storage.local.set(
+					{
+						pieceSet: {...expected, selection: 'native'},
+					},
+					() => {}
+				);
+			});
+			cy.get('#pieceSetSelect').should('be.enabled').select('uploaded');
+			cy.get('#pieceSetSelect').should('be.enabled');
+			cy.get('#pieceStatus')
+				.invoke('text')
+				.then((text) => {
+					status = text;
+				});
+			cy.get('#pieceFiles')
+				.invoke('val')
+				.then((value) => {
+					input = value;
+				});
+			cy.then(() => release());
+			if (outcome === 'success') {
+				cy.get('@importEncode').should('have.callCount', 12);
+			}
+			cy.window().should((win) =>
+				expect(stored(win)).to.deep.eq(expected)
+			);
+			cy.get('#pieceSetSelect')
+				.should('be.enabled')
+				.and('have.value', 'uploaded');
+			cy.get('#pieceStatus').should(($status) => {
+				expect($status.text()).to.eq(status);
+				expect($status.attr('data-error')).to.eq('false');
+			});
+			cy.get('#pieceFiles').should(($files) => {
+				expect($files.val()).to.eq(input);
+				expect($files.prop('disabled')).to.eq(false);
+			});
+		});
+	}
 });

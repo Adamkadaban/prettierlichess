@@ -5,8 +5,44 @@ const conversions = {
 	true: true,
 	false: false,
 };
+const storageListeners = [];
 const chrome = {
+	runtime: {
+		getURL: (path) => new URL(path, location.href).href,
+	},
 	storage: {
+		onChanged: {
+			addListener: (listener) => storageListeners.push(listener),
+		},
+		local: {
+			get: function (key, caller) {
+				caller({
+					[key]: JSON.parse(localStorage.getItem(`local:${key}`)),
+				});
+			},
+			set: function (items, caller) {
+				if (window.pieceStorageError) {
+					chrome.runtime.lastError = {
+						message: 'Mock storage failure',
+					};
+					caller();
+					delete chrome.runtime.lastError;
+					return;
+				}
+				const changes = {};
+				for (const [key, value] of Object.entries(items)) {
+					const oldValue = JSON.parse(
+						localStorage.getItem(`local:${key}`)
+					);
+					localStorage.setItem(`local:${key}`, JSON.stringify(value));
+					changes[key] = {oldValue, newValue: value};
+				}
+				caller();
+				storageListeners.forEach((listener) =>
+					listener(changes, 'local')
+				);
+			},
+		},
 		sync: {
 			// The synced storage is mocked with localStorage
 			get: function (request, caller) {
@@ -15,6 +51,7 @@ const chrome = {
 				let convertedLocalStorage = {};
 
 				for (let key in localStorage) {
+					if (key.startsWith('local:')) continue;
 					let value = localStorage[key];
 
 					if (value in conversions) {
@@ -34,7 +71,9 @@ const chrome = {
 				}
 			},
 			clear: async function (caller) {
-				localStorage.clear();
+				for (const key of Object.keys(localStorage)) {
+					if (!key.startsWith('local:')) localStorage.removeItem(key);
+				}
 				await Promise.resolve();
 				if (caller) {
 					caller();
@@ -42,7 +81,6 @@ const chrome = {
 			},
 		},
 	},
-	runtime: {},
 	// The downloads-API is simulated with a HTML element
 	downloads: {
 		download: function (options) {

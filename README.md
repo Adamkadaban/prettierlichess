@@ -30,6 +30,10 @@ The extension is not published in the Apple Store, but it is possible to get it 
 To install the extension, go to the official website for [Firefox](https://addons.mozilla.org/en-US/firefox/addon/prettier-lichess) or [Chrome](https://chrome.google.com/webstore/detail/prettier-lichess/epgnobcgnmchnhgkgpedebbmhbblfcob). Set Lichess to dark background to have the best compatibility with prettierlichess. \
 With the pop-up you can then customise the colours and choose themes. Have fun!
 
+Custom square colours apply to 2D boards. In 3D mode, Lichess's selected board
+artwork is preserved so the surface and frame match. Last-move and other
+highlight colours still apply.
+
 ### Importing colours
 
 Import a JSON object containing colour names and `#RRGGBB` or `#RRGGBBAA`
@@ -45,6 +49,62 @@ as well (except native-board colours).
 ## Community Themes
 
 Check out the community driven theme library [here](https://github.com/algertc/prettierlichess-themes).
+
+## Optional custom pieces
+
+In **Board Colors → Custom pieces (2D)**, upload all 12 images together:
+
+```
+wK.png  wQ.png  wR.png  wB.png  wN.png  wP.png
+bK.png  bQ.png  bR.png  bB.png  bN.png  bP.png
+```
+
+`w`/`b` mean white/black; `K Q R B N P` mean king, queen, rook, bishop,
+knight, pawn. Names are case-sensitive (the `.png` extension is not).
+Only static square PNG images from 16×16 to 512×512 pixels are supported, at most
+128 KiB per file (1.5 MiB for the complete input). SVG, JPEG, WebP and archives
+are not accepted. Animated PNGs are rejected. PNGs are decoded and re-encoded, retaining
+transparency and discarding metadata. The same size limit applies after
+re-encoding. Use images you have permission to use.
+
+Uploading saves a set but **does not enable it**. Select **Uploaded pieces**
+to opt in. A preview helps check the filenames; **Saved upload (not active)**
+identifies an uploaded preview while Lichess pieces are selected. Missing, duplicate, unreadable
+or invalid files and storage failures leave the previous saved set unchanged.
+Restored images undergo the same complete PNG integrity and decoding checks
+before any override is applied. Invalid saved data falls back to native pieces
+and is reported in the popup; older asynchronous reads cannot replace a newer
+selection.
+Select **Lichess pieces** to restore your native selection, or **Delete upload**
+to remove the saved images. Changes apply to open pages and survive reloads.
+Custom pieces affect 2D pieces, including mini boards, dragging and promotions;
+3D pieces and Lichess's own piece preference are never changed.
+
+One set is stored in extension-local storage, never synced or uploaded.
+Normalized image data is bounded to about 2 MiB including base64 encoding.
+Piece controls do not modify colors, profiles or layout. Color profile
+import/export and **Reset to Defaults** do not include or reset pieces.
+Use **Open in a tab for easier uploading** if the browser closes the popup
+when opening a file picker. The implementation uses standard WebExtension
+storage APIs; Chromium is the validation target, not a claim of Firefox or
+Safari testing.
+
+### Optional bundled artwork
+
+**Board Colors → Custom pieces (2D) → Eyes (bundled)** selects a small,
+local set by Maurizio Monge. It is never enabled by default and does not
+overwrite your uploaded set. Select **Uploaded pieces** to return to your
+upload, or **Lichess pieces** to restore the native choice. No images are
+downloaded at runtime. The same 2D-only, live-update behavior applies.
+Adding, replacing or deleting a saved upload leaves Eyes selected. Deleting an
+active uploaded set restores Lichess pieces instead. The Eyes credit is shown
+only alongside the Eyes preview, never alongside an arbitrary upload.
+
+The author's [Chess Art repository](https://github.com/maurimo/chess-art)
+explicitly licenses these artworks under MIT. The packaged
+[source and attribution notes](src/pieces/eyes/README.md) record the pinned
+revision and retained legacy metadata; the full
+[MIT license](src/pieces/eyes/LICENSE) is included with the assets.
 
 ## Development workflow
 

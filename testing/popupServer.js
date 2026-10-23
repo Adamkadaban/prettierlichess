@@ -19,12 +19,13 @@ function timestamp() {
 }
 
 function requestHandler(request, response) {
+	const pathname = new URL(request.url, 'http://localhost').pathname;
 	let filePath;
 
-	if (request.url === '/') {
+	if (pathname === '/') {
 		filePath = './popup.html';
 	} else {
-		filePath = './' + request.url;
+		filePath = './' + pathname;
 	}
 	const mimeType = mime.getType(filePath);
 
@@ -37,7 +38,7 @@ function requestHandler(request, response) {
 			response.end();
 		} else {
 			// If the requested script is the popup script, the mock gets injected
-			if (request.url === '/popup.js') {
+			if (pathname === '/popup.js') {
 				content = popupMockContent + content;
 				console.log(
 					`[127.0.0.1:${port}] - [${timestamp()}] Injected mock data`
