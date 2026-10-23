@@ -2893,6 +2893,125 @@ describe('Test round markup fixtures', () => {
 	});
 });
 
+describe('Test profile activity timeline fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 390, direction: 'ltr'},
+		{width: 500, direction: 'ltr'},
+		{width: 740, direction: 'ltr'},
+		{width: 1280, direction: 'ltr'},
+		{width: 1280, direction: 'rtl'},
+	].forEach(({width, direction}) => {
+		it(`Preserves native profile activity alignment at ${width}px ${direction}`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'profile-activity-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 800px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html><html dir="${direction}"><head>
+					<style>
+						*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+						html { font-size: clamp(12px, calc(12px + 2 * ((100vw - 300px) / 900)), 14px); }
+						body { overflow-x: hidden; }
+						.activity section { font-size: 1.2em; margin-inline-start: 2rem; padding-top: 1rem; }
+						.activity section h2 { font-size: 1.2em; margin-bottom: 10px; }
+						.activity .entries { display: flex; flex-flow: column; }
+						.activity .entry {
+							display: flex; flex-flow: row wrap; align-items: center;
+							min-height: 64px; position: relative; padding: 6px 0;
+						}
+						.activity .entry:not(:first-child) { margin-top: -4px; }
+						.activity .entry > div { max-width: 100%; }
+						.activity .entry > icon {
+							position: absolute; top: 7px; font-size: 24px; float: inline-start;
+							width: 50px; height: 50px; margin-inline-start: -72px;
+							line-height: 39px; text-align: center; background-color: #d59120;
+							border: 3px solid #262421; border-radius: 50%; color: #fff;
+						}
+						.activity score { margin-left: auto; font-size: .7em; display: flex; gap: 8px; }
+						.activity score > * { display: flex; gap: 4px; align-items: center; }
+						@media (max-width: 799px) { .activity section { margin-inline-end: 2em; } }
+						@media (min-width: 500px) {
+							.activity .entries { margin: 0 50px; border-inline-start: 3px solid #d59120; }
+							.activity .entry { padding-inline-start: 45px; }
+						}
+						.timeline .entry { padding: 8px 0; }
+					</style><link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<div class="activity"><section>
+							<h2><time>Today</time></h2><div class="entries">
+								<div class="entry"><icon data-icon="Z"></icon><div>Played 3 Blitz games</div>
+									<score><win><strong>2</strong> wins</win><loss><strong>1</strong> loss</loss></score></div>
+								<div class="entry"><icon data-icon="Y"></icon><div>Played 1 Rapid game</div>
+									<score><win><strong>1</strong> win</win></score></div>
+							</div>
+						</section></div>
+						<div class="timeline"><div class="entry">Homepage activity</div></div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#profile-activity-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length || 0,
+					'loaded built stylesheet'
+				).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+				const entries = doc.querySelector('.activity .entries');
+				const spine = win.getComputedStyle(entries);
+				const spineWidth = parseFloat(spine.borderInlineStartWidth);
+				const hasSpine = width >= 500;
+				expect(spineWidth > 0, 'responsive spine').to.equal(hasSpine);
+				expect(spine.borderInlineEndWidth).to.equal('0px');
+				for (const entry of entries.children) {
+					const row = entry.getBoundingClientRect();
+					const text = entry
+						.querySelector('div')
+						.getBoundingClientRect();
+					const icon = entry.querySelector('icon');
+					const style = win.getComputedStyle(icon);
+					const bounds = icon.getBoundingClientRect();
+					expect(bounds.width, 'rendered icon').to.be.greaterThan(0);
+					expect(bounds.top).to.be.at.least(row.top);
+					expect(bounds.bottom).to.be.at.most(row.bottom);
+					expect(text.left).to.be.at.least(row.left);
+					expect(text.right).to.be.at.most(row.right);
+					expect(
+						direction === 'rtl'
+							? bounds.left - text.right
+							: text.left - bounds.right,
+						'icon separated from activity text'
+					).to.be.greaterThan(0);
+					expect(style.backgroundColor).to.equal(
+						spine.borderInlineStartColor
+					);
+					if (hasSpine) {
+						const rect = entries.getBoundingClientRect();
+						const center =
+							direction === 'rtl'
+								? rect.right - spineWidth / 2
+								: rect.left + spineWidth / 2;
+						expect(
+							bounds.left + bounds.width / 2,
+							'icon centered on the spine'
+						).to.be.closeTo(center, 1);
+					}
+				}
+				const homepage = win.getComputedStyle(
+					doc.querySelector('.timeline .entry')
+				);
+				expect(homepage.paddingTop).to.equal('0px');
+				expect(homepage.paddingBottom).to.equal('0px');
+				expect(homepage.paddingLeft).to.equal('10px');
+				expect(homepage.paddingRight).to.equal('10px');
+			});
+		});
+	});
+});
+
 describe('Test Explorer spacing stylesheet providers', () => {
 	beforeEach(cy.startup);
 
