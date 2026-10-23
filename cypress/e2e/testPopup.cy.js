@@ -445,6 +445,106 @@ describe('Test native 3D mobile geometry fixtures', () => {
 	});
 });
 
+describe('Test account menu open-state fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 1440, account: true},
+		{width: 390, account: true},
+		{width: 1440, account: false},
+	].forEach(({width, account}) => {
+		it(`Keeps the ${
+			account ? 'account' : 'preferences'
+		} toggle stable at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'account-menu-fixture';
+				frame.style.cssText = `width: ${width}px; height: 400px; border: 0; max-width: none;`;
+				frame.srcdoc = `<!doctype html><html><head><style>
+					* { box-sizing: border-box; }
+					body { margin: 0; }
+					#top { height: 60px; display: flex; justify-content: flex-end; }
+					.site-buttons { display: flex; align-items: center; position: relative; }
+					.dasher { display: flex; align-items: center; }
+					.toggle { height: 60px; line-height: 60px; padding: 0 .7rem; border: 0; background: transparent; }
+					#user_tag { max-width: 36vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+					#user_tag::after { content: 'O'; font-size: 2rem; margin-left: .5rem; color: #aaa; }
+					.dropdown { display: none; position: absolute; top: 60px; right: 0; width: 225px; height: 100px; background: #444; }
+					.shown .toggle { background: #444; color: #fff; }
+					.shown .dropdown { display: block; }
+				</style><link rel="stylesheet" href="/styles.css"></head><body>
+					<header id="top"><span class="accent" style="color: var(--primaryColor)"></span>
+						<div class="site-buttons">
+							<div class="notify shown"><button class="toggle link">Notifications</button></div>
+							<div class="dasher"><button ${
+								account
+									? 'id="user_tag"'
+									: 'aria-label="Preferences"'
+							} class="toggle link">${
+								account ? 'ExamplePlayer' : 'Settings'
+							}</button>
+								<div id="dasher_app" class="dropdown">Menu</div></div>
+						</div>
+					</header>
+				</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#account-menu-fixture')
+				.should(($frame) => {
+					expect(
+						$frame[0].contentDocument.querySelector('link')?.sheet
+							?.cssRules.length || 0
+					).to.be.greaterThan(0);
+				})
+				.then(($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					const dasher = doc.querySelector('.dasher');
+					const button = dasher.querySelector('.toggle');
+					const bounds = () => {
+						const r = button.getBoundingClientRect();
+						return [r.x, r.y, r.width, r.height];
+					};
+					const closed = bounds();
+					const notification = win.getComputedStyle(
+						doc.querySelector('.notify .toggle')
+					).backgroundColor;
+					dasher.classList.add('shown');
+					const accent = win.getComputedStyle(
+						doc.querySelector('.accent')
+					).color;
+					expect(
+						win.getComputedStyle(button).backgroundColor
+					).to.equal('rgba(0, 0, 0, 0)');
+					expect(win.getComputedStyle(button).color).to.equal(accent);
+					if (account)
+						expect(
+							win.getComputedStyle(button, '::after').color
+						).to.equal(accent);
+					expect(
+						bounds(),
+						'open state does not move or resize the control'
+					).to.deep.equal(closed);
+					expect(
+						win.getComputedStyle(doc.querySelector('.dropdown'))
+							.display
+					).to.equal('block');
+					expect(
+						win.getComputedStyle(
+							doc.querySelector('.notify .toggle')
+						).backgroundColor
+					).to.equal(notification);
+					dasher.classList.remove('shown');
+					expect(bounds()).to.deep.equal(closed);
+					expect(
+						win.getComputedStyle(doc.querySelector('.dropdown'))
+							.display
+					).to.equal('none');
+				});
+		});
+	});
+});
+
 describe('Test color pickrs', () => {
 	beforeEach(cy.startup);
 
