@@ -1,6 +1,8 @@
 // All Chrome-API functions are replaced.
 // This code is added to the beginning of popup.js when an http server is started.
 
+const storageListeners = [];
+
 function mockStorage(area) {
 	const prefix = area === 'local' ? 'local:' : '';
 	function keys() {
@@ -10,7 +12,16 @@ function mockStorage(area) {
 				: !key.startsWith('local:')
 		);
 	}
-	async function complete(action, caller) {
+	function read(key) {
+		const value = localStorage.getItem(prefix + key);
+		if (value === null) return undefined;
+		try {
+			return JSON.parse(value);
+		} catch {
+			return value;
+		}
+	}
+	async function complete(action, caller, changes) {
 		let result;
 		let failure;
 		try {
@@ -27,6 +38,9 @@ function mockStorage(area) {
 		} finally {
 			delete chrome.runtime.lastError;
 		}
+		if (!failure && changes) {
+			storageListeners.forEach((listener) => listener(changes, area));
+		}
 	}
 	return {
 		get: function (request, caller) {
@@ -41,13 +55,9 @@ function mockStorage(area) {
 						? request
 						: Object.keys(request);
 				for (const key of requested) {
-					const value = localStorage.getItem(prefix + key);
-					if (value !== null) {
-						try {
-							result[key] = JSON.parse(value);
-						} catch {
-							result[key] = value;
-						}
+					const value = read(key);
+					if (value !== undefined) {
+						result[key] = value;
 					} else if (
 						request &&
 						typeof request === 'object' &&
@@ -60,14 +70,24 @@ function mockStorage(area) {
 			}, caller);
 		},
 		set: function (items, caller) {
-			return complete(() => {
-				for (const key in items) {
-					localStorage.setItem(
-						prefix + key,
-						JSON.stringify(items[key])
-					);
-				}
-			}, caller);
+			const changes = {};
+			return complete(
+				() => {
+					if (area === 'local' && window.pieceStorageError) {
+						throw new Error('Mock storage failure');
+					}
+					for (const key in items) {
+						const oldValue = read(key);
+						localStorage.setItem(
+							prefix + key,
+							JSON.stringify(items[key])
+						);
+						changes[key] = {oldValue, newValue: items[key]};
+					}
+				},
+				caller,
+				changes
+			);
 		},
 		clear: function (caller) {
 			return complete(() => {
@@ -80,6 +100,9 @@ function mockStorage(area) {
 const chrome = {
 	runtime: {},
 	storage: {
+		onChanged: {
+			addListener: (listener) => storageListeners.push(listener),
+		},
 		sync: mockStorage('sync'),
 		local: mockStorage('local'),
 	},

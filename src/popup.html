@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 	<head>
+		<meta charset="utf-8" />
 		<title>Prettier Lichess</title>
 		<link href="popupStyles.css" rel="stylesheet" type="text/css" />
 		<link href="nano.min.css" rel="stylesheet" type="text/css" />
@@ -55,9 +56,47 @@
 			</div>
 
 			<div id="boardColorGroup" class="hideGroup">
+				<details id="customPiecesGroup">
+					<summary>Custom pieces (2D)</summary>
+					<label for="pieceSetSelect">Piece set</label>
+					<select id="pieceSetSelect" disabled>
+						<option value="native">Lichess pieces</option>
+						<option value="uploaded" disabled
+							>Uploaded pieces</option
+						>
+					</select>
+					<p id="piecePreviewLabel" hidden
+						>Saved upload (not active)</p
+					>
+					<div
+						id="piecePreview"
+						aria-label="Uploaded piece preview"></div>
+					<label for="pieceFiles">Upload a complete set</label>
+					<input
+						id="pieceFiles"
+						type="file"
+						accept=".png,image/png"
+						multiple
+						disabled
+						aria-describedby="pieceHelp" />
+					<p id="pieceHelp">
+						12 square PNGs, 16–512 pixels, up to 128 KiB each.
+						Filenames: wK.png, wQ.png, wR.png, wB.png, wN.png,
+						wP.png, bK.png, bQ.png, bR.png, bB.png, bN.png, bP.png.
+						No SVGs. Images stay on this device. Upload first, then
+						select Uploaded pieces to apply. 3D stays native.
+					</p>
+					<button class="button" id="deletePieces" disabled
+						>Delete upload</button
+					>
+					<p id="pieceStatus" role="status" aria-live="polite"></p>
+					<a href="popup.html?pieces" target="_blank"
+						>Open in a tab for easier uploading</a
+					>
+				</details>
 				<div class="customBoardGroup">
 					<div class="button" id="hideBoardColors">
-						Don't Use Custom Board Colors
+						Don't Use Custom 2D Board Colors
 					</div>
 					<div class="listItem boardColorSelector">
 						<span>dark square color</span>
@@ -147,6 +186,7 @@
 				<div class="button" id="importAction">Save</div>
 			</div>
 		</div>
+		<script src="pieceSets.js"></script>
 		<script src="popup.js" type="module"></script>
 	</body>
 </html>

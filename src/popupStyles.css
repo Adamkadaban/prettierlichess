@@ -99,6 +99,75 @@ body {
 	background-color: #484f54;
 }
 
+#customPiecesGroup {
+	background-color: #3f474d;
+	border-radius: 4px;
+	padding: 12px;
+	margin-bottom: 20px;
+	font-size: 12px;
+}
+
+#customPiecesGroup summary {
+	cursor: pointer;
+	font-size: 14px;
+}
+
+#customPiecesGroup label {
+	display: block;
+	margin: 12px 0 6px;
+}
+
+#pieceSetSelect {
+	box-sizing: border-box;
+	width: 100%;
+	background-color: #272a2c;
+	border: 2px solid #4e565c;
+	border-radius: 4px;
+	color: white;
+	padding: 8px;
+}
+
+#pieceFiles {
+	width: 100%;
+	font: inherit;
+}
+
+#pieceHelp,
+#pieceStatus {
+	line-height: 1.5;
+}
+
+#pieceStatus[data-error='true'] {
+	color: #ffb9b9;
+}
+
+#customPiecesGroup a {
+	color: #9fc0a2;
+}
+
+#customPiecesGroup .button {
+	background-color: #4e565c;
+}
+
+#customPiecesGroup :disabled {
+	cursor: default;
+	opacity: 0.6;
+}
+
+#piecePreview {
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 4px;
+	margin-top: 8px;
+}
+
+#piecePreview img {
+	width: 100%;
+	aspect-ratio: 1;
+	background-color: #71828f;
+	border-radius: 4px;
+}
+
 /* Button section */
 
 #buttonRow {
