@@ -2659,15 +2659,15 @@ describe('Test broadcast landscape layout fixtures', () => {
 				if (kind !== 'game' || height >= width) {
 					expect(mainStyle.gridTemplateAreas).to.equal(stackedAreas);
 					const boardWidth =
-						kind === 'game'
-							? width
-							: main.clientWidth -
+						kind === 'study'
+							? main.clientWidth -
 							  parseFloat(mainStyle.paddingLeft) -
-							  parseFloat(mainStyle.paddingRight);
+							  parseFloat(mainStyle.paddingRight)
+							: width;
 					expect(boardRect.width).to.equal(boardWidth);
 					expect(boardRect.height).to.equal(boardWidth);
 					expect(win.getComputedStyle(board).marginLeft).to.equal(
-						kind === 'game' ? '-10px' : '0px'
+						kind === 'study' ? '0px' : '-10px'
 					);
 					expect(toolsStyle.height).to.equal(`${height / 2}px`);
 					expect(toolsStyle.marginBottom).to.equal('20px');
