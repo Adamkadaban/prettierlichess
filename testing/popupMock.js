@@ -1,11 +1,102 @@
 // All Chrome-API functions are replaced.
 // This code is added to the beginning of popup.js when an http server is started.
 
-const conversions = {
-	true: true,
-	false: false,
-};
 const storageListeners = [];
+
+function mockStorage(area) {
+	const prefix = area === 'local' ? 'local:' : '';
+	function keys() {
+		return Object.keys(localStorage).filter((key) =>
+			area === 'local'
+				? key.startsWith('local:')
+				: !key.startsWith('local:')
+		);
+	}
+	function read(key) {
+		const value = localStorage.getItem(prefix + key);
+		if (value === null) return undefined;
+		try {
+			return JSON.parse(value);
+		} catch {
+			return value;
+		}
+	}
+	async function complete(action, caller, changes) {
+		let result;
+		let failure;
+		try {
+			result = action();
+		} catch (error) {
+			failure = error;
+		}
+		await Promise.resolve();
+		try {
+			if (failure) {
+				chrome.runtime.lastError = {message: failure.message};
+			}
+			caller?.(result);
+		} finally {
+			delete chrome.runtime.lastError;
+		}
+		if (!failure && changes) {
+			storageListeners.forEach((listener) => listener(changes, area));
+		}
+	}
+	return {
+		get: function (request, caller) {
+			complete(() => {
+				const result = {};
+				const requested =
+					request === null
+						? keys().map((key) => key.slice(prefix.length))
+						: typeof request === 'string'
+						? [request]
+						: Array.isArray(request)
+						? request
+						: Object.keys(request);
+				for (const key of requested) {
+					const value = read(key);
+					if (value !== undefined) {
+						result[key] = value;
+					} else if (
+						request &&
+						typeof request === 'object' &&
+						!Array.isArray(request)
+					) {
+						result[key] = request[key];
+					}
+				}
+				return result;
+			}, caller);
+		},
+		set: function (items, caller) {
+			const changes = {};
+			return complete(
+				() => {
+					if (area === 'local' && window.pieceStorageError) {
+						throw new Error('Mock storage failure');
+					}
+					for (const key in items) {
+						const oldValue = read(key);
+						localStorage.setItem(
+							prefix + key,
+							JSON.stringify(items[key])
+						);
+						changes[key] = {oldValue, newValue: items[key]};
+					}
+				},
+				caller,
+				changes
+			);
+		},
+		clear: function (caller) {
+			return complete(() => {
+				for (const key of keys()) localStorage.removeItem(key);
+			}, caller);
+		},
+	};
+}
+
 const chrome = {
 	runtime: {
 		getURL: (path) => new URL(path, location.href).href,
@@ -14,72 +105,8 @@ const chrome = {
 		onChanged: {
 			addListener: (listener) => storageListeners.push(listener),
 		},
-		local: {
-			get: function (key, caller) {
-				caller({
-					[key]: JSON.parse(localStorage.getItem(`local:${key}`)),
-				});
-			},
-			set: function (items, caller) {
-				if (window.pieceStorageError) {
-					chrome.runtime.lastError = {
-						message: 'Mock storage failure',
-					};
-					caller();
-					delete chrome.runtime.lastError;
-					return;
-				}
-				const changes = {};
-				for (const [key, value] of Object.entries(items)) {
-					const oldValue = JSON.parse(
-						localStorage.getItem(`local:${key}`)
-					);
-					localStorage.setItem(`local:${key}`, JSON.stringify(value));
-					changes[key] = {oldValue, newValue: value};
-				}
-				caller();
-				storageListeners.forEach((listener) =>
-					listener(changes, 'local')
-				);
-			},
-		},
-		sync: {
-			// The synced storage is mocked with localStorage
-			get: function (request, caller) {
-				// This conversion is necessary because synced can store all
-				// data types and localStorage can only store strings.
-				let convertedLocalStorage = {};
-
-				for (let key in localStorage) {
-					if (key.startsWith('local:')) continue;
-					let value = localStorage[key];
-
-					if (value in conversions) {
-						value = conversions[value];
-					}
-					convertedLocalStorage[key] = value;
-				}
-				caller(convertedLocalStorage);
-			},
-			set: async function (items, caller) {
-				for (let item in items) {
-					localStorage.setItem(item, items[item]);
-				}
-				await Promise.resolve();
-				if (caller) {
-					caller();
-				}
-			},
-			clear: async function (caller) {
-				for (const key of Object.keys(localStorage)) {
-					if (!key.startsWith('local:')) localStorage.removeItem(key);
-				}
-				await Promise.resolve();
-				if (caller) {
-					caller();
-				}
-			},
-		},
+		sync: mockStorage('sync'),
+		local: mockStorage('local'),
 	},
 	// The downloads-API is simulated with a HTML element
 	downloads: {

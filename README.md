@@ -34,6 +34,21 @@ Custom square colours apply to 2D boards. In 3D mode, Lichess's selected board
 artwork is preserved so the surface and frame match. Last-move and other
 highlight colours still apply.
 
+### Saved color profiles
+
+Expand **Saved Color Profiles** in the popup to name and save your current colors,
+including colors you have imported. Choose a saved profile to apply it immediately;
+use **Reapply** to reapply the selected profile. Use the name field to rename it, or
+delete it without changing your current colors.
+Profiles include default values for colors you have not customized. Switching
+profiles leaves layout, vertical mode, and the native/custom board preference alone.
+Profiles saved while using a native board use the default custom-board colors.
+
+Saved profiles stay **local to this browser** (not synced between devices), avoiding
+sync storage's per-item size limit. Importing a color JSON or resetting colors does
+not delete them. Export Profile still exports only the current colors, not the saved
+profile collection.
+
 ### Importing colours
 
 Import a JSON object containing colour names and `#RRGGBB` or `#RRGGBBAA`

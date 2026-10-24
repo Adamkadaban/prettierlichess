@@ -18,6 +18,289 @@ const NAMES = [
 	'alternateArrowColor',
 ];
 
+describe('Test homepage support-card palette', () => {
+	let frame;
+
+	beforeEach(cy.startup);
+
+	afterEach(() => {
+		cy.then(() => {
+			frame?.remove();
+			frame = undefined;
+		});
+	});
+
+	[
+		{label: 'default', color: null, expected: 'rgb(245, 194, 118)'},
+		{label: 'custom', color: '#80b6ef', expected: 'rgb(128, 182, 239)'},
+	].forEach(({label, color, expected}) => {
+		it(`Uses the ${label} secondary color for current and legacy cards`, () => {
+			const build =
+				Cypress.browser.name === 'firefox'
+					? 'dist-firefox'
+					: 'dist-chrome';
+			cy.readFile(`${build}/styles.css`).then((styles) => {
+				cy.document().then((doc) => {
+					frame = doc.createElement('iframe');
+					doc.body.appendChild(frame);
+					const win = frame.contentWindow;
+					const page = win.document;
+					page.body.innerHTML = `<div class="lobby__support">
+						<a id="support-current" class="lobby__support-link" href="/patron">
+							<icon data-icon="&#xe06c;"></icon>
+							<span class="lobby__support-link__text"><strong>Donate</strong><span>Become a Lichess Patron</span></span>
+						</a>
+						<a id="support-legacy" href="/patron">
+							<i data-icon="&#xe06c;"></i>
+							<span class="lobby__support__text"><strong>Donate</strong><span>Become a Lichess Patron</span></span>
+						</a>
+					</div>`;
+					const style = page.createElement('style');
+					style.textContent = `
+						[data-icon]::before { content: attr(data-icon); }
+						.lobby__support-link icon, .lobby__support-link__text,
+						.lobby__support i::before, .lobby__support__text { color: #bf811d; }
+						.lobby__support a:hover icon, .lobby__support a:hover icon::before,
+						.lobby__support a:hover i::before, .lobby__support a:hover > span { color: #d59120; }
+					${styles}`;
+					page.head.appendChild(style);
+					// Project stylesheet states; live acceptance covers real pointer hover.
+					const projectHover = (rules) => {
+						for (const rule of rules) {
+							if (rule.selectorText?.includes(':hover')) {
+								rule.selectorText =
+									rule.selectorText.replaceAll(
+										':hover',
+										'.fixture-hover'
+									);
+							}
+							if (rule.cssRules) projectHover(rule.cssRules);
+						}
+					};
+					projectHover(style.sheet.cssRules);
+					if (color) {
+						page.documentElement.style.setProperty(
+							'--secondaryColor',
+							color,
+							'important'
+						);
+					}
+					const assertColors = () => {
+						for (const card of page.querySelectorAll('a')) {
+							const text = card.querySelector('span');
+							const icon = card.querySelector('icon, i');
+							expect(
+								win.getComputedStyle(text).color,
+								card.id
+							).to.equal(expected);
+							expect(
+								win.getComputedStyle(
+									text.querySelector('strong')
+								).color
+							).to.equal(expected);
+							expect(
+								win.getComputedStyle(icon, '::before').color
+							).to.equal(expected);
+							if (icon.tagName === 'ICON') {
+								expect(
+									win.getComputedStyle(icon).color
+								).to.equal(expected);
+							}
+						}
+					};
+					assertColors();
+					const cards = [...page.querySelectorAll('a')];
+					expect(cards).to.have.length(2);
+					for (const card of cards) {
+						card.classList.add('fixture-hover');
+					}
+					cy.wrap(page.querySelector('#support-current')).should(
+						'have.css',
+						'background-color',
+						'rgb(64, 66, 70)'
+					);
+					cy.then(assertColors);
+					cy.then(() => {
+						for (const card of cards) {
+							card.classList.remove('fixture-hover');
+						}
+					});
+					cy.wrap(page.querySelector('#support-current')).should(
+						'have.css',
+						'background-color',
+						'rgb(51, 53, 56)'
+					);
+					cy.then(assertColors);
+				});
+			});
+		});
+	});
+});
+
+describe('Test homepage viewport fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 1920, height: 900},
+		{width: 1920, height: 720},
+		{width: 1440, height: 900},
+		{width: 1261, height: 720},
+		{width: 1260, height: 720},
+		{width: 740, height: 390},
+		{width: 390, height: 844},
+		{width: 1920, height: 900, layout: 'lichess'},
+	].forEach(({width, height, layout = 'default'}) => {
+		it(`Keeps ${layout} homepage panels readable at ${width}x${height}`, () => {
+			const build =
+				Cypress.browser.name === 'firefox'
+					? 'dist-firefox'
+					: 'dist-chrome';
+			cy.readFile(`${build}/content.js`).then((content) => {
+				cy.document().then((doc) => {
+					const frame = doc.createElement('iframe');
+					frame.id = 'homepage-viewport-fixture';
+					frame.style.cssText =
+						`width: ${width}px; height: ${height}px; border: 0; ` +
+						'max-width: none; flex-shrink: 0;';
+					frame.srcdoc = `<!doctype html><html><head><style>
+						* { box-sizing: border-box; }
+						html { font-size: 14px; }
+						body { margin: 0; --c-bg-opaque: #262421; ---site-header-height: 60px; ---site-header-margin: 0px; ---sticky-gap: 4px; }
+						@media (max-height: 499px) and (orientation: landscape) { body { ---site-header-height: 40px; ---sticky-gap: 0px; } }
+						main.lobby {
+							display: grid; gap: 15px; margin: calc(var(---site-header-height) + var(---site-header-margin) + var(---sticky-gap)) auto 0;
+							width: min(1600px, calc(100% - 32px)) !important;
+							grid-template-columns: repeat(4, minmax(0, 1fr));
+							grid-template-areas: 'side app app table' 'tv blog blog puzzle' 'support feed feed tours';
+						}
+						.lobby__tv { grid-area: tv; }
+						.lobby__app { grid-area: app; min-height: 300px; display: flex; flex-direction: column; }
+						@media (min-width: 500px) { .lobby__app { min-height: 400px; } }
+						.lobby__side { grid-area: side; }
+						.lobby__table { grid-area: table; }
+						.lobby__blog { grid-area: blog; }
+						.lobby__support { grid-area: support; }
+						.lobby__puzzle { grid-area: puzzle; }
+						.lobby__feed { grid-area: feed; }
+						.lobby__tournaments-simuls { grid-area: tours; }
+						.lobby__support-link { display: flex; height: 70px; margin-bottom: 15px; }
+						.mini-game { display: block; }
+						.mini-game__player { height: 22px; }
+						.mini-game .cg-wrap { width: 100%; aspect-ratio: 1; }
+						.lobby__app .tabs-horiz { height: 36px; flex-shrink: 0; }
+						.lpools { display: grid; flex: 1; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); }
+						.lpools .clock { display: block; line-height: 1.6em; letter-spacing: .1em; }
+						@media (max-width: 713px) { .lobby__tv > .lobby__support-link { display: none; } }
+					</style><link rel="stylesheet" href="/styles.css"></head><body>
+						<div id="main-wrap"><main class="lobby">
+							<div class="lobby__app"><div class="tabs-horiz">Quick pairing</div>
+								<div class="lobby__app__content lpools">${Array.from(
+									{length: 12},
+									() =>
+										'<div><span class="clock">3+2</span><span class="perf">Blitz</span></div>'
+								).join('')}</div></div>
+							<div class="lobby__tv"><a class="lobby__support-link">Donate</a>
+								<a class="mini-game"><div class="mini-game__player">White 0:30</div>
+									<div class="cg-wrap"></div><div class="mini-game__player">Black 0:30</div></a></div>
+							<div class="lobby__side">Streams</div><div class="lobby__table">Create a game</div>
+							<div class="lobby__blog">News</div><div class="lobby__support"><a class="lobby__support-link">Donate</a></div>
+							<div class="lobby__puzzle"></div><div class="lobby__feed"></div><div class="lobby__tournaments-simuls"></div>
+						</main></div>
+					</body></html>`;
+					doc.body.appendChild(frame);
+				});
+				cy.get('#homepage-viewport-fixture')
+					.should(($frame) => {
+						expect(
+							$frame[0].contentDocument.querySelector('link')
+								?.sheet?.cssRules.length || 0
+						).to.be.greaterThan(0);
+					})
+					.then(($frame) => {
+						const win = $frame[0].contentWindow;
+						win.chrome = {
+							storage: {
+								sync: {
+									get: (keys, callback) =>
+										callback({layoutPreference: layout}),
+								},
+								onChanged: {addListener() {}},
+							},
+							runtime: {onMessage: {addListener() {}}},
+						};
+						const script = win.document.createElement('script');
+						script.textContent = content;
+						win.document.body.appendChild(script);
+					});
+			});
+			cy.get('#homepage-viewport-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				const tv = doc.querySelector('.lobby__tv');
+				const pairing = doc.querySelector('.lobby__app');
+				const board = doc
+					.querySelector('.cg-wrap')
+					.getBoundingClientRect();
+				const banner = tv.querySelector('.lobby__support-link');
+				expect(board.width).to.be.closeTo(board.height, 1);
+				expect(board.width).to.be.greaterThan(250);
+				expect(
+					doc
+						.querySelector('.lobby__support a')
+						.getBoundingClientRect().height,
+					'dedicated support panel is retained'
+				).to.be.greaterThan(0);
+				if (layout === 'lichess') {
+					expect(win.getComputedStyle(banner).display).to.equal(
+						'flex'
+					);
+					expect(win.getComputedStyle(tv).maxWidth).to.equal('none');
+				} else {
+					expect(win.getComputedStyle(banner).display).to.equal(
+						'none'
+					);
+					expect(tv.getBoundingClientRect().bottom).to.be.at.most(
+						height
+					);
+					if (width > 713) {
+						const tvRect = tv.getBoundingClientRect();
+						const pairingRect = pairing.getBoundingClientRect();
+						const gap = parseFloat(
+							win.getComputedStyle(
+								doc.querySelector('main.lobby')
+							).columnGap
+						);
+						expect(
+							width > 1260
+								? tvRect.left - pairingRect.right
+								: pairingRect.left - tvRect.right,
+							'panels use the available width without an empty grid slot'
+						).to.be.closeTo(gap, 1);
+						expect(
+							pairing.getBoundingClientRect().bottom
+						).to.be.at.most(height);
+						for (const cell of doc.querySelectorAll(
+							'.lpools > div'
+						)) {
+							expect(
+								cell.getBoundingClientRect().height
+							).to.be.at.least(44);
+						}
+					} else {
+						expect(
+							pairing.getBoundingClientRect().top
+						).to.be.at.least(tv.getBoundingClientRect().bottom);
+						expect(board.width).to.be.closeTo(
+							tv.getBoundingClientRect().width,
+							1
+						);
+					}
+				}
+			});
+		});
+	});
+});
+
 describe('Test native board coordinates', () => {
 	it('Follows scoped native colors and restores custom colors', () => {
 		cy.startup();
@@ -201,7 +484,6 @@ describe('Test native 3D mobile geometry fixtures', () => {
 		{kind: 'analysis', mode: '2d', width: 1440, height: 900},
 		{kind: 'study', mode: '2d', width: 390, height: 844},
 		{kind: 'study', mode: '3d', width: 390, height: 844},
-		{kind: 'puzzle', mode: '2d', width: 740, height: 900, gutter: 10},
 		{
 			kind: 'study',
 			mode: '2d',
@@ -210,7 +492,6 @@ describe('Test native 3D mobile geometry fixtures', () => {
 			gutter: 10,
 			orientation: 'black',
 		},
-		{kind: 'tv', mode: '2d', width: 740, height: 900, gutter: 10},
 	].forEach((testCase) => {
 		const {
 			kind,
@@ -222,7 +503,7 @@ describe('Test native 3D mobile geometry fixtures', () => {
 			orientation = 'white',
 		} = testCase;
 		it(`Preserves ${mode} ${kind} geometry at ${width}x${height}`, () => {
-			const round = kind === 'round' || kind === 'tv';
+			const round = kind === 'round';
 			cy.document().then((doc) => {
 				const frame = doc.createElement('iframe');
 				frame.id = 'native-3d-geometry-fixture';
@@ -230,11 +511,7 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					`width: ${width}px; height: ${height}px; border: 0; ` +
 					'max-width: none; flex-shrink: 0;';
 				const board = `<div class="main-board ${
-					round
-						? 'round__app__board'
-						: kind === 'puzzle'
-						? 'puzzle__board'
-						: 'analyse__board'
+					round ? 'round__app__board' : 'analyse__board'
 				}">${
 					kind === 'study'
 						? `<div class="study__player study__player-top"><div class="left"><span class="info"><span class="name">${
@@ -277,7 +554,7 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					#top { position: sticky; top: 0; height: var(---site-header-height); z-index: 106; }
 					#main-wrap { display: grid; grid-template-areas: 'main'; margin-top: .5vmin; }
 					main { grid-area: main; }
-					.analyse, .puzzle {
+					.analyse {
 						display: grid;
 						grid-template-columns: 100%;
 						grid-template-areas: 'board' 'controls' 'tools' 'side';
@@ -377,9 +654,7 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					<div id="main-wrap" class="is${mode}">
 						<main class="${
 							round
-								? `round${kind === 'tv' ? ' tv-single' : ''}`
-								: kind === 'puzzle'
-								? 'puzzle puzzle-play'
+								? 'round'
 								: `analyse${
 										kind === 'relay'
 											? ' is-relay'
@@ -524,7 +799,7 @@ describe('Test native 3D mobile geometry fixtures', () => {
 						).to.be.closeTo(476 / 512, 0.0001);
 						expect(outerRect.left).to.be.at.least(0);
 						expect(outerRect.right).to.be.at.most(width);
-					} else if (width < 800 && kind !== 'relay') {
+					} else if (width < 800 && kind === 'study') {
 						expect(
 							doc.querySelector('main').getBoundingClientRect()
 								.right,
@@ -542,14 +817,10 @@ describe('Test native 3D mobile geometry fixtures', () => {
 						expect(win.getComputedStyle(outer).marginLeft).to.equal(
 							'0px'
 						);
-					} else if (
-						mode === '2d' &&
-						kind === 'relay' &&
-						width < 800
-					) {
+					} else if (width < 800 && (!round || height >= width)) {
 						expect(
 							outerRect.width,
-							'existing relay sizing'
+							'existing mobile 2D sizing'
 						).to.equal(width);
 						expect(win.getComputedStyle(outer).marginLeft).to.equal(
 							'-10px'
@@ -2431,6 +2702,132 @@ describe('Test broadcast landscape layout fixtures', () => {
 	});
 });
 
+describe('Test current and legacy horizontal tabs', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 320},
+		{width: 390},
+		{width: 1440},
+		{width: 320, nowPlaying: true},
+		{width: 390, nowPlaying: true},
+	].forEach(({width, nowPlaying = false}) => {
+		const markup = nowPlaying ? 'four button' : 'button and span';
+		it(`Themes ${markup} tabs without clipping at ${width}px`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'horizontal-tabs-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 300px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html><html><head><style>
+					* { box-sizing: border-box; }
+					html {
+						font-size: clamp(
+							12px,
+							calc(12px + 2 * ((100vw - 300px) / 900)),
+							14px
+						);
+					}
+					body { margin: 0; padding: 10px; }
+					button { font: inherit; background: none; border: 0; }
+					.tabs-horiz {
+						display: flex; flex-wrap: nowrap; align-items: flex-end;
+						justify-content: center; max-width: 400px; margin-bottom: 20px;
+					}
+					.tabs-horiz :is(span, button) {
+						flex: 1 1 auto; min-width: 15%; white-space: nowrap;
+						overflow: hidden; text-align: center; font-family: sans-serif;
+						padding: .5em .2em; border-bottom: 2px solid transparent;
+						letter-spacing: -.5px;
+					}
+					.tabs-horiz :is(span, button).active {
+						color: #d64f00; border-color: #d64f00;
+					}
+					.tabs-horiz .unread {
+						margin-inline-start: .3em; padding: 1px 5px 1px 4px;
+						font-weight: bold; font-size: 12px;
+					}
+					.tabs-horiz span::after { content: ''; background: #d64f00; }
+					@media (max-width: 399px) { .tabs-horiz { font-size: .9em; } }
+				</style><link rel="stylesheet" href="/styles.css"></head><body>
+					<div class="lobby__app">
+					${(nowPlaying ? ['button'] : ['button', 'span'])
+						.map(
+							(tag) => `<div class="tabs-horiz">
+								<${tag} class="${nowPlaying ? '' : 'active'}">Quick pairing</${tag}>
+								<${tag}>Lobby</${tag}>
+								<${tag}>Correspondence</${tag}>
+								${
+									nowPlaying
+										? '<button role="tab" class="active">2 games in play' +
+										  '<icon class="unread">2</icon></button>'
+										: ''
+								}
+							</div>`
+						)
+						.join('')}
+					</div>
+				</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#horizontal-tabs-fixture').should(($frame) => {
+				const doc = $frame[0].contentDocument;
+				const win = $frame[0].contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length || 0
+				).to.be.greaterThan(0);
+				const accent = 'rgb(159, 192, 162)';
+				const rootSize = parseFloat(
+					win.getComputedStyle(doc.documentElement).fontSize
+				);
+				const rows = doc.querySelectorAll('.tabs-horiz');
+				expect(rows).to.have.length(nowPlaying ? 1 : 2);
+				for (const tabs of rows) {
+					expect(tabs.children).to.have.length(nowPlaying ? 4 : 3);
+					const firstRow =
+						tabs.firstElementChild.getBoundingClientRect().top;
+					for (const tab of tabs.children) {
+						const style = win.getComputedStyle(tab);
+						const active = tab.classList.contains('active');
+						expect(style.color).to.equal(
+							active ? accent : 'rgb(170, 170, 170)'
+						);
+						expect(style.borderBottomColor).to.equal(
+							active ? accent : 'rgba(0, 0, 0, 0)'
+						);
+						expect(style.paddingTop).to.equal('10px');
+						expect(parseFloat(style.fontSize)).to.be.closeTo(
+							rootSize * (width <= 713 ? 1.2 : 1),
+							0.01
+						);
+						const range = doc.createRange();
+						range.selectNodeContents(tab);
+						const text = range.getBoundingClientRect();
+						const box = tab.getBoundingClientRect();
+						if (!nowPlaying) {
+							expect(box.top).to.equal(firstRow);
+						}
+						expect(text.left).to.be.at.least(box.left);
+						expect(text.right).to.be.at.most(box.right);
+						expect(text.top).to.be.at.least(box.top);
+						expect(text.bottom).to.be.at.most(box.bottom);
+						expect(box.right).to.be.at.most(width);
+						expect(tab.scrollWidth).to.be.at.most(tab.clientWidth);
+						if (tab.tagName === 'SPAN') {
+							expect(
+								win.getComputedStyle(tab, '::after')
+									.backgroundColor
+							).to.equal(accent);
+						}
+					}
+				}
+				expect(doc.documentElement.scrollWidth).to.be.at.most(width);
+			});
+		});
+	});
+});
+
 describe('Test themed button label readability', () => {
 	beforeEach(cy.startup);
 
@@ -3208,14 +3605,9 @@ describe('Test round board layout fixtures', () => {
 					.querySelector('bo3')
 					.getBoundingClientRect();
 				if (height > width) {
-					expect(boardRect.width).to.equal(
-						doc.querySelector('.round__app').clientWidth
-					);
-					expect(boardRect.right).to.be.at.most(
-						doc.documentElement.clientWidth
-					);
+					expect(boardRect.width).to.equal(width);
 					expect(win.getComputedStyle(board).marginLeft).to.equal(
-						'0px'
+						'-10px'
 					);
 					expect(controls.top).to.be.at.least(boardRect.bottom);
 					return;
@@ -3880,7 +4272,9 @@ describe('Test import/export', () => {
 			.eq(1)
 			.shouldHaveColor(Cypress.expose('secondaryColor'));
 		cy.window().then((win) => {
-			expect(win.localStorage.getItem('preMove')).to.eq('#12345678');
+			expect(JSON.parse(win.localStorage.getItem('preMove'))).to.eq(
+				'#12345678'
+			);
 		});
 	});
 	it('Test empty export', () => {
@@ -3983,12 +4377,12 @@ describe('Test import/export', () => {
 				Object.entries(preferences).forEach(([key, value]) => {
 					expect(win.localStorage.getItem(key)).to.eq(value);
 				});
-				expect(win.localStorage.getItem('boardDark')).to.eq(
+				expect(JSON.parse(win.localStorage.getItem('boardDark'))).to.eq(
 					nativeBoard ? '#FFFFFF00' : '#123456'
 				);
-				expect(win.localStorage.getItem('boardLight')).to.eq(
-					nativeBoard ? '#FFFFFF00' : '#abcdef'
-				);
+				expect(
+					JSON.parse(win.localStorage.getItem('boardLight'))
+				).to.eq(nativeBoard ? '#FFFFFF00' : '#abcdef');
 			});
 			cy.get('#boardTab').click();
 			cy.get('.customBoardGroup > .boardColorSelector').should(
@@ -4015,9 +4409,9 @@ describe('Test import/export', () => {
 			cy.spy(mock.tabs, 'query').as('reloadTabs');
 			const reloadPopup = cy.stub().as('reloadPopup');
 			win.addEventListener('beforeunload', () => {
-				expect(win.localStorage.getItem('primaryColor')).to.eq(
-					'#18D329'
-				);
+				expect(
+					JSON.parse(win.localStorage.getItem('primaryColor'))
+				).to.eq('#18D329');
 				reloadPopup();
 			});
 		});
@@ -4123,6 +4517,320 @@ describe('Test import/export', () => {
 			});
 			cy.get('#fileSelector').should('have.value', '');
 		});
+	});
+});
+
+describe('Test saved color profiles', () => {
+	beforeEach(() => {
+		cy.visit('localhost:8000');
+		cy.get('#profileControls').should('not.be.disabled');
+	});
+
+	function openProfiles() {
+		cy.get('#savedProfiles > summary').click();
+	}
+
+	function saveProfile(name) {
+		cy.get('#profileName').clear().type(name);
+		cy.get('#saveProfile').click();
+		cy.get('#profileStatus').should('have.text', `Saved “${name}”.`);
+	}
+
+	function savedProfiles(win) {
+		return JSON.parse(win.localStorage.getItem('local:savedColorProfiles'));
+	}
+
+	it('Restores rendered arrow defaults from a fresh-storage snapshot', () => {
+		cy.request('http://localhost:8000/styles.css').then(({body}) => {
+			const secondary = body
+				.match(/--arrowSecondary:\s*(#[0-9a-f]+)/i)[1]
+				.toUpperCase();
+			const tertiary = body
+				.match(/--arrowTertiary:\s*(#[0-9a-f]+)/i)[1]
+				.toUpperCase();
+			cy.window().then((win) => {
+				expect(win.localStorage.getItem('arrowSecondary')).to.equal(
+					null
+				);
+				expect(win.localStorage.getItem('arrowTertiary')).to.equal(
+					null
+				);
+			});
+			openProfiles();
+			saveProfile('Original defaults');
+			cy.get('#boardTab').click();
+			cy.get('.pickr').eq(14).shouldHaveColor(secondary);
+			cy.get('.pickr').eq(15).shouldHaveColor(tertiary);
+			cy.get('.pickr').eq(14).changeColor('#112233');
+			cy.get('.pickr').eq(15).changeColor('#445566');
+			saveProfile('Changed arrows');
+			cy.window().then((win) => {
+				cy.spy(win.Storage.prototype, 'setItem').as('profileWrites');
+			});
+			cy.get('#profileSelect').select('Original defaults');
+			cy.get('#profileStatus').should(
+				'have.text',
+				'Applied “Original defaults”.'
+			);
+			cy.get('.pickr').eq(14).shouldHaveColor(secondary);
+			cy.get('.pickr').eq(15).shouldHaveColor(tertiary);
+			cy.get('@profileWrites').should('have.callCount', 17);
+			cy.window().then((win) => {
+				expect(
+					JSON.parse(
+						win.localStorage.getItem('arrowSecondary')
+					).toUpperCase()
+				).to.equal(secondary);
+				expect(
+					JSON.parse(
+						win.localStorage.getItem('arrowTertiary')
+					).toUpperCase()
+				).to.equal(tertiary);
+			});
+		});
+	});
+
+	it('Saves complete palettes and switches without reloading the popup', () => {
+		cy.get('#savedProfiles').should('not.have.attr', 'open');
+		cy.get('#saveProfile').should('not.be.visible');
+		cy.get('.pickr').first().changeColor('#123456');
+		openProfiles();
+		saveProfile('Forest');
+		cy.window().then((win) => {
+			const [profile] = savedProfiles(win);
+			expect(profile.colors.primaryColor).to.equal('#123456');
+			expect(Object.keys(profile.colors)).to.have.length(17);
+			expect(profile.colors.backgroundColor).to.equal('#272a2c');
+			expect(profile.colors.preMove).to.equal('#1b7cc733');
+			win.profileTestMarker = true;
+		});
+
+		cy.get('.pickr').first().changeColor('#654321');
+		cy.get('.pickr').eq(3).changeColor('#222222');
+		saveProfile('Night');
+		cy.get('#profileSelect').select('Forest');
+		cy.get('#profileStatus').should('have.text', 'Applied “Forest”.');
+		cy.get('.pickr').first().shouldHaveColor('#123456');
+		cy.get('.pickr').eq(3).shouldHaveColor('#272A2C');
+		cy.get('#profileSelect').select('Night');
+		cy.get('.pickr').first().shouldHaveColor('#654321');
+		cy.get('.pickr').eq(3).shouldHaveColor('#222222');
+		cy.window().its('profileTestMarker').should('eq', true);
+
+		cy.reload();
+		openProfiles();
+		cy.get('#profileSelect').select('Forest');
+		cy.get('.pickr').first().shouldHaveColor('#123456');
+	});
+
+	it('Reapplies the selected profile while preserving preferences and board mode', () => {
+		cy.get('#boardTab').click();
+		cy.get('.pickr').eq(8).changeColor('#334455');
+		openProfiles();
+		saveProfile('Custom board');
+		cy.window().then((win) => {
+			win.localStorage.setItem(
+				'layoutPreference',
+				JSON.stringify('lichess')
+			);
+			win.localStorage.setItem('streamerMode', 'true');
+			win.localStorage.setItem('defaultBoardSwitch', 'true');
+			win.localStorage.setItem('boardDark', JSON.stringify('#FFFFFF00'));
+			win.localStorage.setItem('boardLight', JSON.stringify('#FFFFFF00'));
+			win.localStorage.setItem(
+				'futurePreference',
+				JSON.stringify({enabled: true})
+			);
+		});
+		cy.reload();
+		openProfiles();
+		saveProfile('Native board');
+		cy.get('#profileSelect').select('Custom board');
+		cy.get('#profileStatus').should('have.text', 'Applied “Custom board”.');
+		cy.window().then((win) => {
+			expect(JSON.parse(win.localStorage.getItem('boardDark'))).to.equal(
+				'#FFFFFF00'
+			);
+			expect(JSON.parse(win.localStorage.getItem('boardLight'))).to.equal(
+				'#FFFFFF00'
+			);
+			expect(win.localStorage.getItem('defaultBoardSwitch')).to.equal(
+				'true'
+			);
+			expect(
+				JSON.parse(win.localStorage.getItem('layoutPreference'))
+			).to.equal('lichess');
+			expect(win.localStorage.getItem('streamerMode')).to.equal('true');
+			expect(
+				JSON.parse(win.localStorage.getItem('futurePreference'))
+			).to.deep.equal({enabled: true});
+			win.localStorage.setItem('defaultBoardSwitch', 'false');
+		});
+		cy.get('#profileSelect').should('have.value', 'Custom board');
+		cy.get('#applyProfile').click();
+		cy.get('#profileStatus').should('have.text', 'Applied “Custom board”.');
+		cy.window().then((win) => {
+			expect(JSON.parse(win.localStorage.getItem('boardDark'))).to.equal(
+				'#334455'
+			);
+		});
+		cy.get('#profileSelect').select('Native board');
+		cy.get('#profileStatus').should('have.text', 'Applied “Native board”.');
+		cy.window().then((win) => {
+			expect(JSON.parse(win.localStorage.getItem('boardDark'))).to.equal(
+				'#71828F'
+			);
+		});
+		cy.get('#profileSelect').select('Custom board');
+		cy.get('#profileStatus').should('have.text', 'Applied “Custom board”.');
+		cy.window().then((win) => {
+			expect(JSON.parse(win.localStorage.getItem('boardDark'))).to.equal(
+				'#334455'
+			);
+			expect(win.localStorage.getItem('defaultBoardSwitch')).to.equal(
+				'false'
+			);
+			expect(
+				JSON.parse(win.localStorage.getItem('layoutPreference'))
+			).to.equal('lichess');
+			expect(win.localStorage.getItem('streamerMode')).to.equal('true');
+			expect(
+				JSON.parse(win.localStorage.getItem('futurePreference'))
+			).to.deep.equal({enabled: true});
+		});
+		cy.reload();
+		cy.get('#boardTab').click();
+		cy.get('.pickr').eq(8).should('be.visible').shouldHaveColor('#334455');
+	});
+
+	it('Renames and deletes profiles without changing active colors', () => {
+		const alert = cy.stub();
+		cy.on('window:alert', alert);
+		const confirm = cy.stub();
+		confirm.onFirstCall().returns(false);
+		confirm.onSecondCall().returns(true);
+		cy.on('window:confirm', confirm);
+		cy.get('.pickr').first().changeColor('#123456');
+		openProfiles();
+		saveProfile('Forest');
+		cy.get('#profileName').clear().type('  Woodland  ');
+		cy.get('#renameProfile').click();
+		cy.get('#profileSelect').should('have.value', 'Woodland');
+		cy.get('#profileSelect option').should('have.length', 2);
+		cy.reload();
+		openProfiles();
+		cy.get('#profileSelect').select('Woodland');
+		cy.get('#profileName').clear().type('woodland');
+		cy.get('#saveProfile').click();
+		cy.then(() =>
+			expect(alert.lastCall.args[0]).to.contain('already exists')
+		);
+		cy.get('#profileName').clear().type(' ');
+		cy.get('#renameProfile').click();
+		cy.then(() =>
+			expect(alert.lastCall.args[0]).to.contain('Enter a profile name')
+		);
+		cy.get('#deleteProfile').click();
+		cy.get('#profileSelect').should('have.value', 'Woodland');
+		cy.get('#deleteProfile').click();
+		cy.get('#profileSelect option').should('have.length', 1);
+		cy.get('#applyProfile').should('be.disabled');
+		cy.get('#renameProfile').should('be.disabled');
+		cy.get('#deleteProfile').should('be.disabled');
+		cy.get('.pickr').first().shouldHaveColor('#123456');
+		cy.window().then((win) => expect(savedProfiles(win)).to.deep.equal([]));
+	});
+
+	it('Keeps saved profiles when importing or resetting active colors', () => {
+		cy.get('.pickr').first().changeColor('#123456');
+		openProfiles();
+		saveProfile('Original');
+		cy.inputFile('{"primaryColor":"#ABCDEF"}');
+		openProfiles();
+		saveProfile('Imported');
+		cy.get('#resetButton').click();
+		openProfiles();
+		cy.get('#profileSelect').select('Original');
+		cy.get('.pickr').first().shouldHaveColor('#123456');
+		cy.get('#profileSelect').select('Imported');
+		cy.get('.pickr').first().shouldHaveColor('#ABCDEF');
+		cy.window().then((win) => expect(savedProfiles(win)).to.have.length(2));
+	});
+
+	it('Rejects malformed saved data without overwriting it or active colors', () => {
+		const alert = cy.stub();
+		cy.on('window:alert', alert);
+		const malformed = [
+			{name: 'Broken', colors: {primaryColor: 'not a color'}},
+		];
+		cy.window().then((win) => {
+			win.localStorage.setItem(
+				'local:savedColorProfiles',
+				JSON.stringify(malformed)
+			);
+		});
+		cy.reload();
+		cy.then(() =>
+			expect(alert.lastCall.args[0]).to.contain('Invalid color')
+		);
+		openProfiles();
+		cy.get('#profileName').type('New');
+		cy.get('#saveProfile').click();
+		cy.window().then((win) => {
+			expect(savedProfiles(win)).to.deep.equal(malformed);
+			expect(win.localStorage.getItem('primaryColor')).to.equal(null);
+		});
+	});
+
+	it('Reports local quota and sync write failures without claiming success', () => {
+		const alert = cy.stub().as('profileAlert');
+		cy.on('window:alert', alert);
+		cy.get('.pickr').first().changeColor('#123456');
+		openProfiles();
+		saveProfile('Forest');
+		let write;
+		cy.window().then((win) => {
+			write = cy.stub(win.Storage.prototype, 'setItem').callsFake(() => {
+				throw new Error('QUOTA_BYTES quota exceeded');
+			});
+		});
+		cy.get('#profileName').clear().type('Night');
+		cy.get('#saveProfile').click();
+		cy.get('@profileAlert')
+			.should('have.been.calledOnce')
+			.and('have.been.calledWithMatch', 'QUOTA_BYTES');
+		cy.get('#profileStatus').should('be.empty');
+		cy.window().then((win) => {
+			expect(
+				savedProfiles(win).map((profile) => profile.name)
+			).to.deep.equal(['Forest']);
+			write.restore();
+		});
+		cy.get('.pickr').first().changeColor('#654321');
+		cy.window().then((win) => {
+			write = cy.stub(win.Storage.prototype, 'setItem').callsFake(() => {
+				throw new Error('Sync storage unavailable');
+			});
+		});
+		cy.get('#profileSelect').select('Forest');
+		cy.get('#profileControls').should('not.be.disabled');
+		cy.then(() => alert.resetHistory());
+		cy.get('#profileSelect').should('have.value', 'Forest');
+		cy.get('#applyProfile').click();
+		cy.get('@profileAlert')
+			.should('have.been.calledOnce')
+			.and('have.been.calledWithMatch', 'Sync storage unavailable');
+		cy.get('#profileStatus').should('be.empty');
+		cy.get('.pickr').first().shouldHaveColor('#654321');
+		cy.window().then((win) => {
+			expect(
+				JSON.parse(win.localStorage.getItem('primaryColor'))
+			).to.equal('#654321');
+			write.restore();
+		});
+		cy.get('#applyProfile').click();
+		cy.get('#profileStatus').should('have.text', 'Applied “Forest”.');
+		cy.get('.pickr').first().shouldHaveColor('#123456');
 	});
 });
 

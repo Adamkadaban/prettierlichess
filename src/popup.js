@@ -33,6 +33,208 @@ const siteColorGroup = document.querySelector('#siteColorGroup');
 const boardColorGroup = document.querySelector('#boardColorGroup');
 const boardColorSelector = document.querySelectorAll('.boardColorSelector');
 const hideBoardColors = document.querySelector('#hideBoardColors');
+const profileControls = document.querySelector('#profileControls');
+const profileSelect = document.querySelector('#profileSelect');
+const profileName = document.querySelector('#profileName');
+const saveProfileButton = document.querySelector('#saveProfile');
+const applyProfileButton = document.querySelector('#applyProfile');
+const renameProfileButton = document.querySelector('#renameProfile');
+const deleteProfileButton = document.querySelector('#deleteProfile');
+const profileStatus = document.querySelector('#profileStatus');
+const pickrs = {};
+
+function profileStorage(area, method, value) {
+	return new Promise((resolve, reject) => {
+		chrome.storage[area][method](value, (result) => {
+			if (chrome.runtime.lastError) {
+				reject(new Error(chrome.runtime.lastError.message));
+			} else {
+				resolve(result);
+			}
+		});
+	});
+}
+
+function profileColors(colors) {
+	if (!colors || typeof colors !== 'object' || Array.isArray(colors)) {
+		throw new Error('Invalid color palette.');
+	}
+	const effectiveColors = {};
+	for (const scheme in defaultColorScheme) {
+		const color = Object.hasOwn(colors, scheme)
+			? colors[scheme]
+			: defaultColorScheme[scheme];
+		if (
+			typeof color !== 'string' ||
+			!/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(color)
+		) {
+			throw new Error(`Invalid color for ${scheme}.`);
+		}
+		effectiveColors[scheme] = color;
+	}
+	return effectiveColors;
+}
+
+async function readProfiles() {
+	const result = await profileStorage('local', 'get', 'savedColorProfiles');
+	const profiles = result.savedColorProfiles;
+	if (profiles === undefined) return [];
+	if (!Array.isArray(profiles)) {
+		throw new Error(
+			'Saved color profiles are malformed. Nothing was changed.'
+		);
+	}
+	const names = new Set();
+	for (const profile of profiles) {
+		if (
+			!profile ||
+			typeof profile.name !== 'string' ||
+			!profile.name.trim() ||
+			profile.name !== profile.name.trim() ||
+			names.has(profile.name.toLowerCase())
+		) {
+			throw new Error(
+				'Saved color profiles are malformed. Nothing was changed.'
+			);
+		}
+		names.add(profile.name.toLowerCase());
+		profileColors(profile.colors);
+	}
+	return profiles;
+}
+
+function updateProfileButtons() {
+	applyProfileButton.disabled = !profileSelect.value;
+	renameProfileButton.disabled = !profileSelect.value;
+	deleteProfileButton.disabled = !profileSelect.value;
+}
+
+function showProfiles(profiles, selected = '') {
+	profileSelect.replaceChildren(
+		new Option(
+			profiles.length
+				? 'Choose a saved profile'
+				: 'No saved profiles yet',
+			''
+		)
+	);
+	for (const profile of profiles) {
+		profileSelect.add(new Option(profile.name, profile.name));
+	}
+	profileSelect.value = selected;
+	profileName.value = selected;
+}
+
+async function runProfileAction(action) {
+	profileControls.disabled = true;
+	profileStatus.textContent = '';
+	try {
+		await action(await readProfiles());
+	} catch (error) {
+		alert(`Unable to use saved color profiles: ${error.message}`);
+	} finally {
+		profileControls.disabled = false;
+		updateProfileButtons();
+	}
+}
+
+function newProfileName(profiles, previousName) {
+	const name = profileName.value.trim();
+	if (!name) throw new Error('Enter a profile name.');
+	if (
+		profiles.some(
+			(profile) =>
+				profile.name !== previousName &&
+				profile.name.toLowerCase() === name.toLowerCase()
+		)
+	) {
+		throw new Error(
+			'A profile with that name already exists. Choose another name.'
+		);
+	}
+	return name;
+}
+
+saveProfileButton.addEventListener('click', () => {
+	runProfileAction(async (profiles) => {
+		const name = newProfileName(profiles);
+		const current = await profileStorage('sync', 'get', null);
+		// Native-board transparency represents a preference, not palette colors.
+		if (current.defaultBoardSwitch) {
+			current.boardDark = defaultColorScheme.boardDark;
+			current.boardLight = defaultColorScheme.boardLight;
+		}
+		profiles.push({name, colors: profileColors(current)});
+		await profileStorage('local', 'set', {savedColorProfiles: profiles});
+		showProfiles(profiles, name);
+		profileStatus.textContent = `Saved “${name}”.`;
+	});
+});
+
+async function applySelectedProfile() {
+	const name = profileSelect.value;
+	profileName.value = name;
+	if (!name) {
+		profileStatus.textContent = '';
+		updateProfileButtons();
+		return;
+	}
+	await runProfileAction(async (profiles) => {
+		const profile = profiles.find((profile) => profile.name === name);
+		if (!profile) throw new Error('This profile no longer exists.');
+		const colors = profileColors(profile.colors);
+		const current = await profileStorage(
+			'sync',
+			'get',
+			'defaultBoardSwitch'
+		);
+		if (current.defaultBoardSwitch) {
+			colors.boardDark = transparent;
+			colors.boardLight = transparent;
+		}
+		await profileStorage('sync', 'set', colors);
+		for (const scheme in colors) {
+			pickrs[scheme]?.setColor(colors[scheme], true);
+			pickrs[scheme]?.applyColor(true);
+		}
+		profileStatus.textContent = `Applied “${name}”.`;
+	});
+}
+
+profileSelect.addEventListener('change', applySelectedProfile);
+applyProfileButton.addEventListener('click', applySelectedProfile);
+
+renameProfileButton.addEventListener('click', () => {
+	runProfileAction(async (profiles) => {
+		const profile = profiles.find(
+			(profile) => profile.name === profileSelect.value
+		);
+		if (!profile) throw new Error('Choose a saved profile first.');
+		const name = newProfileName(profiles, profile.name);
+		profile.name = name;
+		await profileStorage('local', 'set', {savedColorProfiles: profiles});
+		showProfiles(profiles, name);
+		profileStatus.textContent = `Renamed to “${name}”.`;
+	});
+});
+
+deleteProfileButton.addEventListener('click', () => {
+	const name = profileSelect.value;
+	if (
+		!name ||
+		!confirm(`Delete “${name}”? Current colors will not change.`)
+	) {
+		return;
+	}
+	runProfileAction(async (profiles) => {
+		const remaining = profiles.filter((profile) => profile.name !== name);
+		await profileStorage('local', 'set', {savedColorProfiles: remaining});
+		showProfiles(remaining);
+		profileStatus.textContent = `Deleted “${name}”.`;
+	});
+});
+
+runProfileAction(showProfiles);
 
 // In Firefox, a different method is used for importing.
 // To do this, it is necessary to check which browser is being used
@@ -259,8 +461,12 @@ function pickrCreate(scheme) {
 			document.querySelector(`#${scheme}`),
 			result[scheme] ? result[scheme] : defaultColorScheme[scheme]
 		);
+		pickrs[scheme] = pickr;
 		pickr.on('save', (color) => {
 			setColor(scheme, color.toHEXA().toString());
+			profileSelect.value = '';
+			profileStatus.textContent = '';
+			updateProfileButtons();
 		});
 	});
 }

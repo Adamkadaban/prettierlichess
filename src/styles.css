@@ -1588,11 +1588,11 @@ g[stroke='#888'] {
 	border: 2px solid var(--surfaceColorHover) !important;
 }
 
-.tabs-horiz span {
+.tabs-horiz :is(span, button) {
 	padding: 10px 0 !important;
 }
 
-.tabs-horiz span:hover {
+.tabs-horiz :is(span, button):hover {
 	color: var(--defaultWhite) !important;
 }
 
@@ -1605,18 +1605,18 @@ g[stroke='#888'] {
 	display: none !important;
 }
 
-.tabs-horiz span.active,
+.tabs-horiz :is(span, button).active,
 .lobby__box td.name a:hover,
 .lobby__app .gamesFiltered {
 	color: var(--primaryColor) !important;
 }
 
-.tabs-horiz span.active,
-.tabs-horiz span:hover {
+.tabs-horiz :is(span, button).active,
+.tabs-horiz :is(span, button):hover {
 	border-color: var(--primaryColor) !important;
 }
 
-.tabs-horiz span::after {
+.tabs-horiz :is(span, button)::after {
 	background: var(--primaryColor) !important;
 }
 
@@ -1776,7 +1776,10 @@ g[stroke='#888'] {
 }
 
 .lobby__support i::before,
-.lobby__support__text {
+.lobby__support icon,
+.lobby__support icon::before,
+.lobby__support__text,
+.lobby__support-link__text {
 	color: var(--secondaryColor) !important;
 }
 
@@ -5728,7 +5731,10 @@ body .glowing {
 
 @media (max-width: 1260px) {
 	main.lobby {
-		grid-template-columns: 50% repeat(2, 1fr) !important;
+		grid-template-columns: min(50%, var(--lobby-tv-max-width, 50%)) repeat(
+				2,
+				1fr
+			) !important;
 		grid-template-rows: repeat(2, fit-content(0)) !important;
 		grid-template-areas:
 			'tv   app     app'
@@ -5889,17 +5895,8 @@ body .glowing {
 		overflow: hidden !important;
 	}
 
-	#main-wrap main:is(.puzzle, .analyse:not(.is-relay), .round):not(.is3d *) {
-		width: 100% !important;
-		min-width: 0 !important;
-	}
-
-	#main-wrap main:not(.analyse.is-relay:not(.has-relay-tour)) {
+	#main-wrap main:not(.lobby, .analyse.is-relay:not(.has-relay-tour)) {
 		grid-template-columns: 100% !important;
-	}
-
-	.lobby__side {
-		display: block !important;
 	}
 
 	.lobby__tv cg-container cg-board {
@@ -5912,8 +5909,7 @@ body .glowing {
 
 	.main-board:not(
 			.is3d *,
-			main.puzzle *,
-			main.analyse:not(.is-relay) *,
+			main.analyse.has-players:not(.is-relay) *,
 			main.analyse.is-relay:not(.has-relay-tour) *,
 			main.round *
 		) {
@@ -6157,7 +6153,8 @@ body .glowing {
 				'uchat';
 		}
 
-		main.analyse.is-relay:not(.has-relay-tour) .main-board:not(.is3d *) {
+		main.analyse.is-relay:not(.has-relay-tour) .main-board:not(.is3d *),
+		main.round .main-board:not(.is3d *) {
 			width: 100vw !important;
 			height: 100vw !important;
 			margin-left: -10px !important;
@@ -6223,6 +6220,10 @@ body .glowing {
 }
 
 @media (max-width: 713px) {
+	.lobby__side {
+		display: block !important;
+	}
+
 	::-webkit-scrollbar {
 		display: none !important;
 	}
@@ -6291,7 +6292,11 @@ body .glowing {
 		margin-top: 0 !important;
 	}
 
-	.tabs-horiz span {
+	.lobby__app .tabs-horiz {
+		flex-wrap: wrap !important;
+	}
+
+	.tabs-horiz :is(span, button) {
 		text-shadow: none !important;
 		font-size: 1.2rem !important;
 	}
