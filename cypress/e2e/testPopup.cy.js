@@ -482,8 +482,28 @@ describe('Test native 3D mobile geometry fixtures', () => {
 		},
 		{kind: 'relay', mode: '2d', width: 390, height: 844},
 		{kind: 'analysis', mode: '2d', width: 1440, height: 900},
-	].forEach(({kind, mode, width, height, headerHeight = 60}) => {
+		{kind: 'study', mode: '2d', width: 390, height: 844},
+		{kind: 'study', mode: '3d', width: 390, height: 844},
+		{
+			kind: 'study',
+			mode: '2d',
+			width: 740,
+			height: 900,
+			gutter: 10,
+			orientation: 'black',
+		},
+	].forEach((testCase) => {
+		const {
+			kind,
+			mode,
+			width,
+			height,
+			headerHeight = 60,
+			gutter = 0,
+			orientation = 'white',
+		} = testCase;
 		it(`Preserves ${mode} ${kind} geometry at ${width}x${height}`, () => {
+			const round = kind === 'round';
 			cy.document().then((doc) => {
 				const frame = doc.createElement('iframe');
 				frame.id = 'native-3d-geometry-fixture';
@@ -491,13 +511,41 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					`width: ${width}px; height: ${height}px; border: 0; ` +
 					'max-width: none; flex-shrink: 0;';
 				const board = `<div class="main-board ${
-					kind === 'round' ? 'round__app__board' : 'analyse__board'
-				}"><div class="cg-wrap"><cg-container><cg-board>
+					round ? 'round__app__board' : 'analyse__board'
+				}">${
+					kind === 'study'
+						? `<div class="study__player study__player-top"><div class="left"><span class="info"><span class="name">${
+								orientation === 'white' ? 'Black' : 'White'
+						  }</span></span></div></div>`
+						: ''
+				}<div class="cg-wrap orientation-${orientation}"><cg-container><cg-board>
 					<piece class="black king"></piece>
-				</cg-board></cg-container></div></div>`;
+				</cg-board>${
+					gutter
+						? ['ranks', 'files']
+								.map(
+									(axis) =>
+										`<coords class="${axis} ${orientation}">${Array.from(
+											axis === 'ranks'
+												? '12345678'
+												: 'abcdefgh',
+											(label) => `<coord>${label}</coord>`
+										).join('')}</coords>`
+								)
+								.join('')
+						: ''
+				}</cg-container></div>${
+					kind === 'study'
+						? `<div class="study__player study__player-bot"><div class="left"><span class="info"><span class="name">${
+								orientation === 'white' ? 'White' : 'Black'
+						  }</span></span></div></div>`
+						: ''
+				}</div>`;
 				frame.srcdoc = `<!doctype html><html><head><style>
 					*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+					${gutter ? 'html { overflow-y: hidden; }' : ''}
 					body {
+						width: calc(100% - ${gutter}px);
 						---site-header-height: ${headerHeight}px;
 						---block-gap: 10px;
 						---col2-uniboard-width: min(calc(100vw - 280px), 696px);
@@ -517,9 +565,15 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					}
 					.cg-wrap { box-sizing: content-box; display: block; position: relative; }
 					.main-board .cg-wrap { position: absolute; width: 100%; height: 100%; }
-					cg-container, cg-board { position: absolute; display: block; top: 0; width: 100%; height: 100%; }
+					cg-container, cg-board { position: absolute; display: block; top: 0; right: 0; width: 100%; height: 100%; }
 					cg-board { left: 0; }
-					.analyse__board cg-container { right: 0; }
+					coords { display: flex; position: absolute; pointer-events: none; }
+					coords coord { flex: auto; }
+					coords.ranks { flex-flow: column-reverse; width: .8em; height: 100%; top: 1px; right: 0; }
+					coords.ranks.black { flex-flow: column; }
+					coords.files { flex-flow: row; width: 100%; height: 1.4em; bottom: 0; left: 0; }
+					coords.files.black { flex-flow: row-reverse; }
+					coords.files coord { padding-left: 4px; }
 					piece { position: absolute; width: 12.5%; height: 12.5%; top: 0; left: 0; z-index: 2; }
 					.is3d .main-board { padding-bottom: calc(100% * 476 / 512); }
 					.is3d .main-board .cg-wrap { height: calc(100% * 464.5 / 476); }
@@ -529,6 +583,16 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					.analyse__controls { grid-area: controls; height: 40px; }
 					.analyse__tools { grid-area: tools; }
 					.analyse__side { grid-area: side; }
+					.study__player {
+						position: absolute; right: 0; display: flex; align-items: center;
+						width: var(---cg-width, 100%); height: 1.6rem; white-space: nowrap;
+					}
+					.study__player-top { top: -1.6rem; }
+					.is3d .study__player-top { top: calc(-1.6rem - var(---cg-width) / 20); }
+					.study__player-bot { top: var(---cg-height, 100%); }
+					@media (max-width: 799px) and (orientation: portrait) {
+						.analyse.has-players .analyse__controls { margin-top: 1.6rem; }
+					}
 					main.round { display: grid; grid-template-areas: 'app'; }
 					.round__app {
 						grid-area: app; display: grid; grid-template-columns: 100%;
@@ -585,18 +649,22 @@ describe('Test native 3D mobile geometry fixtures', () => {
 				</style><link rel="stylesheet" href="/styles.css"><style>
 					@font-face { font-family: 'Red Hat Text'; src: url('/fonts/RedHatText-Regular.ttf'); }
 					@font-face { font-family: 'Red Hat Display'; src: url('/fonts/RedHatDisplay-Regular.ttf'); }
-				</style></head><body>
+				</style></head><body class="coords-in">
 					<header id="top">Lichess</header>
 					<div id="main-wrap" class="is${mode}">
 						<main class="${
-							kind === 'round'
+							round
 								? 'round'
 								: `analyse${
-										kind === 'relay' ? ' is-relay' : ''
+										kind === 'relay'
+											? ' is-relay'
+											: kind === 'study'
+											? ' has-players'
+											: ''
 								  }`
 						}">
 							${
-								kind === 'round'
+								round
 									? `<div class="round__app">${board}
 										<div class="ruser ruser-top">White</div>
 										<div class="rclock rclock-top"><div class="time">03:00</div></div>
@@ -661,6 +729,65 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					const header = doc
 						.getElementById('top')
 						.getBoundingClientRect();
+					const available = doc
+						.getElementById('main-wrap')
+						.getBoundingClientRect();
+					if (kind === 'study') {
+						const main = doc
+							.querySelector('main')
+							.getBoundingClientRect();
+						const top = doc
+							.querySelector('.study__player-top')
+							.getBoundingClientRect();
+						const bottom = doc
+							.querySelector('.study__player-bot')
+							.getBoundingClientRect();
+						expect(
+							top.top,
+							'upper player strip clears clipping main'
+						).to.be.at.least(main.top - 0.1);
+						expect(top.top).to.be.at.least(header.bottom);
+						expect(
+							top.bottom,
+							'upper strip stays off squares'
+						).to.be.at.most(board.top);
+						expect(
+							bottom.top,
+							'lower strip stays off squares'
+						).to.be.at.least(board.bottom);
+						if (mode === '3d') {
+							expect(
+								top.bottom,
+								'upper strip clears 3D piece bounds'
+							).to.be.at.most(piece.top + 0.1);
+						}
+						for (const player of doc.querySelectorAll(
+							'.study__player'
+						)) {
+							const rect = player.getBoundingClientRect();
+							expect(
+								rect.left,
+								'player strip clears left clipping edge'
+							).to.be.at.least(
+								Math.max(main.left, available.left)
+							);
+							expect(
+								rect.right,
+								'player strip clears right clipping edge'
+							).to.be.at.most(
+								Math.min(main.right, available.right)
+							);
+							expect(
+								player.contains(
+									doc.elementFromPoint(
+										rect.left + rect.width / 2,
+										rect.top + rect.height / 2
+									)
+								),
+								'player strip is visible and unobstructed'
+							).to.equal(true);
+						}
+					}
 					expect(
 						board.height / board.width,
 						'native board ratio'
@@ -672,10 +799,25 @@ describe('Test native 3D mobile geometry fixtures', () => {
 						).to.be.closeTo(476 / 512, 0.0001);
 						expect(outerRect.left).to.be.at.least(0);
 						expect(outerRect.right).to.be.at.most(width);
-					} else if (
-						width < 800 &&
-						(kind !== 'round' || height >= width)
-					) {
+					} else if (width < 800 && kind === 'study') {
+						expect(
+							doc.querySelector('main').getBoundingClientRect()
+								.right,
+							'2D main fits available content'
+						).to.be.at.most(available.right);
+						expect(
+							outerRect.right,
+							'2D board fits available content'
+						).to.be.at.most(available.right);
+						expect(outerRect.left).to.be.at.least(available.left);
+						expect(
+							outerRect.height,
+							'square 2D wrapper'
+						).to.be.closeTo(outerRect.width, 0.1);
+						expect(win.getComputedStyle(outer).marginLeft).to.equal(
+							'0px'
+						);
+					} else if (width < 800 && (!round || height >= width)) {
 						expect(
 							outerRect.width,
 							'existing mobile 2D sizing'
@@ -684,10 +826,54 @@ describe('Test native 3D mobile geometry fixtures', () => {
 							'-10px'
 						);
 					}
+					if (gutter) {
+						expect(
+							available.width,
+							'reserved scrollbar width'
+						).to.equal(width - gutter);
+						const ranks = [
+							...doc.querySelectorAll('coords.ranks coord'),
+						];
+						const files = [
+							...doc.querySelectorAll('coords.files coord'),
+						];
+						expect(
+							ranks.map((coord) => coord.textContent).join('')
+						).to.equal('12345678');
+						expect(
+							files.map((coord) => coord.textContent).join('')
+						).to.equal('abcdefgh');
+						for (const coord of [...ranks, ...files]) {
+							const range = doc.createRange();
+							range.selectNodeContents(coord);
+							const rect = range.getBoundingClientRect();
+							expect(
+								rect.width,
+								`visible ${coord.textContent}`
+							).to.be.greaterThan(0);
+							expect(rect.left).to.be.at.least(board.left);
+							expect(
+								rect.right,
+								`contained ${coord.textContent}`
+							).to.be.at.most(available.right);
+							expect(rect.top).to.be.at.least(board.top);
+							expect(rect.bottom).to.be.at.most(
+								board.bottom + 0.1
+							);
+						}
+						expect(
+							ranks[0].getBoundingClientRect().top <
+								ranks[7].getBoundingClientRect().top
+						).to.equal(orientation === 'black');
+						expect(
+							files[0].getBoundingClientRect().left <
+								files[7].getBoundingClientRect().left
+						).to.equal(orientation === 'white');
+					}
 					if (
 						mode === '3d' &&
 						width < 800 &&
-						(kind !== 'round' || width > height)
+						(!round || width > height)
 					) {
 						expect(
 							piece.top,
@@ -721,7 +907,7 @@ describe('Test native 3D mobile geometry fixtures', () => {
 					}
 					if (width === 1440)
 						expect(board.width, 'desktop board size').to.equal(696);
-					if (kind === 'round') {
+					if (round) {
 						if (width > height) {
 							expect(
 								outerRect.width,
@@ -2472,10 +2658,16 @@ describe('Test broadcast landscape layout fixtures', () => {
 				}
 				if (kind !== 'game' || height >= width) {
 					expect(mainStyle.gridTemplateAreas).to.equal(stackedAreas);
-					expect(boardRect.width).to.equal(width);
-					expect(boardRect.height).to.equal(width);
+					const boardWidth =
+						kind === 'study'
+							? main.clientWidth -
+							  parseFloat(mainStyle.paddingLeft) -
+							  parseFloat(mainStyle.paddingRight)
+							: width;
+					expect(boardRect.width).to.equal(boardWidth);
+					expect(boardRect.height).to.equal(boardWidth);
 					expect(win.getComputedStyle(board).marginLeft).to.equal(
-						'-10px'
+						kind === 'study' ? '0px' : '-10px'
 					);
 					expect(toolsStyle.height).to.equal(`${height / 2}px`);
 					expect(toolsStyle.marginBottom).to.equal('20px');
