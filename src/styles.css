@@ -6196,6 +6196,9 @@ body .glowing {
 		padding: 0 !important;
 		padding-top: 20px !important;
 		margin: 0 16px !important;
+	}
+
+	#main-wrap main.forum {
 		width: calc(100% - 32px) !important;
 	}
 

@@ -1014,6 +1014,132 @@ describe('Test Insights containment fixtures', () => {
 	});
 });
 
+describe('Test forum gutter fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{width: 390, height: 844},
+		{width: 740, height: 900},
+		{width: 1440, height: 900},
+	].forEach(({width, height}) => {
+		it(`Fits the forum panel and content within its gutters at ${width}x${height}`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'forum-gutter-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: ${height}px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				frame.srcdoc = `<!doctype html>
+					<html><head>
+						<style>
+							*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+							html { font-size: 14px; }
+							body { ---main-margin: 0px; ---box-padding: clamp(10px, calc(10px + 40 * (100vw - 320px) / 880), 50px); }
+							#main-wrap {
+								---main-max-width: 1300px;
+								display: grid;
+								grid-template-areas: '. . main . .';
+								grid-template-columns: var(---main-margin) 1fr minmax(auto, var(---main-max-width)) 1fr var(---main-margin);
+							}
+							main { grid-area: main; }
+							.box { position: relative; }
+							.box__top { display: flex; flex-wrap: wrap; padding: 5vh var(---box-padding); }
+							h1 { font-size: 1.7rem; }
+							h2 { font-size: 1.4rem; }
+							.slist { width: 100%; border-collapse: collapse; }
+							.slist th { padding: .5rem .8rem; }
+							.slist td { padding: 1.2rem 1rem; }
+							.slist td:first-child, .slist th:first-child { padding-inline-start: var(---box-padding); }
+							.forum .slist .subject { overflow-wrap: break-word; }
+							.forum .slist td:last-child { white-space: nowrap; padding-inline-end: 1em; }
+							.forum.index .slist thead, .forum.index .slist td:not(.subject, .right), .forum.index .slist .right { display: none; }
+							@media (min-width: 499.3px) {
+								.forum.index .slist thead { display: table-header-group; }
+								.forum.index .slist td:not(.subject, .right) { display: table-cell; }
+							}
+							@media (min-width: 799.3px) {
+								body { ---main-margin: 1vw; }
+								.box { overflow: hidden; }
+								.forum.index .slist .right { display: table-cell; }
+							}
+						</style>
+						<link rel="stylesheet" href="/styles.css">
+					</head><body>
+						<div id="main-wrap"><main class="forum index box">
+							<div class="box__top"><h1>Lichess Forum</h1></div>
+							<table class="slist slist-pad categs">
+								<thead><tr><th></th><th class="right">Topics</th><th class="right">Posts</th><th>Last post</th></tr></thead>
+								<tbody><tr>
+									<td class="subject"><h2><a href="#discussion">Chess Discussion</a></h2>
+										<p>Discuss opening plans and middlegame ideas with other players.</p></td>
+									<td class="right">24</td><td class="right">120</td>
+									<td><a href="#last-post">Opening plans</a><br><time>Today</time></td>
+								</tr></tbody>
+							</table>
+						</main></div>
+					</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#forum-gutter-fixture').should(($frame) => {
+				const frame = $frame[0];
+				const doc = frame.contentDocument;
+				const win = frame.contentWindow;
+				expect(
+					doc.querySelector('link')?.sheet?.cssRules.length,
+					'loaded built stylesheet'
+				).to.be.greaterThan(0);
+				expect(win.innerWidth).to.equal(width);
+				const panel = doc.querySelector('#main-wrap main.forum');
+				const bounds = panel.getBoundingClientRect();
+				const gutter = width < 800 ? 16 : width * 0.01;
+				expect(bounds.left, 'left gutter').to.be.closeTo(gutter, 1);
+				expect(bounds.right, 'right gutter').to.be.closeTo(
+					doc.documentElement.clientWidth - gutter,
+					1
+				);
+				expect(bounds.width, 'available panel width').to.be.closeTo(
+					doc.documentElement.clientWidth - 2 * gutter,
+					1
+				);
+				expect(
+					panel.scrollWidth,
+					'content fits without being clipped'
+				).to.be.at.most(panel.clientWidth + 1);
+				const style = win.getComputedStyle(panel);
+				expect(parseFloat(style.borderRightWidth)).to.be.greaterThan(0);
+				expect(
+					parseFloat(style.borderTopRightRadius)
+				).to.be.greaterThan(0);
+				const textElements = [
+					...panel.querySelectorAll('h1, h2, p'),
+					...(width >= 500
+						? panel.querySelectorAll('td:last-child a, time')
+						: []),
+				];
+				for (const element of textElements) {
+					const text = doc.createRange();
+					text.selectNodeContents(element);
+					const rects = text.getClientRects();
+					expect(
+						rects.length,
+						'text remains visible'
+					).to.be.greaterThan(0);
+					for (const rect of rects) {
+						expect(rect.left, 'text left edge').to.be.at.least(
+							bounds.left + panel.clientLeft - 1
+						);
+						expect(rect.right, 'text right edge').to.be.at.most(
+							bounds.right -
+								parseFloat(style.borderRightWidth) +
+								1
+						);
+					}
+				}
+			});
+		});
+	});
+});
+
 describe('Test navigation containing-block fixtures', () => {
 	beforeEach(cy.startup);
 
