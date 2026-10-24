@@ -1776,7 +1776,10 @@ g[stroke='#888'] {
 }
 
 .lobby__support i::before,
-.lobby__support__text {
+.lobby__support icon,
+.lobby__support icon::before,
+.lobby__support__text,
+.lobby__support-link__text {
 	color: var(--secondaryColor) !important;
 }
 

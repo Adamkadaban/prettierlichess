@@ -18,6 +18,125 @@ const NAMES = [
 	'alternateArrowColor',
 ];
 
+describe('Test homepage support-card palette', () => {
+	let frame;
+
+	beforeEach(cy.startup);
+
+	afterEach(() => {
+		cy.then(() => {
+			frame?.remove();
+			frame = undefined;
+		});
+	});
+
+	[
+		{label: 'default', color: null, expected: 'rgb(245, 194, 118)'},
+		{label: 'custom', color: '#80b6ef', expected: 'rgb(128, 182, 239)'},
+	].forEach(({label, color, expected}) => {
+		it(`Uses the ${label} secondary color for current and legacy cards`, () => {
+			const build =
+				Cypress.browser.name === 'firefox'
+					? 'dist-firefox'
+					: 'dist-chrome';
+			cy.readFile(`${build}/styles.css`).then((styles) => {
+				cy.document().then((doc) => {
+					frame = doc.createElement('iframe');
+					doc.body.appendChild(frame);
+					const win = frame.contentWindow;
+					const page = win.document;
+					page.body.innerHTML = `<div class="lobby__support">
+						<a id="support-current" class="lobby__support-link" href="/patron">
+							<icon data-icon="&#xe06c;"></icon>
+							<span class="lobby__support-link__text"><strong>Donate</strong><span>Become a Lichess Patron</span></span>
+						</a>
+						<a id="support-legacy" href="/patron">
+							<i data-icon="&#xe06c;"></i>
+							<span class="lobby__support__text"><strong>Donate</strong><span>Become a Lichess Patron</span></span>
+						</a>
+					</div>`;
+					const style = page.createElement('style');
+					style.textContent = `
+						[data-icon]::before { content: attr(data-icon); }
+						.lobby__support-link icon, .lobby__support-link__text,
+						.lobby__support i::before, .lobby__support__text { color: #bf811d; }
+						.lobby__support a:hover icon, .lobby__support a:hover icon::before,
+						.lobby__support a:hover i::before, .lobby__support a:hover > span { color: #d59120; }
+					${styles}`;
+					page.head.appendChild(style);
+					// Project stylesheet states; live acceptance covers real pointer hover.
+					const projectHover = (rules) => {
+						for (const rule of rules) {
+							if (rule.selectorText?.includes(':hover')) {
+								rule.selectorText =
+									rule.selectorText.replaceAll(
+										':hover',
+										'.fixture-hover'
+									);
+							}
+							if (rule.cssRules) projectHover(rule.cssRules);
+						}
+					};
+					projectHover(style.sheet.cssRules);
+					if (color) {
+						page.documentElement.style.setProperty(
+							'--secondaryColor',
+							color,
+							'important'
+						);
+					}
+					const assertColors = () => {
+						for (const card of page.querySelectorAll('a')) {
+							const text = card.querySelector('span');
+							const icon = card.querySelector('icon, i');
+							expect(
+								win.getComputedStyle(text).color,
+								card.id
+							).to.equal(expected);
+							expect(
+								win.getComputedStyle(
+									text.querySelector('strong')
+								).color
+							).to.equal(expected);
+							expect(
+								win.getComputedStyle(icon, '::before').color
+							).to.equal(expected);
+							if (icon.tagName === 'ICON') {
+								expect(
+									win.getComputedStyle(icon).color
+								).to.equal(expected);
+							}
+						}
+					};
+					assertColors();
+					const cards = [...page.querySelectorAll('a')];
+					expect(cards).to.have.length(2);
+					for (const card of cards) {
+						card.classList.add('fixture-hover');
+					}
+					cy.wrap(page.querySelector('#support-current')).should(
+						'have.css',
+						'background-color',
+						'rgb(64, 66, 70)'
+					);
+					cy.then(assertColors);
+					cy.then(() => {
+						for (const card of cards) {
+							card.classList.remove('fixture-hover');
+						}
+					});
+					cy.wrap(page.querySelector('#support-current')).should(
+						'have.css',
+						'background-color',
+						'rgb(51, 53, 56)'
+					);
+					cy.then(assertColors);
+				});
+			});
+		});
+	});
+});
+
 describe('Test homepage viewport fixtures', () => {
 	beforeEach(cy.startup);
 
