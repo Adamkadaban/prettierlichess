@@ -1043,50 +1043,112 @@ describe('Test navigation containing-block fixtures', () => {
 					</head><body>
 						<header id="top">
 							<input class="topnav-toggle" type="checkbox" checked>
-							<nav id="topnav">
-								<section><a href="#play">Play</a></section>
+							<nav id="topnav" class="hover">
+								${['Play', 'Puzzles', 'Learn', 'Watch', 'Community', 'Tools']
+									.map(
+										(label) =>
+											`<section><a href="#">${label}</a></section>`
+									)
+									.join('')}
 							</nav>
 						</header>
 					</body></html>`;
 				doc.body.appendChild(frame);
 			});
-			cy.get('#navigation-width-fixture').should(($frame) => {
-				const frame = $frame[0];
-				const doc = frame.contentDocument;
-				const win = frame.contentWindow;
-				const link = doc.querySelector('link[rel="stylesheet"]');
-				expect(link, 'built stylesheet link').to.exist;
-				expect(link.sheet, 'loaded built stylesheet').to.exist;
-				expect(link.sheet.cssRules.length).to.be.greaterThan(0);
-				expect(win.innerWidth).to.equal(width);
+			cy.get('#navigation-width-fixture')
+				.should(($frame) => {
+					const frame = $frame[0];
+					const doc = frame.contentDocument;
+					const win = frame.contentWindow;
+					const link = doc.querySelector('link[rel="stylesheet"]');
+					expect(link, 'built stylesheet link').to.exist;
+					expect(link.sheet, 'loaded built stylesheet').to.exist;
+					expect(link.sheet.cssRules.length).to.be.greaterThan(0);
+					expect(win.innerWidth).to.equal(width);
 
-				const nav = doc.getElementById('topnav');
-				const header = doc.getElementById('top');
-				const bounds = nav.getBoundingClientRect();
-				const headerBounds = header.getBoundingClientRect();
-				if (width >= 1020) {
-					const left = headerBounds.left + header.clientLeft;
-					expect(header.clientWidth).to.be.lessThan(win.innerWidth);
-					expect(nav.offsetParent).to.equal(header);
-					expect(bounds.left).to.be.closeTo(left, 1);
-					expect(bounds.top).to.be.closeTo(headerBounds.top, 1);
-					expect(bounds.width).to.be.closeTo(header.clientWidth, 1);
-					expect(bounds.right).to.be.at.most(
-						left + header.clientWidth + 1
+					const nav = doc.getElementById('topnav');
+					const header = doc.getElementById('top');
+					const bounds = nav.getBoundingClientRect();
+					const headerBounds = header.getBoundingClientRect();
+					if (width >= 1020) {
+						const left = headerBounds.left + header.clientLeft;
+						expect(header.clientWidth).to.be.lessThan(
+							win.innerWidth
+						);
+						expect(nav.offsetParent).to.equal(header);
+						expect(bounds.left).to.be.closeTo(left, 1);
+						expect(bounds.top).to.be.closeTo(headerBounds.top, 1);
+						expect(bounds.width).to.be.closeTo(
+							header.clientWidth,
+							1
+						);
+						expect(bounds.right).to.be.at.most(
+							left + header.clientWidth + 1
+						);
+					} else {
+						expect(win.getComputedStyle(nav).position).to.equal(
+							'fixed'
+						);
+						expect(bounds.left).to.be.closeTo(0, 1);
+						expect(bounds.top).to.be.closeTo(
+							headerBounds.bottom,
+							1
+						);
+						expect(bounds.width).to.be.closeTo(
+							width * (width <= 713 ? 0.9 : 0.6),
+							1
+						);
+						expect(bounds.bottom).to.be.closeTo(800, 1);
+					}
+				})
+				.then(($frame) => {
+					if (width < 1020) return;
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					const links = [
+						...doc.querySelectorAll('#topnav section > a'),
+					];
+					const hoverRules = doc.createElement('style');
+					// Exercise the built hover rules in both browser fixture runners.
+					hoverRules.textContent = [
+						...doc.querySelector('link').sheet.cssRules,
+					]
+						.filter((rule) => rule.selectorText?.includes(':hover'))
+						.map(
+							(rule) =>
+								`${rule.selectorText.replaceAll(
+									':hover',
+									'.fixture-hover'
+								)} {${rule.style.cssText}}`
+						)
+						.join('\n');
+					doc.head.appendChild(hoverRules);
+					for (const link of links)
+						link.style.setProperty(
+							'transition',
+							'none',
+							'important'
+						);
+					const before = links.map((link) =>
+						link.getBoundingClientRect()
 					);
-				} else {
-					expect(win.getComputedStyle(nav).position).to.equal(
-						'fixed'
-					);
-					expect(bounds.left).to.be.closeTo(0, 1);
-					expect(bounds.top).to.be.closeTo(headerBounds.bottom, 1);
-					expect(bounds.width).to.be.closeTo(
-						width * (width <= 713 ? 0.9 : 0.6),
-						1
-					);
-					expect(bounds.bottom).to.be.closeTo(800, 1);
-				}
-			});
+					const background = win.getComputedStyle(
+						links[0]
+					).backgroundColor;
+					links[0].classList.add('fixture-hover');
+					links[0].parentElement.classList.add('fixture-hover');
+					links.forEach((link, index) => {
+						const after = link.getBoundingClientRect();
+						for (const dimension of ['x', 'y', 'width', 'height'])
+							expect(
+								after[dimension],
+								`${link.textContent} ${dimension} stays fixed on hover`
+							).to.be.closeTo(before[index][dimension], 0.5);
+					});
+					expect(
+						win.getComputedStyle(links[0]).backgroundColor
+					).not.to.equal(background);
+				});
 		});
 	});
 });
