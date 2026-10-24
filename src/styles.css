@@ -5728,7 +5728,10 @@ body .glowing {
 
 @media (max-width: 1260px) {
 	main.lobby {
-		grid-template-columns: 50% repeat(2, 1fr) !important;
+		grid-template-columns: min(50%, var(--lobby-tv-max-width, 50%)) repeat(
+				2,
+				1fr
+			) !important;
 		grid-template-rows: repeat(2, fit-content(0)) !important;
 		grid-template-areas:
 			'tv   app     app'
@@ -5889,12 +5892,8 @@ body .glowing {
 		overflow: hidden !important;
 	}
 
-	#main-wrap main:not(.analyse.is-relay:not(.has-relay-tour)) {
+	#main-wrap main:not(.lobby, .analyse.is-relay:not(.has-relay-tour)) {
 		grid-template-columns: 100% !important;
-	}
-
-	.lobby__side {
-		display: block !important;
 	}
 
 	.lobby__tv cg-container cg-board {
@@ -6207,6 +6206,10 @@ body .glowing {
 }
 
 @media (max-width: 713px) {
+	.lobby__side {
+		display: block !important;
+	}
+
 	::-webkit-scrollbar {
 		display: none !important;
 	}
