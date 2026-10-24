@@ -5906,6 +5906,7 @@ body .glowing {
 
 	.main-board:not(
 			.is3d *,
+			.board-editor *,
 			main.analyse.is-relay:not(.has-relay-tour) *,
 			main.round *
 		) {

@@ -773,6 +773,273 @@ describe('Test account menu open-state fixtures', () => {
 	});
 });
 
+describe('Test native editor geometry fixtures', () => {
+	beforeEach(cy.startup);
+
+	[
+		{mode: '2d', width: 390},
+		{mode: '2d', width: 649},
+		{mode: '2d', width: 650},
+		{mode: '2d', width: 740},
+		{mode: '3d', width: 740},
+		{mode: '2d', width: 799},
+		{mode: '2d', width: 800},
+		{mode: '2d', width: 1440},
+	].forEach(({mode, width}) => {
+		it(`Contains ${mode} editor board and controls at ${width}x900`, () => {
+			cy.document().then((doc) => {
+				const frame = doc.createElement('iframe');
+				frame.id = 'native-editor-geometry-fixture';
+				frame.style.cssText =
+					`width: ${width}px; height: 900px; border: 0; ` +
+					'max-width: none; flex-shrink: 0;';
+				const sparePieces = [
+					'pointer',
+					'king',
+					'queen',
+					'rook',
+					'bishop',
+					'knight',
+					'pawn',
+					'trash',
+				]
+					.map(
+						(role) =>
+							`<div class="no-square ${role}"><div><piece class="${role}"></piece></div></div>`
+					)
+					.join('');
+				frame.srcdoc = `<!doctype html><html><head><style>
+					*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+					html { font-size: 14px; }
+					body {
+						---board-scale: 1;
+						---site-header-height: 60px;
+						---site-header-margin: 0px;
+						---sticky-gap: .5vmin;
+					}
+					#top { height: var(---site-header-height); }
+					#main-wrap { display: grid; grid-template-areas: 'main'; margin-top: var(---sticky-gap); }
+					main { grid-area: main; }
+					.board-editor {
+						display: grid;
+						grid-template-columns: minmax(0, calc((100vh - 4vmin) * var(---board-scale) * .8 - (var(---site-header-height) + var(---site-header-margin) + var(---sticky-gap))));
+						grid-template-areas: 'spare-top' 'board' 'spare-bottom' 'tools' 'copyables';
+					}
+					@media (min-width: 649.3px) {
+						.board-editor {
+							grid-template-columns: minmax(30vmin, calc((100vh - 4vmin) * var(---board-scale) * .8 - (var(---site-header-height) + var(---site-header-margin) + var(---sticky-gap)))) 2vmin minmax(200px, 300px);
+							grid-template-rows: min-content auto min-content;
+							grid-template-areas:
+								'. . tools' 'spare-top . tools' 'board . tools'
+								'spare-bottom . tools' '. . tools' 'copyables . .';
+						}
+					}
+					.main-board { grid-area: board; position: relative; display: block; width: 100%; height: 0; padding-bottom: 100%; }
+					.cg-wrap { box-sizing: content-box; position: relative; display: block; }
+					.main-board .cg-wrap { position: absolute; width: 100%; height: 100%; }
+					cg-container, cg-board { position: absolute; display: block; top: 0; width: 100%; height: 100%; }
+					cg-container { right: 0; }
+					cg-board { left: 0; }
+					piece { position: absolute; width: 12.5%; height: 12.5%; top: 0; left: 0; z-index: 2; }
+					.is3d .main-board { padding-bottom: calc(100% * 476 / 512); margin-top: calc(var(---cg-height) * 2 / 100); }
+					.is3d .main-board .cg-wrap { height: calc(100% * 464.5 / 476); }
+					.is3d piece { width: 16.741%; height: 23.563%; left: -1.85%; top: -9.1%; }
+					.spare { display: flex; }
+					.spare-top { grid-area: spare-top; margin-bottom: 2vh; }
+					.spare-bottom { grid-area: spare-bottom; margin-top: 2vh; }
+					.spare .no-square { flex: 0 0 12.5%; }
+					.spare .no-square div { position: relative; width: 100%; height: 0; padding-bottom: 100%; }
+					.spare piece { width: 100%; height: 100%; }
+					.is3d .spare .no-square div { padding-bottom: 90.72%; }
+					.is3d .spare piece { width: 100%; height: 140.746%; left: 0; top: -34%; }
+					.board-editor__tools { grid-area: tools; align-self: center; display: flex; flex-direction: column; }
+					.board-editor__tools > * { margin: .5rem 0; }
+					.board-editor__tools select { width: 100%; }
+					.metadata, .castling, .actions { display: flex; flex-direction: column; }
+					.metadata { padding: 1rem; gap: .75rem; white-space: nowrap; }
+					.castling { gap: .3rem; }
+					.castling > div, .enpassant { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+					.castling label { display: flex; align-items: center; gap: .3rem; }
+					.metadata .enpassant select { width: 9ch; }
+					.actions .button { display: flex; align-items: center; width: 100%; text-align: start; }
+					button, select, input { font: inherit; }
+					button { border: 0; cursor: pointer; }
+					select { padding: .5em; }
+					.ceval-wrap { z-index: 4; }
+					.ceval { display: flex; align-items: stretch; column-gap: 6px; padding: 3px; }
+					.ceval .cmn-toggle { display: flex; align-items: center; flex: 0 0 40px; margin-inline-start: 6px; }
+					.cmn-toggle input { position: absolute; inset-inline-start: -99999px; }
+					.cmn-toggle label { display: block; position: relative; width: 40px; height: 24px; }
+					.ceval .engine { flex: 2 auto; font-size: 12px; line-height: 16px; white-space: nowrap; overflow: hidden; }
+					.ceval .settings-gear { margin: -3px 6px -3px 0; padding: 0 6px; }
+					.copyables { grid-area: copyables; margin: 2rem 0 0 1rem; }
+					.copyables p { display: flex; align-items: center; gap: 1em; }
+					.copyables input { flex: auto; min-width: 0; }
+				</style><link rel="stylesheet" href="/styles.css"><style>
+					@font-face { font-family: 'Red Hat Text'; src: url('/fonts/RedHatText-Regular.ttf'); }
+					@font-face { font-family: 'Red Hat Display'; src: url('/fonts/RedHatDisplay-Regular.ttf'); }
+				</style></head><body>
+					<header id="top">Lichess</header>
+					<div id="main-wrap" class="is${mode}"><main>
+						<div class="board-editor board-editor--standard">
+							<div class="spare spare-top">${sparePieces}</div>
+							<div class="main-board"><div class="cg-wrap"><cg-container><cg-board>
+								<piece class="black king"></piece>
+							</cg-board></cg-container></div></div>
+							<div class="spare spare-bottom">${sparePieces}</div>
+							<div class="board-editor__tools">
+								<div class="ceval-wrap"><div class="ceval">
+									<div class="cmn-toggle"><input id="editor-engine" class="cmn-toggle" type="checkbox"><label for="editor-engine" aria-label="Enable engine"></label></div>
+									<div class="engine">Local engine<br>in local browser</div>
+									<button class="settings-gear" aria-label="Engine settings">⚙</button>
+								</div></div>
+								<div class="metadata">
+									<div class="color"><select aria-label="Side to move"><option>White to play</option><option>Black to play</option></select></div>
+									<div class="castling"><strong>Castling rights</strong>
+										<div><label>White O-O<input type="checkbox" checked></label><label><input type="checkbox" checked>O-O-O</label></div>
+										<div><label>Black O-O<input type="checkbox" checked></label><label><input type="checkbox" checked>O-O-O</label></div>
+									</div>
+									<div class="enpassant"><label for="editor-enpassant">En passant</label><select id="editor-enpassant"><option>None</option></select></div>
+								</div>
+								<select class="positions" aria-label="Set the board"><option>Set the board</option><option>Starting position</option></select>
+								<div><select id="variants" aria-label="Variant"><option>Variant | Standard</option></select></div>
+								<div class="actions">
+									<button class="button button-empty">Starting position</button>
+									<button class="button button-empty">Clear board</button>
+									<button class="button button-empty">Flip board</button>
+									<a class="button button-empty" href="#analysis">Analysis board</a>
+								</div>
+							</div>
+							<div class="copyables"><p><strong>FEN</strong><input aria-label="FEN" value="8/8/8/8/8/8/8/8 w - - 0 1"></p></div>
+						</div>
+					</main></div>
+				</body></html>`;
+				doc.body.appendChild(frame);
+			});
+			cy.get('#native-editor-geometry-fixture')
+				.should(($frame) => {
+					expect(
+						$frame[0].contentDocument.querySelector('link')?.sheet
+							?.cssRules.length || 0,
+						'loaded built stylesheet'
+					).to.be.greaterThan(0);
+				})
+				.then(async ($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					await doc.fonts.ready;
+					// Match Chessground's pixel rounding without changing the native wrap ratio.
+					const wrap = doc
+						.querySelector('.cg-wrap')
+						.getBoundingClientRect();
+					const boardWidth =
+						(Math.floor((wrap.width * win.devicePixelRatio) / 8) *
+							8) /
+						win.devicePixelRatio;
+					const boardHeight = boardWidth * (wrap.height / wrap.width);
+					const container = doc.querySelector('cg-container');
+					container.style.width = `${boardWidth}px`;
+					container.style.height = `${boardHeight}px`;
+					doc.querySelector('.board-editor').style.setProperty(
+						'---cg-height',
+						`${boardHeight}px`
+					);
+				})
+				.should(($frame) => {
+					const doc = $frame[0].contentDocument;
+					const win = $frame[0].contentWindow;
+					const rect = (selector) =>
+						doc.querySelector(selector).getBoundingClientRect();
+					const board = rect('cg-board');
+					const outer = rect('.main-board');
+					const tools = rect('.board-editor__tools');
+					expect(win.innerWidth).to.equal(width);
+					if (width >= 650) {
+						expect(tools.left, 'tools beside board').to.be.at.least(
+							outer.right
+						);
+					} else {
+						expect(
+							tools.top,
+							'tools below board and spare pieces'
+						).to.be.at.least(rect('.spare-bottom').bottom);
+					}
+					expect(board.width, 'usable board').to.be.greaterThan(190);
+					expect(board.height / board.width).to.be.closeTo(
+						mode === '3d' ? 464.5 / 512 : 1,
+						0.0001
+					);
+					expect(outer.height / outer.width).to.be.closeTo(
+						mode === '3d' ? 476 / 512 : 1,
+						0.0001
+					);
+					expect(outer.left).to.be.at.least(0);
+					expect(outer.right).to.be.at.most(width);
+					expect(board.left).to.be.at.least(outer.left - 0.1);
+					expect(board.right).to.be.at.most(outer.right + 0.1);
+					expect(board.bottom).to.be.at.most(outer.bottom + 0.1);
+					for (const selector of ['.spare-top', '.spare-bottom']) {
+						expect(rect(selector).left).to.be.closeTo(
+							outer.left,
+							0.1
+						);
+						expect(rect(selector).right).to.be.closeTo(
+							outer.right,
+							0.1
+						);
+					}
+					expect(rect('.spare-top').bottom).to.be.at.most(outer.top);
+					expect(rect('.spare-bottom').top).to.be.at.least(
+						outer.bottom
+					);
+					expect(tools.right).to.be.at.most(width);
+					expect(rect('.copyables').top).to.be.at.least(
+						rect('.spare-bottom').bottom
+					);
+					for (const control of doc.querySelectorAll(
+						'.ceval-wrap, .metadata, .positions, #variants, .actions .button'
+					)) {
+						const controlRect = control.getBoundingClientRect();
+						expect(controlRect.left).to.be.at.least(tools.left);
+						expect(controlRect.right).to.be.at.most(tools.right);
+						expect(controlRect.top).to.be.at.least(tools.top);
+						expect(controlRect.bottom).to.be.at.most(tools.bottom);
+						expect(
+							controlRect.right <= outer.left ||
+								controlRect.left >= outer.right ||
+								controlRect.bottom <= outer.top ||
+								controlRect.top >= outer.bottom,
+							'control does not intersect board'
+						).to.equal(true);
+					}
+					expect(doc.documentElement.scrollWidth).to.be.at.most(
+						width
+					);
+				})
+				.then(($frame) => {
+					const doc = $frame[0].contentDocument;
+					for (const control of doc.querySelectorAll(
+						'cg-board, .cmn-toggle label, .settings-gear, select, .castling label, .actions .button, .copyables input'
+					)) {
+						control.scrollIntoView({block: 'center'});
+						const rect = control.getBoundingClientRect();
+						expect(rect.width).to.be.greaterThan(0);
+						expect(rect.height).to.be.greaterThan(0);
+						expect(
+							control.contains(
+								doc.elementFromPoint(
+									rect.left + rect.width / 2,
+									rect.top + rect.height / 2
+								)
+							),
+							'unobstructed editor board or control'
+						).to.equal(true);
+					}
+				});
+		});
+	});
+});
+
 describe('Test color pickrs', () => {
 	beforeEach(cy.startup);
 
